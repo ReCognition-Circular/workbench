@@ -1,0 +1,19 @@
+:80 {
+    redir https://{host}{uri} permanent
+}
+
+:443 {
+    tls internal
+    reverse_proxy web:8000
+    encode gzip
+    
+    handle /static/* {
+        root * /srv
+        file_server
+    }
+    
+    handle /media/* {
+        root * /srv
+        file_server
+    }
+}
