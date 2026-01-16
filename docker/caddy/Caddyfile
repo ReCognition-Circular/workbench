@@ -1,19 +1,3 @@
-:80 {
-    redir https://{host}{uri} permanent
-}
-
-:443 {
-    tls internal
+http://173.212.254.50 {
     reverse_proxy web:8000
-    encode gzip
-    
-    handle /static/* {
-        root * /srv
-        file_server
-    }
-    
-    handle /media/* {
-        root * /srv
-        file_server
-    }
 }
