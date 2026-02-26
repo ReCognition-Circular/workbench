@@ -1,0 +1,30 @@
+[33mcommit 862e2349478cce54820770a8f4a9833dc2e2d175[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: recogdavid <david@recognition-circular.org>
+Date:   Fri Jan 16 17:33:35 2026 +0100
+
+    Initial Workbench setup
+
+[33mcommit c0631e12f047b791311ace799458fbfca2e52f51[m
+Author: recogdavid <david@recognition-circular.org>
+Date:   Fri Jan 16 17:31:23 2026 +0100
+
+    caddy update
+
+[33mcommit efba9e8880782d166c16765b2ac35172e12598d7[m[33m ([m[1;31morigin/main[m[33m)[m
+Author: recogdavid <david@recognition-circular.org>
+Date:   Thu Jan 15 17:59:20 2026 +0100
+
+    Initial Django setup with PostgreSQL
+    
+    - Docker Compose configuration for web, db, redis, caddy
+    - Django settings with PostgreSQL database configuration
+    - Fixed template backend for Django 5.0 compatibility
+    - Created basic app structure (devices, locations, photos, workflow, api)
+    - Environment configuration with .env.example
+    - Ready for database migrations
+
+[33mcommit 9a7141f53a8ff39d1d465a2816a25aca04fed640[m
+Author: recogdavid <david@recognition-circular.org>
+Date:   Thu Jan 15 16:58:57 2026 +0100
+
+    Initial commit: Workbench project structure
