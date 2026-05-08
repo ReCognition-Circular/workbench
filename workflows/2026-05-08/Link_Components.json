@@ -1,0 +1,353 @@
+{
+  "updatedAt": "2026-04-30T14:37:23.676Z",
+  "createdAt": "2026-04-09T15:34:56.083Z",
+  "id": "Kn-zEE7VMcSoGkDPvQd9-",
+  "name": "Link Components",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"computer_id\": 793,\n  \"processor_id\": 279,\n  \"memory_id\": 201,\n  \"storage_id\": 320\n}"
+      },
+      "id": "ca634dad-0d3e-4738-8946-abb260e7efe5",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -560,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "5OzOJPR6FWJ9b4V8",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/5OzOJPR6FWJ9b4V8",
+          "cachedResultName": "GLPI Session Management"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -336,
+        448
+      ],
+      "id": "004382b1-703c-4129-a92c-f34650d64148",
+      "name": "Call 'GLPI Session Management'"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://172.16.0.178/apirest.php/Item_DeviceProcessor",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Session-Token",
+              "value": "={{ $json.session_token }}"
+            },
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"input\": {\n    \"items_id\": {{ $json.computer_id }},\n    \"itemtype\": \"Computer\",\n    \"deviceprocessors_id\": {{ $json.processor_id }}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        112,
+        176
+      ],
+      "id": "ea981329-462c-42c8-b84d-17c9050b0e3f",
+      "name": "Update Processor"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://172.16.0.178/apirest.php/Item_DeviceMemory",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Session-Token",
+              "value": "={{ $json.session_token }}"
+            },
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"input\": {\n    \"items_id\": {{ $json.computer_id }},\n    \"itemtype\": \"Computer\",\n    \"devicememories_id\": {{ $json.memory_id }}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        112,
+        368
+      ],
+      "id": "162ab658-5a4e-4b8b-a335-926f7b9b3fa4",
+      "name": "Update memory"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://172.16.0.178/apirest.php/Item_DeviceHardDrive",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Session-Token",
+              "value": "={{ $json.session_token }}"
+            },
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"input\": {\n    \"items_id\": {{ $json.computer_id }},\n    \"itemtype\": \"Computer\",\n    \"deviceharddrives_id\": {{ $json.storage_id }}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        112,
+        560
+      ],
+      "id": "91507254-ae5e-4a5e-b98b-6f7a0ee1a3e3",
+      "name": "Update storage"
+    },
+    {
+      "parameters": {
+        "jsCode": "// All data is now in one merged item\nconst mergedData = items[0]?.json || {};\n\nconsole.log('=== DEBUG: Final Merged Data ===');\nconsole.log('All keys:', Object.keys(mergedData));\n\nconst computerId = mergedData.computer_id;\nconst processorId = mergedData.processor_id;\nconst memoryId = mergedData.memory_id;\nconst storageId = mergedData.storage_id;\n\nconsole.log('Component IDs:', {\n  computer: computerId,\n  processor: processorId,\n  memory: memoryId,\n  storage: storageId\n});\n\n// Check HTTP responses\nconst processorSuccess = mergedData[processorId] === true;\nconst memorySuccess = mergedData[memoryId] === true;\nconst storageSuccess = mergedData[storageId] === true;\n\nconsole.log('Success checks:', {\n  [`processor (${processorId})`]: processorSuccess,\n  [`memory (${memoryId})`]: memorySuccess,\n  [`storage (${storageId})`]: storageSuccess\n});\n\nconst results = {\n  computer_id: computerId,\n  processor_updated: processorSuccess,\n  memory_updated: memorySuccess,\n  storage_updated: storageSuccess,\n  all_success: processorSuccess && memorySuccess && storageSuccess,\n  component_ids: {\n    processor: processorId,\n    memory: memoryId,\n    storage: storageId\n  },\n  // Show what was found\n  found_true_ids: Object.keys(mergedData).filter(key => mergedData[key] === true)\n};\n\nconsole.log('Final results:', results);\n\nreturn [{ json: results }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        272
+      ],
+      "id": "f4048975-3149-4e2f-a0d0-4479359db225",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -112,
+        368
+      ],
+      "id": "c64517dc-399b-496c-b73a-db331f9014ea",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 4,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        336,
+        240
+      ],
+      "id": "e6f158d7-05b3-4444-ba9a-d43238ef361d",
+      "name": "Merge1"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Call 'GLPI Session Management'",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'GLPI Session Management'": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Update Processor": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Update memory": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Update storage": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Update Processor",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update memory",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "computer_id": 829,
+          "processor_id": 358,
+          "memory_id": 248,
+          "storage_id": 411
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "versionId": "3c2990f0-d8c4-4335-98d2-13a02877a1f9",
+  "activeVersionId": "3c2990f0-d8c4-4335-98d2-13a02877a1f9",
+  "versionCounter": 206,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-04-09T15:34:56.145Z",
+      "createdAt": "2026-04-09T15:34:56.145Z",
+      "role": "workflow:owner",
+      "workflowId": "Kn-zEE7VMcSoGkDPvQd9-",
+      "projectId": "1QhMRJYuO8xtYfJD",
+      "project": {
+        "updatedAt": "2026-01-23T16:30:55.431Z",
+        "createdAt": "2026-01-22T15:39:16.810Z",
+        "id": "1QhMRJYuO8xtYfJD",
+        "name": "DAVID ABOSCH <david@recognition-circular.org>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1a262c4f-45e8-438c-8358-3323325186ca"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version 3c2990f0",
+    "description": ""
+  }
+}

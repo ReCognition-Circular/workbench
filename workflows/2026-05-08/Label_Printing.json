@@ -1,0 +1,194 @@
+{
+  "updatedAt": "2026-05-01T15:20:45.716Z",
+  "createdAt": "2026-05-01T09:20:39.150Z",
+  "id": "dJojjKQwZEjuklHz",
+  "name": "Label Printing",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.16.0.23:5000/print/label",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "inventory_number",
+              "value": "={{ $json.inventory_number }}"
+            },
+            {
+              "name": "model_name",
+              "value": "={{ $json.name }}"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        80
+      ],
+      "id": "9b0a8623-d3d5-40d6-890a-b70ae2e7f6a2",
+      "name": "call print service"
+    },
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"inventory_number\": \"12040051\",\n\"computermodels_id\": \"2028\"\n}"
+      },
+      "id": "0d66e3ae-8e4f-4f15-8f3c-5bcf1312d321",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT name FROM glpi_cache WHERE entity_type = 'model' AND glpi_id = {{ $json.computermodels_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        288,
+        80
+      ],
+      "id": "bf5f4a5e-7eed-4eeb-a5e1-e9666310264e",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "V7cbqAVqoEJ2eCid",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "35fd05a4-6a73-4e88-8180-7945f8af4afe",
+              "name": "inventory_number",
+              "value": "={{ $('Start').item.json.inventory_number }}",
+              "type": "string"
+            },
+            {
+              "id": "c767d638-a340-4f52-ad06-53f85a10deca",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        80
+      ],
+      "id": "033cb276-83d9-4198-ab87-2ec7fe786eaf",
+      "name": "Edit Fields"
+    }
+  ],
+  "connections": {
+    "call print service": {
+      "main": [
+        []
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "call print service",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "inventory_number": "65010012",
+          "computermodels_id": 2029
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "versionId": "078107dd-5dfa-4dab-b4b4-2c769a09dee2",
+  "activeVersionId": "8990be53-44fe-4ca0-b42e-ff51f9d554a7",
+  "versionCounter": 98,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-05-01T09:20:39.321Z",
+      "createdAt": "2026-05-01T09:20:39.321Z",
+      "role": "workflow:owner",
+      "workflowId": "dJojjKQwZEjuklHz",
+      "projectId": "1QhMRJYuO8xtYfJD",
+      "project": {
+        "updatedAt": "2026-01-23T16:30:55.431Z",
+        "createdAt": "2026-01-22T15:39:16.810Z",
+        "id": "1QhMRJYuO8xtYfJD",
+        "name": "DAVID ABOSCH <david@recognition-circular.org>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1a262c4f-45e8-438c-8358-3323325186ca"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

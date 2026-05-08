@@ -1,0 +1,467 @@
+{
+  "updatedAt": "2026-03-20T09:52:08.832Z",
+  "createdAt": "2026-03-05T13:40:00.285Z",
+  "id": "zVp6IXRAwSh8RF5h",
+  "name": "FOG Host Retrieval",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "url": "http://fog.recognition-circular.tep/fog/host",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "fog-api-token\t",
+              "value": "YzVlZTcwYTQyODc0ZGM0OGVkMTI1Mjk4MjhlMmRlMGE4MWQ5NzM1OGRmM2I5YTUwYTBhMzI3ZTlmZTQzMDI4ZDU5YzFiMzc1MWM5MTU2YzZmY2E2N2M1NWRlYTBjYTg4NzMxYWYwNTMxMjY0NWIyMDNhNDRlMTIxMThjNTFjM2I"
+            },
+            {
+              "name": "fog-user-token\t",
+              "value": "MTRmZTYzYjkxZmFmODVkMTg2ZWNhMTM4NTg0Yzg4ZmZiOGQzOWQwOGMwYzI4MzhkMzI4NTZmNTQwMzA2OGVhMTc2YzU0NWY3Y2UxYzg5OGY0ZDdjMjYyZTU4MDAyYWM3YThiN2VlNGJjYzA3Njg1YzA0YmU3OTQ1Yjk4OWJmYzQ"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -128,
+        1136
+      ],
+      "id": "288a44d7-28c9-4f4b-aada-03bd752a166a",
+      "name": "Get FOG hosts"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "19053dab-030e-46a9-ab62-29fe5fe2e4f5",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -352,
+        1136
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Standardize module output format - EXTRACT AND FILTER HOSTS FROM HTTP RESPONSE\nconst hosts = [];\nconst validHosts = [];\nconst errors = [];\n\n// The HTTP response contains {count: X, hosts: [...]}\n// We need to extract the hosts array from the first item\ntry {\n  const response = items[0].json;\n  \n  if (response && response.hosts && Array.isArray(response.hosts)) {\n    // Extract each host from the hosts array\n    for (const host of response.hosts) {\n      hosts.push(host);\n      \n      // Check if host has valid inventory data\n      if (host.inventory && host.inventory.id) {\n        // Check for valid serial number\n        const serial = host.inventory.sysserial;\n        if (serial && \n            serial !== 'System Serial Number' && \n            serial !== 'To be filled by O.E.M.' &&\n            serial !== 'Default string') {\n          validHosts.push(host);\n        }\n      }\n    }\n  } else {\n    errors.push({\n      json: {\n        error: true,\n        error_code: 'INVALID_RESPONSE_FORMAT',\n        error_message: 'HTTP response does not contain valid hosts array',\n        error_details: {\n          response_structure: response,\n          expected_structure: '{count: number, hosts: [...]}'\n        },\n        module_metadata: {\n          module_name: 'FOG_Host_Retrieval',\n          module_version: '1.0.0'\n        },\n        timestamp: new Date().toISOString()\n      }\n    });\n  }\n} catch (error) {\n  errors.push({\n    json: {\n      error: true,\n      error_code: 'HOST_EXTRACTION_ERROR',\n      error_message: `Failed to extract hosts: ${error.message}`,\n      error_details: {\n        error_stack: error.stack\n      },\n      module_metadata: {\n        module_name: 'FOG_Host_Retrieval',\n        module_version: '1.0.0'\n      },\n      timestamp: new Date().toISOString()\n    }\n  });\n}\n\n// Return single standardized output with only valid hosts\nreturn [{\n  json: {\n    success: true,\n    data: {\n      hosts: validHosts,  // Only valid hosts\n      total_hosts: hosts.length,\n      valid_hosts: validHosts.length,\n      invalid_hosts: hosts.length - validHosts.length,\n      retrieved_at: new Date().toISOString()\n    },\n    metadata: {\n      module_name: 'FOG_Host_Retrieval',\n      module_version: '1.0.0',\n      execution_id: $executionId,\n      items_processed: hosts.length,\n      source: 'fog_api'\n    }\n  }\n}, ...errors];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96,
+        1136
+      ],
+      "id": "f6400836-c231-4bfa-abd6-1b7dba0ac170",
+      "name": "Output Standardizer"
+    }
+  ],
+  "connections": {
+    "Get FOG hosts": {
+      "main": [
+        [
+          {
+            "node": "Output Standardizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Get FOG hosts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "global": {
+      "lastRunTime": "2026-03-19 14:59:44"
+    }
+  },
+  "meta": null,
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "id": 266,
+          "entity_type": "storage",
+          "glpi_id": 121,
+          "name": "KBG40ZNS256GNVMeKIOXIA256GB",
+          "normalized_name": "kbg40zns256gnvmekioxia256gb",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 0
+        }
+      },
+      {
+        "json": {
+          "id": 267,
+          "entity_type": "storage",
+          "glpi_id": 132,
+          "name": "KBG40ZNS512GNVMeKIOXIA512GB",
+          "normalized_name": "kbg40zns512gnvmekioxia512gb",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 1
+        }
+      },
+      {
+        "json": {
+          "id": 268,
+          "entity_type": "storage",
+          "glpi_id": 133,
+          "name": "BC711NVMeSKhynix512GB",
+          "normalized_name": "bc711nvmeskhynix512gb",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 2
+        }
+      },
+      {
+        "json": {
+          "id": 269,
+          "entity_type": "storage",
+          "glpi_id": 124,
+          "name": "WDCPCSN530SDBPNPZ-256G-1114",
+          "normalized_name": "wdcpcsn530sdbpnpz-256g-1114",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 3
+        }
+      },
+      {
+        "json": {
+          "id": 270,
+          "entity_type": "storage",
+          "glpi_id": 125,
+          "name": "PM991aNVMeSamsung256GB",
+          "normalized_name": "pm991anvmesamsung256gb",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 4
+        }
+      },
+      {
+        "json": {
+          "id": 271,
+          "entity_type": "storage",
+          "glpi_id": 131,
+          "name": "SKhynixBC501HFM256GDJTNG-8310A",
+          "normalized_name": "skhynixbc501hfm256gdjtng-8310a",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 5
+        }
+      },
+      {
+        "json": {
+          "id": 272,
+          "entity_type": "storage",
+          "glpi_id": 126,
+          "name": "TOSHIBA DT01ACA100",
+          "normalized_name": "toshiba dt01aca100",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 6
+        }
+      },
+      {
+        "json": {
+          "id": 273,
+          "entity_type": "storage",
+          "glpi_id": 130,
+          "name": "Unknown",
+          "normalized_name": "unknown",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 7
+        }
+      },
+      {
+        "json": {
+          "id": 274,
+          "entity_type": "storage",
+          "glpi_id": 128,
+          "name": "LITEON CV3-CE128-11 SATA 128GB",
+          "normalized_name": "liteon cv3-ce128-11 sata 128gb",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 8
+        }
+      },
+      {
+        "json": {
+          "id": 275,
+          "entity_type": "storage",
+          "glpi_id": 127,
+          "name": "Micron_1100_MTFDDAK256TBN",
+          "normalized_name": "micron_1100_mtfddak256tbn",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 9
+        }
+      },
+      {
+        "json": {
+          "id": 276,
+          "entity_type": "storage",
+          "glpi_id": 129,
+          "name": "MTFDDAV256TBN-1AR15ABHA",
+          "normalized_name": "mtfddav256tbn-1ar15abha",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 10
+        }
+      },
+      {
+        "json": {
+          "id": 277,
+          "entity_type": "storage",
+          "glpi_id": 123,
+          "name": "SAMSUNGMZVLB256HAHQ-000H1",
+          "normalized_name": "samsungmzvlb256hahq-000h1",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 11
+        }
+      },
+      {
+        "json": {
+          "id": 278,
+          "entity_type": "storage",
+          "glpi_id": 120,
+          "name": "KBG30ZMV256GTOSHIBA",
+          "normalized_name": "kbg30zmv256gtoshiba",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 12
+        }
+      },
+      {
+        "json": {
+          "id": 279,
+          "entity_type": "storage",
+          "glpi_id": 122,
+          "name": "KXG60ZNV256GNVMeTOSHIBA256GB",
+          "normalized_name": "kxg60znv256gnvmetoshiba256gb",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 13
+        }
+      },
+      {
+        "json": {
+          "id": 280,
+          "entity_type": "storage",
+          "glpi_id": 134,
+          "name": "MTFDDAV256TDL-1AW1ZABHA",
+          "normalized_name": "mtfddav256tdl-1aw1zabha",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 14
+        }
+      },
+      {
+        "json": {
+          "id": 281,
+          "entity_type": "storage",
+          "glpi_id": 135,
+          "name": "SAMSUNGMZVLB256HBHQ-000L7",
+          "normalized_name": "samsungmzvlb256hbhq-000l7",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 15
+        }
+      },
+      {
+        "json": {
+          "id": 282,
+          "entity_type": "storage",
+          "glpi_id": 136,
+          "name": "KXG5AZNV256GTOSHIBA",
+          "normalized_name": "kxg5aznv256gtoshiba",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 16
+        }
+      },
+      {
+        "json": {
+          "id": 283,
+          "entity_type": "storage",
+          "glpi_id": 137,
+          "name": "UMISRPJTJ512MEE1OWX",
+          "normalized_name": "umisrpjtj512mee1owx",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 17
+        }
+      },
+      {
+        "json": {
+          "id": 284,
+          "entity_type": "storage",
+          "glpi_id": 138,
+          "name": "SKHynix_HFM256GD3HX015N",
+          "normalized_name": "skhynix_hfm256gd3hx015n",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 18
+        }
+      },
+      {
+        "json": {
+          "id": 285,
+          "entity_type": "storage",
+          "glpi_id": 139,
+          "name": "HFM256GDHTNG-8510B",
+          "normalized_name": "hfm256gdhtng-8510b",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 19
+        }
+      },
+      {
+        "json": {
+          "id": 286,
+          "entity_type": "storage",
+          "glpi_id": 140,
+          "name": "SKHynix_HFM512GD3HX015N",
+          "normalized_name": "skhynix_hfm512gd3hx015n",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 20
+        }
+      },
+      {
+        "json": {
+          "id": 287,
+          "entity_type": "storage",
+          "glpi_id": 141,
+          "name": "SKHynix_HFS256GD9TNG-L5B0B",
+          "normalized_name": "skhynix_hfs256gd9tng-l5b0b",
+          "last_seen": "2026-03-20T09:34:22.573Z",
+          "created_at": "2026-03-20T09:34:22.573Z"
+        },
+        "binary": {},
+        "pairedItem": {
+          "item": 21
+        }
+      }
+    ]
+  },
+  "versionId": "a98c217d-44db-4423-919c-c5bd0b316a2e",
+  "activeVersionId": "a98c217d-44db-4423-919c-c5bd0b316a2e",
+  "versionCounter": 69,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-03-05T13:40:00.311Z",
+      "createdAt": "2026-03-05T13:40:00.311Z",
+      "role": "workflow:owner",
+      "workflowId": "zVp6IXRAwSh8RF5h",
+      "projectId": "1QhMRJYuO8xtYfJD",
+      "project": {
+        "updatedAt": "2026-01-23T16:30:55.431Z",
+        "createdAt": "2026-01-22T15:39:16.810Z",
+        "id": "1QhMRJYuO8xtYfJD",
+        "name": "DAVID ABOSCH <david@recognition-circular.org>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1a262c4f-45e8-438c-8358-3323325186ca"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version a98c217d",
+    "description": ""
+  }
+}

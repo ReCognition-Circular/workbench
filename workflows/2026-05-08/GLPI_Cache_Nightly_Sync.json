@@ -1,0 +1,263 @@
+{
+  "updatedAt": "2026-03-10T11:41:15.124Z",
+  "createdAt": "2026-03-06T12:17:41.392Z",
+  "id": "PJkljiu4d8BaRczau5Fy8",
+  "name": "GLPI Cache Nightly Sync",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 22
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "792f5daf-fde6-4cd9-9c3a-2932d81eef64",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Get the most recent last_seen timestamp from glpi_cache\n-- If no data, default to 24 hours ago\nSELECT \n  COALESCE(MAX(last_seen), NOW() - INTERVAL '24 hours') as last_sync_time,\n  COUNT(*) as cache_entries\nFROM glpi_cache;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        0
+      ],
+      "id": "278dc800-8a99-4a62-9f09-0f7adcf0e03f",
+      "name": "get last sync time",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "V7cbqAVqoEJ2eCid",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the last sync time from PostgreSQL query\nconst items = $input.all();\n\nconsole.log('=== DEBUG: Format Last Sync ===');\nconsole.log('Number of input items:', items.length);\n\nif (items.length > 0) {\n  const firstItem = items[0];\n  console.log('First item keys:', Object.keys(firstItem));\n  console.log('First item has json?', 'json' in firstItem);\n  \n  if (firstItem.json) {\n    console.log('JSON type:', typeof firstItem.json);\n    console.log('Is array?', Array.isArray(firstItem.json));\n    console.log('JSON value:', JSON.stringify(firstItem.json, null, 2));\n    \n    if (Array.isArray(firstItem.json) && firstItem.json.length > 0) {\n      console.log('First array element:', firstItem.json[0]);\n    }\n  }\n}\n\n// Try to extract data with fallback\nlet lastSyncTime = '1970-01-01 00:00:00';\n\nif (items.length > 0 && items[0].json) {\n  const jsonData = items[0].json;\n  \n  if (Array.isArray(jsonData) && jsonData.length > 0 && jsonData[0].last_sync_time) {\n    lastSyncTime = jsonData[0].last_sync_time;\n  } else if (typeof jsonData === 'object' && jsonData.last_sync_time) {\n    lastSyncTime = jsonData.last_sync_time;\n  }\n}\n\nconsole.log('Extracted last sync time:', lastSyncTime);\n\n// Check if it's the default date (first sync)\nconst isFirstSync = lastSyncTime === '1970-01-01 00:00:00';\nconsole.log('Is first sync?', isFirstSync);\n\n// Format for GLPI API (YYYY-MM-DD HH:MM:SS)\nconst date = new Date(lastSyncTime);\nconst formattedDate = date.toISOString().replace('T', ' ').substring(0, 19);\n\nconsole.log('Formatted date for GLPI:', formattedDate);\n\nreturn {\n  last_sync_time: lastSyncTime,\n  formatted_date: formattedDate,\n  is_first_sync: isFirstSync,\n  debug: {\n    inputStructure: items.length > 0 ? Object.keys(items[0]) : []\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        0
+      ],
+      "id": "60818e7a-d902-4746-ad7e-73bba5a06e15",
+      "name": "format last sync"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "5OzOJPR6FWJ9b4V8",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/5OzOJPR6FWJ9b4V8",
+          "cachedResultName": "GLPI Session Management"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "5461aef9-a5aa-4b22-b496-73ef58c38c3a",
+      "name": "Call 'GLPI Session Management'"
+    },
+    {
+      "parameters": {
+        "url": "http://172.16.0.178/apirest.php/Computer?range=0-500&expand_dropdowns=true&criteria[0][field]=4&criteria[0][searchtype]=morethan&criteria[0][value]={{ $json.last_sync_time }}&criteria[1][field]=40&criteria[1][searchtype]=equals&criteria[1][value]=0&app_token=n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "=criteria[0][field]=19&criteria[0][searchtype]=morethan&criteria[0][value]={{$node[\"format last sync\"].json.formatted_date}}&range=0-500"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "session-token",
+              "value": "={{ $json.session_token }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        832,
+        0
+      ],
+      "id": "60207ef9-8dc2-4b8a-a38d-76d08fc83484",
+      "name": "Get GLPI Computers"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Get column information for sync_history table\nSELECT \n  column_name,\n  data_type,\n  is_nullable,\n  column_default\nFROM information_schema.columns \nWHERE table_name = 'sync_history'\nORDER BY ordinal_position;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1072,
+        48
+      ],
+      "id": "282fbd2d-057b-4326-9d24-069a441c481f",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "V7cbqAVqoEJ2eCid",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        352,
+        144
+      ],
+      "id": "cdd2d464-bf43-49b7-8f37-340160b6025a",
+      "name": "Form",
+      "webhookId": "e956a052-f82c-45c5-b1b8-a04b0b8af867"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "get last sync time",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get last sync time": {
+      "main": [
+        [
+          {
+            "node": "format last sync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format last sync": {
+      "main": [
+        [
+          {
+            "node": "Call 'GLPI Session Management'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'GLPI Session Management'": {
+      "main": [
+        [
+          {
+            "node": "Get GLPI Computers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GLPI Computers": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "a8bb8c82-a568-4dea-a42c-8117741d604a",
+  "activeVersionId": "33c00394-5763-4d80-9c4d-7d7ebebafd8d",
+  "versionCounter": 104,
+  "triggerCount": 1,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-03-06T12:17:41.431Z",
+      "createdAt": "2026-03-06T12:17:41.431Z",
+      "role": "workflow:owner",
+      "workflowId": "PJkljiu4d8BaRczau5Fy8",
+      "projectId": "1QhMRJYuO8xtYfJD",
+      "project": {
+        "updatedAt": "2026-01-23T16:30:55.431Z",
+        "createdAt": "2026-01-22T15:39:16.810Z",
+        "id": "1QhMRJYuO8xtYfJD",
+        "name": "DAVID ABOSCH <david@recognition-circular.org>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1a262c4f-45e8-438c-8358-3323325186ca"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

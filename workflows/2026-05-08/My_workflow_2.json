@@ -1,0 +1,107 @@
+{
+  "updatedAt": "2026-03-05T13:15:52.000Z",
+  "createdAt": "2026-03-05T13:05:38.504Z",
+  "id": "QW9bKWF8e75F_LewGmHl7",
+  "name": "My workflow 2",
+  "description": null,
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "8503dc2f-2f40-4ab3-89f6-c364f0625082",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Standardize module input\nconst standardizedItems = items.map(item => ({\n  json: {\n    input_data: item.json,\n    metadata: {\n      workflow_id: $workflowId,\n      execution_id: $executionId,\n      timestamp: new Date().toISOString(),\n      source_module: 'manual_trigger'\n    },\n    error_handling: {\n      continue_on_error: true\n    }\n  }\n}));\n\nreturn standardizedItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "7f321b95-a8aa-4ee2-a98a-b7ab31520aa5",
+      "name": "Input Standardizer"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Module Processor Template\nconst results = [];\nconst errors = [];\n\nfor (const item of items) {\n  try {\n    const input = item.json.input_data;\n    \n    // YOUR MODULE LOGIC GOES HERE\n    const processedData = {\n      received_data: input,\n      processed_at: new Date().toISOString()\n    };\n    \n    results.push({\n      json: {\n        success: true,\n        data: processedData,\n        metadata: {\n          module_name: 'Template_Module',\n          items_processed: 1\n        }\n      }\n    });\n    \n  } catch (error) {\n    errors.push({\n      json: {\n        error: true,\n        error_message: error.message,\n        error_code: 'PROCESSING_ERROR'\n      }\n    });\n  }\n}\n\n// Return results + errors\nreturn [...results, ...errors];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ],
+      "id": "2ffd38b3-c217-40c9-8c81-d8e68ffefad0",
+      "name": "Module Processor"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Input Standardizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Standardizer": {
+      "main": [
+        [
+          {
+            "node": "Module Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "9a1d734a-fe7f-466e-b496-5219bc23d781",
+  "activeVersionId": null,
+  "versionCounter": 2,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-03-05T13:05:38.565Z",
+      "createdAt": "2026-03-05T13:05:38.565Z",
+      "role": "workflow:owner",
+      "workflowId": "QW9bKWF8e75F_LewGmHl7",
+      "projectId": "1QhMRJYuO8xtYfJD",
+      "project": {
+        "updatedAt": "2026-01-23T16:30:55.431Z",
+        "createdAt": "2026-01-22T15:39:16.810Z",
+        "id": "1QhMRJYuO8xtYfJD",
+        "name": "DAVID ABOSCH <david@recognition-circular.org>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1a262c4f-45e8-438c-8358-3323325186ca"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

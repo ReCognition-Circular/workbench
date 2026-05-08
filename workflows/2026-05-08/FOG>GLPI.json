@@ -1,0 +1,966 @@
+{
+  "updatedAt": "2026-02-26T16:30:50.982Z",
+  "createdAt": "2026-02-13T12:08:52.759Z",
+  "id": "VUp-DLJrS48eWXcZeQozT",
+  "name": "FOG>GLPI",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        512
+      ],
+      "id": "3a737007-eb0a-4afd-9aa5-ef005bb79b77",
+      "name": "When clicking \u2018Execute workflow\u2019"
+    },
+    {
+      "parameters": {
+        "url": "http://fog.recognition-circular.tep/fog/host",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "fog-api-token\t",
+              "value": "YzVlZTcwYTQyODc0ZGM0OGVkMTI1Mjk4MjhlMmRlMGE4MWQ5NzM1OGRmM2I5YTUwYTBhMzI3ZTlmZTQzMDI4ZDU5YzFiMzc1MWM5MTU2YzZmY2E2N2M1NWRlYTBjYTg4NzMxYWYwNTMxMjY0NWIyMDNhNDRlMTIxMThjNTFjM2I"
+            },
+            {
+              "name": "fog-user-token\t",
+              "value": "MTRmZTYzYjkxZmFmODVkMTg2ZWNhMTM4NTg0Yzg4ZmZiOGQzOWQwOGMwYzI4MzhkMzI4NTZmNTQwMzA2OGVhMTc2YzU0NWY3Y2UxYzg5OGY0ZDdjMjYyZTU4MDAyYWM3YThiN2VlNGJjYzA3Njg1YzA0YmU3OTQ1Yjk4OWJmYzQ"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        16,
+        512
+      ],
+      "id": "07469ccf-3b74-40aa-b8fd-a1038b69ccee",
+      "name": "Get FOG hosts"
+    },
+    {
+      "parameters": {
+        "url": "http://172.16.0.178/apirest.php/initSession",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Authorization",
+              "value": "user_token j5PWaDtm2Lq5zChSNt8lJld1Kks8HmuQ45tvSTaH"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1920,
+        864
+      ],
+      "id": "7331b6d3-264a-4aa7-b717-62d74a99738a",
+      "name": "get session token",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "062b2df8-561e-40f1-b2aa-79450b2cc6dc",
+              "name": "session_token",
+              "value": "={{ $json.session_token }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        -144
+      ],
+      "id": "62c3f5c5-50d0-4574-9ea6-2f99a4756e3a",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "url": "http://172.16.0.178/apirest.php/search/Computer/?criteria[0][field]=8&criteria[0][searchtype]=equals&criteria[0][value]={{ $json['Get FOG inventory'].json.serial }}&limit=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Session-Token",
+              "value": "={{ $json.session_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        224,
+        -368
+      ],
+      "id": "cef2a62d-ed0a-40fc-a09b-beac6928cbe4",
+      "name": "check for duplicates"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "455dff92-ef68-4bfd-8fe2-defa1dce98b6",
+              "leftValue": "={{ $json.totalcount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        -368
+      ],
+      "id": "9ca29bf4-3f4c-435b-a7c2-1c4629d04f7f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.16.0.178/apirest.php/Computer/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Session-Token",
+              "value": "={{ $('Edit Fields').item.json.session_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"input\": {\n    \"name\": \"{{ $json['Get FOG hosts'].json.name }}\",\n    \"serial\": \"{{ $json['Get FOG inventory'].json.serial }}\",\n    \"comment\": \"Imported from FOG via n8n. MAC: {{ $json['Get FOG hosts'].json.mac }}\",\n    \"states_id\": 1,\n    \"locations_id\": 1,\n    \"users_id\": 0,\n    \"groups_id\": 0\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        -368
+      ],
+      "id": "580fa5d0-a833-41f1-96f3-e34dfa5b6a4c",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get workflow static data (persists between runs)\nconst workflowData = $getWorkflowStaticData('global');\n\n// Initialize last run time if not set\nif (!workflowData.lastRunTime) {\n  workflowData.lastRunTime = '2026-01-01 00:00:00';\n}\n\nconst lastRunTime = workflowData.lastRunTime;\nconst currentRunTime = new Date().toISOString().replace('T', ' ').substring(0, 19);\n\n// Filter hosts created after last run\nconst newHosts = items[0].json.hosts.filter(host => {\n  // Parse createdTime (format: \"2026-01-24 16:10:27\")\n  const createdTime = host.createdTime;\n  \n  // Simple string comparison (works for this format)\n  return createdTime > lastRunTime;\n});\n\n// Update last run time for next execution\nworkflowData.lastRunTime = currentRunTime;\n\n// Return filtered hosts\nreturn newHosts.map(host => ({\n  json: host\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        512
+      ],
+      "id": "e8ef8dcc-f98f-4175-a9da-bd8b2fab907f",
+      "name": "Filter new hosts",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter hosts that have inventory data\nconst hostsWithInventory = items.filter(item => {\n  const host = item.json;\n  \n  // Check if inventory exists and has data\n  if (!host.inventory) return false;\n  \n  // Check if inventory has an ID (means it's populated)\n  if (!host.inventory.id) return false;\n  \n  // Check for valid serial number\n  const serial = host.inventory.sysserial;\n  if (!serial || \n      serial === 'System Serial Number' || \n      serial === 'To be filled by O.E.M.' ||\n      serial === 'Default string') {\n    return false;\n  }\n  \n  return true;\n});\n\nreturn hostsWithInventory;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        512
+      ],
+      "id": "094a2d15-ce13-4d87-a009-0c1159c3b42c",
+      "name": "Filter valid inventory hosts",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the FOG host data\nconst fogHost = items[0].json;\n\n// Check if we have inventory data\nif (!fogHost || !fogHost.inventory) {\n  return [{\n    json: {\n      name: 'ERROR-NoInventory',\n      serial: 'ERROR',\n      comment: 'No inventory data in FOG response',\n      model: 'Unknown',\n      type: 'Laptop',\n      states_id: 1,\n      locations_id: 1,\n      users_id: 0,\n      groups_id: 0,\n      computermodels_id: 1,\n      computertypes_id: 1,\n      manufacturers_id: 1,\n      is_dynamic: 1,\n      otherserial: 'Unknown'\n    }\n  }];\n}\n\n// Get inventory data\nconst inventory = fogHost.inventory;\n\n// Process the data\nconst manufacturer = inventory.sysman || '';\nconst model = inventory.sysproduct || '';\nconst glpiModel = `${manufacturer.toUpperCase().split(' ')[0]} ${model}`;\n\nconst fogType = inventory.systype || '';\nconst glpiType = fogType.includes('Notebook') || fogType.includes('Laptop') ? 'Laptop' : \n                 fogType.includes('Desktop') ? 'Desktop' : \n                 fogType.includes('Server') ? 'Server' : 'Laptop';\n\nconst memoryText = inventory.memory || '0.00 GiB';\nconst memoryGiB = parseFloat(memoryText.replace(' GiB', '')) || 0;\nconst memoryMB = Math.round(memoryGiB * 1024);\n\nconst comment = `FOG Import: ${manufacturer} ${model}\nCPU: ${inventory.cpuversion || 'Unknown'}\nRAM: ${memoryText}\nStorage: ${inventory.hdmodel || 'Unknown'}\nMAC: ${fogHost.primac || 'Unknown'}`;\n\n// Map manufacturer name to GLPI manufacturer ID\n// USING YOUR ACTUAL GLPI MANUFACTURER IDs\nlet manufacturers_id = 1; // Default to \"Unknown\" (ID 1 = XXXX)\n\nconst manufacturerLower = manufacturer.toLowerCase();\n\nif (manufacturerLower.includes('dell')) manufacturers_id = 7;\nif (manufacturerLower.includes('hp')) manufacturers_id = 6;\nif (manufacturerLower.includes('hewlett')) manufacturers_id = 6; // Hewlett-Packard\nif (manufacturerLower.includes('lenovo')) manufacturers_id = 5;\nif (manufacturerLower.includes('apple')) manufacturers_id = 9;\nif (manufacturerLower.includes('asus')) manufacturers_id = 13;\nif (manufacturerLower.includes('samsung')) manufacturers_id = 10;\nif (manufacturerLower.includes('microsoft')) manufacturers_id = 12;\nif (manufacturerLower.includes('intel')) manufacturers_id = 2;\nif (manufacturerLower.includes('amd')) manufacturers_id = 11;\nif (manufacturerLower.includes('fujitsu')) manufacturers_id = 8;\n\n// Map type to GLPI computertypes_id\nlet computertypes_id = 1; // Default to \"Desktop\"\nif (glpiType === 'Laptop') computertypes_id = 2; // Example ID for Laptop\nif (glpiType === 'Server') computertypes_id = 3; // Example ID for Server\n\n// Model lookup logic\nlet modelId = 1; // Default to ID 1 (\"Dell\" generic model)\n\n// Check if we have ComputerModel data (from connected node)\nif (items[1] && items[1].json) {\n  const computerModels = Array.isArray(items[1].json) ? items[1].json : [items[1].json];\n  \n  // Create search model name: \"Dell Latitude 3520\"\n  const searchModel = `Dell ${model}`;\n  \n  // Look for exact match\n  const foundModel = computerModels.find(m => m.name === searchModel);\n  \n  if (foundModel) {\n    modelId = foundModel.id;\n  } else {\n    // Try partial match (contains \"Latitude\")\n    const partialMatch = computerModels.find(m => m.name && m.name.includes(\"Latitude\"));\n    if (partialMatch) {\n      modelId = partialMatch.id; // Use any Latitude model\n    }\n    // Otherwise keep default ID 1\n  }\n}\n\n// Return processed data in GLPI format\nreturn [{\n  json: {\n    // GLPI required fields\n    name: fogHost.name || `FOG-${inventory.sysserial}`,\n    serial: inventory.sysserial || '',\n    comment: comment,\n    \n    // GLPI IDs (you need to check your actual GLPI IDs)\n    computermodels_id: modelId,  // Uses looked-up model ID\n    computertypes_id: computertypes_id,\n    manufacturers_id: manufacturers_id,\n    states_id: 1,                // Default state ID\n    locations_id: 1,             // Default location ID\n    users_id: 0,                 // 0 = no user assigned\n    groups_id: 0,                // 0 = no group assigned\n    \n    // Additional GLPI fields\n    is_dynamic: 1,               // IMPORTANT: 1 for inventory imports\n    otherserial: fogHost.primac || '',  // Store MAC address here\n    \n    // Optional: You can also send these if your GLPI has them\n    memory: memoryMB,            // Memory in MB\n    processors_id: 1,            // Default processor ID\n    computertypes_id: computertypes_id\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -368
+      ],
+      "id": "25c26c5a-c73e-4a57-8abf-dc75f7bd631f",
+      "name": "Process FOG data for GLPI"
+    },
+    {
+      "parameters": {
+        "url": "http://172.16.0.178/apirest.php/ComputerModel",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Session-Token",
+              "value": "={{ $json.session_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        496,
+        0
+      ],
+      "id": "1f800783-8143-4831-ac56-b4f75718f86d",
+      "name": "Get GLPI Computer Models",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "numberInputs": 5
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        0,
+        -1136
+      ],
+      "id": "00ecf430-7565-464b-aa1b-e931b948ae19",
+      "name": "Merge",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "url": "http://172.16.0.178/apirest.php/DeviceProcessor",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Session-Token",
+              "value": "={{ $('get session token').item.json.session_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        496,
+        192
+      ],
+      "id": "bbd4a99d-e733-4d70-96b6-c3f3b783eab3",
+      "name": "Get Processor Data",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull all items directly from each GLPI node by name\nconst manufacturers = $('Get GLPI Computer Manufacturer').all().map(i => i.json);\nconst computerTypes = $('Get GLPI Computer Type').all().map(i => i.json);\nconst models = $('Get GLPI Computer Models').all().map(i => i.json);\nconst processors = $('Get Processor Data').all().map(i => i.json);\nconst memory = $('Get Memory Data').all().map(i => i.json);\n\nreturn [{\n  json: {\n    manufacturers,\n    computer_types: computerTypes,\n    models,\n    processors,\n    memory,\n    counts: {\n      manufacturers: manufacturers.length,\n      computer_types: computerTypes.length,\n      models: models.length,\n      processors: processors.length,\n      memory: memory.length\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        160
+      ],
+      "id": "8d15b714-a0cf-4b8c-bb75-0eece9381045",
+      "name": "Separate combied data"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input 0: FOG hosts (if connected)\n// Input 1: GLPI Manufacturers\n// Input 2: GLPI Models  \n// Input 3: GLPI Processors\n// Input 4: GLPI Memory\n\n// Get each input array\nconst fogHosts = items[0]?.json || [];\nconst glpiManufacturers = items[1]?.json || [];\nconst glpiModels = items[2]?.json || [];\nconst glpiProcessors = items[3]?.json || [];\nconst glpiMemory = items[4]?.json || [];\n\n// Store in flow variables for later use\n$set('glpi_manufacturers', glpiManufacturers);\n$set('glpi_models', glpiModels);\n$set('glpi_processors', glpiProcessors);\n$set('glpi_memory', glpiMemory);\n\n// Return summary\nreturn [{\n  json: {\n    // Store all separated data\n    fog_hosts: fogHosts,\n    glpi_manufacturers: glpiManufacturers,\n    glpi_models: glpiModels,\n    glpi_processors: glpiProcessors,\n    glpi_memory: glpiMemory,\n    \n    // For processing\n    total_fog_hosts: fogHosts.length,\n    total_glpi_manufacturers: glpiManufacturers.length,\n    total_glpi_models: glpiModels.length,\n    total_glpi_processors: glpiProcessors.length,\n    total_glpi_memory: glpiMemory.length,\n    \n    // Debug info\n    input_count: items.length\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -592
+      ],
+      "id": "b974ede1-fca4-44d9-83ba-e34fa5340829",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        -816
+      ],
+      "id": "ab0e314a-9f28-4273-9319-f170d51657bd",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "url": "http://172.16.0.178/apirest.php/DeviceMemory",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Session-Token",
+              "value": "={{ $('get session token').item.json.session_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        496,
+        384
+      ],
+      "id": "666fa67a-5941-4783-9b83-9e2c902ebba8",
+      "name": "Get Memory Data",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "url": "http://172.16.0.178/apirest.php/ComputerType",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Session-Token",
+              "value": "={{ $json.session_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        496,
+        -192
+      ],
+      "id": "79af74c4-61ca-4eb1-9f31-e24e4536179a",
+      "name": "Get GLPI Computer Type",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "url": "http://172.16.0.178/apirest.php/Manufacturer",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Session-Token",
+              "value": "={{ $json.session_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        512,
+        -448
+      ],
+      "id": "a7c34eaa-1a43-4512-9ac5-c7134372b61d",
+      "name": "Get GLPI Computer Manufacturer",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get GLPI reference data from the earlier node\nconst refs = $('Separate combied data').first().json;\n\n// Current FOG host\nconst host = $input.item.json;\nconst inv = host.inventory;\n\n// Extract FOG values\nconst fogManufacturer = inv.sysman || '';\nconst fogModel = inv.sysproduct || '';\nconst fogCpu = (inv.cpuversion || '').split('@')[0].trim();\nconst fogMemGb = Math.round(parseFloat((inv.memory || '0').replace(' GiB', '')));\nconst fogSystype = inv.systype || '';\n\n// Lookup functions (case-insensitive)\nconst findManufacturer = name => refs.manufacturers.find(m => m.name.toLowerCase() === name.toLowerCase());\nconst findModel = name => refs.models.find(m => m.name.toLowerCase() === name.toLowerCase());\nconst findCpu = name => refs.processors.find(p => p.designation.toLowerCase() === name.toLowerCase());\nconst findMemory = gb => refs.memory.find(m => m.designation.toLowerCase() === `${gb}gb`);\nconst findType = type => refs.computer_types.find(t => t.name.toLowerCase() === type.toLowerCase());\n\nconst manufacturer = findManufacturer(fogManufacturer);\nconst model = findModel(fogModel);\nconst cpu = findCpu(fogCpu);\nconst memory = findMemory(fogMemGb);\nconst computerType = findType(fogSystype);\n\nreturn {\n  json: {\n    fog_id: host.id,\n    serial: inv.sysserial,\n    mac: host.primac,\n    manufacturer: { value: fogManufacturer, glpi_id: manufacturer?.id || null, exists: !!manufacturer },\n    model: { value: fogModel, glpi_id: model?.id || null, exists: !!model },\n    cpu: { value: fogCpu, glpi_id: cpu?.id || null, exists: !!cpu },\n    memory: { value: `${fogMemGb}GB`, glpi_id: memory?.id || null, exists: !!memory },\n    computer_type: { value: fogSystype, glpi_id: computerType?.id || null, exists: !!computerType }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        208
+      ],
+      "id": "173c2996-00f7-4cee-b64d-0fa10386abb7",
+      "name": "check attribute exists"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.16.0.178/apirest.php/Manufacturer",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Session-Token",
+              "value": "={{ $('Code in JavaScript1').item.json.session_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"input\": { \"name\": \"{{ $json.manufacturer.value }}\" } }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1968,
+        176
+      ],
+      "id": "7cfbf84e-c466-411e-85d3-dff71622553a",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sessionToken = $input.item.json.session_token;\nconst workflowData = $getWorkflowStaticData('global');\nworkflowData.session_token = sessionToken;\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "ccf78a6a-dab8-435d-99dd-9368ce87ec4b",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract Specs from FOG Hosts\n// Input: Array of items, each with a host object in items[i].json\n// Output: Array of normalized specs for cache lookup\n\nconst results = [];\n\n// Normalization function\nfunction normalizeName(value) {\n  if (!value || typeof value !== 'string') return 'Unknown';\n  \n  return value\n    .toLowerCase()\n    .replace(/^type:\\s*/i, '') // Remove \"Type: \" prefix\n    .replace(/\\s*\\([^)]*\\)/g, '') // Remove parentheses content\n    .replace(/\\s+/g, ' ') // Normalize whitespace\n    .trim();\n}\n\n// Process each item\nfor (const item of items) {\n  const fogHost = item.json;\n  \n  // Check if we have inventory data\n  if (!fogHost || !fogHost.inventory) {\n    results.push({\n      json: {\n        error: 'No inventory data',\n        fog_host_id: fogHost?.id || 'unknown',\n        normalized_manufacturer: 'Unknown',\n        normalized_model: 'Unknown',\n        normalized_processor: 'Unknown',\n        normalized_memory: 'Unknown',\n        normalized_storage: 'Unknown',\n        normalized_computer_type: 'Unknown'\n      }\n    });\n    continue;\n  }\n\n  const inventory = fogHost.inventory;\n\n  // Extract and normalize specs\n  const normalized_manufacturer = normalizeName(inventory.sysman || 'Unknown');\n  const normalized_model = normalizeName(inventory.sysproduct || 'Unknown');\n  const normalized_processor = normalizeName(inventory.cpuversion || 'Unknown');\n  const normalized_memory = normalizeName(inventory.memory || 'Unknown');\n  const normalized_storage = normalizeName(inventory.hdmodel || 'Unknown');\n  const normalized_computer_type = normalizeName(inventory.systype || 'Unknown');\n\n  // Add to results\n  results.push({\n    json: {\n      fog_host_id: fogHost.id,\n      fog_host_name: fogHost.name,\n      normalized_manufacturer,\n      normalized_model,\n      normalized_processor,\n      normalized_memory,\n      normalized_storage,\n      normalized_computer_type,\n      \n      // Keep original values for reference\n      original_manufacturer: inventory.sysman || 'Unknown',\n      original_model: inventory.sysproduct || 'Unknown',\n      original_processor: inventory.cpuversion || 'Unknown',\n      original_memory: inventory.memory || 'Unknown',\n      original_storage: inventory.hdmodel || 'Unknown',\n      original_computer_type: inventory.systype || 'Unknown'\n    }\n  });\n}\n\n// Return all results\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        512
+      ],
+      "id": "fd68cb99-d1f0-4174-b498-4d76676e8a35",
+      "name": "extract specs"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Lookup manufacturer\nSELECT entity_type, glpi_id, name \nFROM glpi_cache \nWHERE entity_type = 'manufacturer' \n  AND normalized_name = $1\n\nUNION ALL\n\n-- Lookup model - use partial matching since cache has generic brands\nSELECT entity_type, glpi_id, name \nFROM glpi_cache \nWHERE entity_type = 'model' \n  AND ($2 LIKE '%' || normalized_name || '%' OR normalized_name LIKE '%' || $2 || '%')\n\nUNION ALL\n\n-- Lookup processor - extract just the processor model number\nSELECT entity_type, glpi_id, name \nFROM glpi_cache \nWHERE entity_type = 'processor' \n  AND normalized_name LIKE '%' || \n      CASE \n        WHEN $3 LIKE '%i5-1135g7%' THEN '1135'\n        WHEN $3 LIKE '%i7-1185g7%' THEN '1185' \n        WHEN $3 LIKE '%i5-8265u%' THEN '8265'\n        WHEN $3 LIKE '%i5-7200u%' THEN '7200'\n        WHEN $3 LIKE '%i5-6200u%' THEN '6200'\n        WHEN $3 LIKE '%i5-8250u%' THEN '8250'\n        WHEN $3 LIKE '%ryzen 3 2200u%' THEN '2200'\n        ELSE regexp_replace($3, '[^0-9]', '', 'g')\n      END || '%'\n\nUNION ALL\n\n-- Lookup memory - round to nearest whole number and match\nSELECT entity_type, glpi_id, name \nFROM glpi_cache \nWHERE entity_type = 'memory' \n  AND normalized_name LIKE '%' || \n      CASE \n        WHEN $4 LIKE '%7.5%' OR $4 LIKE '%15.3%' THEN '8'\n        WHEN $4 LIKE '%3.5%' OR $4 LIKE '%3.6%' OR $4 LIKE '%3.7%' THEN '4'\n        WHEN $4 LIKE '%1.7%' THEN '2'\n        WHEN $4 LIKE '%6.6%' THEN '8'\n        WHEN $4 LIKE '%31.2%' THEN '32'\n        ELSE regexp_replace($4, '[^0-9]', '', 'g')\n      END || '%'\n\nUNION ALL\n\n-- Lookup computer type\nSELECT entity_type, glpi_id, name \nFROM glpi_cache \nWHERE entity_type = 'computer_type' \n  AND normalized_name LIKE '%' || replace($5, 'type: ', '') || '%'\n\nUNION ALL\n\n-- Lookup storage\nSELECT entity_type, glpi_id, name \nFROM glpi_cache \nWHERE entity_type = 'storage' \n  AND normalized_name LIKE '%' || regexp_replace($6, '[^0-9]', '', 'g') || '%';",
+        "options": {
+          "queryReplacement": "={{ $json.normalized_manufacturer }}, {{ $json.normalized_model }}, {{ $json.normalized_processor }}, {{ $json.normalized_memory }}, {{ $json.normalized_computer_type }}, {{ $json.normalized_storage }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        928,
+        608
+      ],
+      "id": "69e3057f-4656-4d47-8dfb-bb91a475c605",
+      "name": "Match Against Cache",
+      "credentials": {
+        "postgres": {
+          "id": "V7cbqAVqoEJ2eCid",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the extracted specs\nconst extractedSpecs = $json.extracted_specs;\n\n// Collect cache matches from the merged data\nconst cacheMatches = [];\n\n// Check if we have entity_type and glpi_id at root level (from PostgreSQL query)\nif ($json.entity_type && $json.glpi_id && $json.name) {\n  cacheMatches.push({\n    entity_type: $json.entity_type,\n    glpi_id: $json.glpi_id,\n    name: $json.name\n  });\n}\n\n// Group cache matches by entity_type for easy lookup\nconst matchesByType = {};\ncacheMatches.forEach(match => {\n  if (!matchesByType[match.entity_type]) {\n    matchesByType[match.entity_type] = [];\n  }\n  matchesByType[match.entity_type].push(match);\n});\n\n// Map our entity types to GLPI itemtypes\nconst glpiItemtypeMap = {\n  'manufacturer': 'Manufacturer',\n  'model': 'ComputerModel',\n  'processor': 'DeviceProcessor',\n  'memory': 'DeviceMemory',\n  'computer_type': 'ComputerType'\n};\n\n// Identify missing attributes\nconst missingAttributes = [];\n\n// Check manufacturer\nif (!matchesByType['manufacturer'] || matchesByType['manufacturer'].length === 0) {\n  missingAttributes.push({\n    entity_type: 'manufacturer',\n    glpi_itemtype: 'Manufacturer',\n    name: extractedSpecs.manufacturer,\n    normalized_name: extractedSpecs.manufacturer_normalized\n  });\n}\n\n// Check model\nif (!matchesByType['model'] || matchesByType['model'].length === 0) {\n  missingAttributes.push({\n    entity_type: 'model',\n    glpi_itemtype: 'ComputerModel',\n    name: extractedSpecs.model,\n    normalized_name: extractedSpecs.model_normalized\n  });\n}\n\n// Check processor\nif (!matchesByType['processor'] || matchesByType['processor'].length === 0) {\n  missingAttributes.push({\n    entity_type: 'processor',\n    glpi_itemtype: 'DeviceProcessor',\n    name: extractedSpecs.processor,\n    normalized_name: extractedSpecs.processor_normalized\n  });\n}\n\n// Check memory\nif (!matchesByType['memory'] || matchesByType['memory'].length === 0) {\n  missingAttributes.push({\n    entity_type: 'memory',\n    glpi_itemtype: 'DeviceMemory',\n    name: extractedSpecs.memory,\n    normalized_name: extractedSpecs.memory_normalized\n  });\n}\n\n// Check computer_type\nif (!matchesByType['computer_type'] || matchesByType['computer_type'].length === 0) {\n  missingAttributes.push({\n    entity_type: 'computer_type',\n    glpi_itemtype: 'ComputerType',\n    name: extractedSpecs.computer_type,\n    normalized_name: extractedSpecs.computer_type_normalized\n  });\n}\n\n// Add the structured data to the output\nreturn {\n  ...$json,\n  cache_matches: cacheMatches,\n  cache_matches_by_type: matchesByType,\n  missing_attributes: missingAttributes,\n  glpi_itemtype_map: glpiItemtypeMap\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        528
+      ],
+      "id": "e61e5c22-24ba-4f2c-83e6-2c27a1fe76ce",
+      "name": "Identify missing attributes"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1104,
+        512
+      ],
+      "id": "fd71450d-bcf0-447f-87b5-af566d0c54f5",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2336,
+        464
+      ],
+      "id": "a01e37a5-5a61-4e50-8051-e17fd2600b17",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract just the missing attributes array\nconst missingAttributes = $json.missing_attributes;\n\n// Return an array of missing attribute objects\nreturn missingAttributes.map(attr => ({\n  ...attr,\n  // Include some parent data if needed\n  host_id: $json.id,\n  host_name: $json.name,\n  serial_number: $json.extracted_specs.serial_number\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        528
+      ],
+      "id": "96b206a9-aa96-41c1-9b7b-55efa8578ff1",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://172.16.0.178/apirest.php/Manufacturer",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Session-Token",
+              "value": "={{ $('get session token').item.json.session_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"input\": {\n    \"name\": \"{{$json.name}}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2464,
+        496
+      ],
+      "id": "103046ea-691c-4e52-8a1d-f7f5edb04d13",
+      "name": "update manufaturer"
+    }
+  ],
+  "connections": {
+    "When clicking \u2018Execute workflow\u2019": {
+      "main": [
+        [
+          {
+            "node": "Get FOG hosts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get FOG hosts": {
+      "main": [
+        [
+          {
+            "node": "Filter new hosts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get session token": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        []
+      ]
+    },
+    "check for duplicates": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter new hosts": {
+      "main": [
+        [
+          {
+            "node": "Filter valid inventory hosts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter valid inventory hosts": {
+      "main": [
+        [
+          {
+            "node": "extract specs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process FOG data for GLPI": {
+      "main": [
+        [
+          {
+            "node": "check for duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GLPI Computer Models": {
+      "main": [
+        [
+          {
+            "node": "Separate combied data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        []
+      ]
+    },
+    "Get Processor Data": {
+      "main": [
+        [
+          {
+            "node": "Separate combied data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separate combied data": {
+      "main": [
+        []
+      ]
+    },
+    "Get Memory Data": {
+      "main": [
+        [
+          {
+            "node": "Separate combied data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GLPI Computer Type": {
+      "main": [
+        [
+          {
+            "node": "Separate combied data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GLPI Computer Manufacturer": {
+      "main": [
+        [
+          {
+            "node": "Separate combied data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check attribute exists": {
+      "main": [
+        []
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Get GLPI Computer Manufacturer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get GLPI Computer Type",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get GLPI Computer Models",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Processor Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Memory Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract specs": {
+      "main": [
+        [
+          {
+            "node": "Match Against Cache",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Against Cache": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Identify missing attributes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identify missing attributes": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "update manufaturer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "get session token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update manufaturer": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "21a20b7e-bff0-471e-97f1-fd0108b1917b",
+  "activeVersionId": null,
+  "versionCounter": 800,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-02-13T12:08:52.842Z",
+      "createdAt": "2026-02-13T12:08:52.842Z",
+      "role": "workflow:owner",
+      "workflowId": "VUp-DLJrS48eWXcZeQozT",
+      "projectId": "1QhMRJYuO8xtYfJD",
+      "project": {
+        "updatedAt": "2026-01-23T16:30:55.431Z",
+        "createdAt": "2026-01-22T15:39:16.810Z",
+        "id": "1QhMRJYuO8xtYfJD",
+        "name": "DAVID ABOSCH <david@recognition-circular.org>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1a262c4f-45e8-438c-8358-3323325186ca"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

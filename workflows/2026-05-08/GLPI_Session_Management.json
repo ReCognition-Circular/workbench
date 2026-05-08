@@ -1,0 +1,112 @@
+{
+  "updatedAt": "2026-03-05T13:36:53.988Z",
+  "createdAt": "2026-03-05T13:36:53.988Z",
+  "id": "5OzOJPR6FWJ9b4V8",
+  "name": "GLPI Session Management",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "curlImport": "",
+        "method": "GET",
+        "url": "http://172.16.0.178/apirest.php/initSession",
+        "authentication": "none",
+        "provideSslCertificates": false,
+        "sendQuery": false,
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Authorization",
+              "value": "user_token j5PWaDtm2Lq5zChSNt8lJld1Kks8HmuQ45tvSTaH"
+            }
+          ]
+        },
+        "sendBody": false,
+        "options": {},
+        "infoMessage": ""
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2048,
+        640
+      ],
+      "id": "42749f37-c790-42f8-8d0d-fe271b09f61d",
+      "name": "get session token",
+      "executeOnce": false
+    },
+    {
+      "id": "54a18ae4-5c53-4d19-a3f2-73cc6f62a114",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        1840,
+        640
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "get session token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "b7bf9d05-3ecd-45da-b43f-5bb03faaaba3",
+  "activeVersionId": "b7bf9d05-3ecd-45da-b43f-5bb03faaaba3",
+  "versionCounter": 19,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-03-05T13:36:54.018Z",
+      "createdAt": "2026-03-05T13:36:54.018Z",
+      "role": "workflow:owner",
+      "workflowId": "5OzOJPR6FWJ9b4V8",
+      "projectId": "1QhMRJYuO8xtYfJD",
+      "project": {
+        "updatedAt": "2026-01-23T16:30:55.431Z",
+        "createdAt": "2026-01-22T15:39:16.810Z",
+        "id": "1QhMRJYuO8xtYfJD",
+        "name": "DAVID ABOSCH <david@recognition-circular.org>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1a262c4f-45e8-438c-8358-3323325186ca"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

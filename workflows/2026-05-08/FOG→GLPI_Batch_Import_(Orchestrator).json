@@ -1,0 +1,316 @@
+{
+  "updatedAt": "2026-05-01T14:39:34.093Z",
+  "createdAt": "2026-03-05T13:46:42.880Z",
+  "id": "kqS6EaewGa5yZsqcD7zwf",
+  "name": "FOG\u2192GLPI Batch Import (Orchestrator)",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -368
+      ],
+      "id": "208d2d25-cb63-48be-99d3-2797b20dd7bc",
+      "name": "When clicking \u2018Execute workflow\u2019"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "OplL5zzmgqdnTKu0",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/OplL5zzmgqdnTKu0",
+          "cachedResultName": "GLPI check for duplicates"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        -272
+      ],
+      "id": "ab1d0cdf-b393-44f4-8f0c-5c09ceb0bb95",
+      "name": "Call 'GLPI check for duplicates'",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "lMQzfq7dsr6qPNJS",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/lMQzfq7dsr6qPNJS",
+          "cachedResultName": "FOG hosts to GLPI inventory"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        -272
+      ],
+      "id": "cf4d95f2-2095-45c3-b19b-d95d555116f1",
+      "name": "Call 'FOG hosts to GLPI inventory'",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "9327G7LUPDLlRLVX",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/9327G7LUPDLlRLVX",
+          "cachedResultName": "GLPI Computer Creation"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        896,
+        -368
+      ],
+      "id": "17f15bd7-dda6-4bce-a637-553329fd2ae5",
+      "name": "Call 'GLPI Computer Creation'",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "zVp6IXRAwSh8RF5h",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/zVp6IXRAwSh8RF5h",
+          "cachedResultName": "FOG Host Retrieval"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        -464
+      ],
+      "id": "71b5a287-4ef7-4e45-9b35-6e190198580d",
+      "name": "Call 'FOG Host Retrieval'"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        -368
+      ],
+      "id": "c6e43300-e2c2-4fcf-8c2e-fe793b37a8af",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "dJojjKQwZEjuklHz",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/dJojjKQwZEjuklHz",
+          "cachedResultName": "Label Printing"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "inventory_number": "={{ $json.inventory_number }}"
+          },
+          "matchingColumns": [
+            "inventory_number"
+          ],
+          "schema": [
+            {
+              "id": "inventory_number",
+              "displayName": "inventory_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1072,
+        -368
+      ],
+      "id": "a72e1910-1d56-48a1-a90c-4522873d2c25",
+      "name": "Call 'Label Printing'"
+    }
+  ],
+  "connections": {
+    "When clicking \u2018Execute workflow\u2019": {
+      "main": [
+        [
+          {
+            "node": "Call 'FOG Host Retrieval'",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Call 'GLPI check for duplicates'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'GLPI check for duplicates'": {
+      "main": [
+        [
+          {
+            "node": "Call 'FOG hosts to GLPI inventory'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'FOG hosts to GLPI inventory'": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Call 'FOG Host Retrieval'": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'GLPI Computer Creation'": {
+      "main": [
+        [
+          {
+            "node": "Call 'Label Printing'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Call 'GLPI Computer Creation'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When clicking \u2018Execute workflow\u2019": [
+      {
+        "json": {},
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "versionId": "d0f481d5-18b3-4b92-b32a-f3903a49906f",
+  "activeVersionId": null,
+  "versionCounter": 116,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-03-05T13:46:42.934Z",
+      "createdAt": "2026-03-05T13:46:42.934Z",
+      "role": "workflow:owner",
+      "workflowId": "kqS6EaewGa5yZsqcD7zwf",
+      "projectId": "1QhMRJYuO8xtYfJD",
+      "project": {
+        "updatedAt": "2026-01-23T16:30:55.431Z",
+        "createdAt": "2026-01-22T15:39:16.810Z",
+        "id": "1QhMRJYuO8xtYfJD",
+        "name": "DAVID ABOSCH <david@recognition-circular.org>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1a262c4f-45e8-438c-8358-3323325186ca"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

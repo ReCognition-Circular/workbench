@@ -1,0 +1,248 @@
+{
+  "updatedAt": "2026-03-19T15:01:58.223Z",
+  "createdAt": "2026-03-10T14:49:59.141Z",
+  "id": "OplL5zzmgqdnTKu0",
+  "name": "GLPI check for duplicates",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "c84c3694-401f-43f8-bb98-23651e74090d",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        1840,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "zVp6IXRAwSh8RF5h",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/zVp6IXRAwSh8RF5h",
+          "cachedResultName": "FOG Host Retrieval"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2064,
+        480
+      ],
+      "id": "e77a1699-0688-4c41-aeea-64ee1bea1b1f",
+      "name": "Call 'FOG Host Retrieval'"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract serial numbers from FOG hosts\n// Input: Multiple items, each containing one FOG host object\n// Output: {hosts_with_serials: [...]} with serials extracted\n\nconsole.log(`Processing ${items.length} FOG host items`);\n\nconst hostsWithSerials = [];\n\n// Process each item (each contains one FOG host)\nfor (const item of items) {\n  const host = item.json;\n  \n  // Extract serial from inventory.sysserial\n  const serial = host?.inventory?.sysserial || null;\n  \n  hostsWithSerials.push({\n    original_host: host,\n    serial: serial,\n    has_serial: !!serial,\n    mac_address: host?.primac || null,\n    host_name: host?.name || null,\n    host_id: host?.id || null\n  });\n}\n\nconsole.log(`Extracted ${hostsWithSerials.length} serial numbers`);\n\n// Return for next step (query cache)\nreturn [{ json: { hosts_with_serials: hostsWithSerials } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2288,
+        480
+      ],
+      "id": "29499e97-0c4f-4a37-b6cd-31ef1837f008",
+      "name": "Extract serial numbers"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare serials for PostgreSQL query\nconst hostsWithSerials = items[0].json.hosts_with_serials || [];\n\n// Extract only serials that exist (not null)\nconst serials = [];\nfor (const host of hostsWithSerials) {\n  if (host.serial && host.serial.trim() !== '') {\n    serials.push(host.serial);\n  }\n}\n\n// Format for PostgreSQL IN clause: ('serial1','serial2','serial3')\nconst serialsForQuery = serials.length > 0 \n  ? `('${serials.join(\"','\")}')`\n  : \"('')\"; // Empty query if no serials\n\n// Return data for next steps\nreturn [{\n  json: {\n    serials_for_query: serialsForQuery,\n    serials_list: serials,\n    hosts_with_serials: hostsWithSerials,\n    total_serials: serials.length\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2512,
+        480
+      ],
+      "id": "521bd8ad-e69c-408a-93c1-d151da1bcc43",
+      "name": "format for query"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the FOG data (from \"Extract serials\" node)\nconst fogItems = items;\n\n// Get the existing serials from PostgreSQL cache\n// We need to access the PostgreSQL output differently\n// First, let's check what data we have\nconsole.log(\"Available data structure:\");\nconsole.log(JSON.stringify(items, null, 2));\n\n// For now, let's assume the PostgreSQL results are in items[0]\n// and the FOG data is in items[1] or similar\n// We need to restructure this properly\n\n// Let's get the existing serials from the PostgreSQL output\nconst existingSerials = [];\nif (items[0] && items[0].json && Array.isArray(items[0].json)) {\n  // PostgreSQL returns array of {serial: \"value\"}\n  items[0].json.forEach(item => {\n    if (item.serial) {\n      existingSerials.push(item.serial);\n    }\n  });\n}\n\n// Get the FOG data - it should be in a different item\nconst fogData = items[1] || items[0]; // Try different positions\n\n// Filter out items that already exist in cache\nlet newItems = [];\nif (fogData && fogData.json && fogData.json.hosts_with_serials) {\n  newItems = fogData.json.hosts_with_serials.filter(host => {\n    return !existingSerials.includes(host.serial);\n  });\n}\n\n// Log what we found\nconsole.log(`Existing serials in cache: ${existingSerials.length}`);\nconsole.log(`New items to process: ${newItems.length}`);\n\n// Return only new items\nreturn [{ json: { filtered_hosts: newItems, existing_serials: existingSerials } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3184,
+        480
+      ],
+      "id": "0d851d3b-dd38-4ded-a03f-a76a7d1042ff",
+      "name": "Remove duplicates"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT serial FROM glpi_computers_cache WHERE serial IN {{ $json.serials_for_query }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2736,
+        560
+      ],
+      "id": "59c213aa-cd79-45d3-bcb1-208d53203020",
+      "name": "Extract serial numbers cache",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "V7cbqAVqoEJ2eCid",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2960,
+        480
+      ],
+      "id": "d634d22c-b9b7-47d6-b8bd-bb77d03f60ab",
+      "name": "Merge"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Call 'FOG Host Retrieval'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'FOG Host Retrieval'": {
+      "main": [
+        [
+          {
+            "node": "Extract serial numbers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract serial numbers": {
+      "main": [
+        [
+          {
+            "node": "format for query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format for query": {
+      "main": [
+        [
+          {
+            "node": "Extract serial numbers cache",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract serial numbers cache": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Remove duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "Start": [
+      {
+        "json": {},
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "versionId": "24c93445-65e1-407a-b78f-c6f91fb32fc3",
+  "activeVersionId": "24c93445-65e1-407a-b78f-c6f91fb32fc3",
+  "versionCounter": 79,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-03-10T14:49:59.160Z",
+      "createdAt": "2026-03-10T14:49:59.160Z",
+      "role": "workflow:owner",
+      "workflowId": "OplL5zzmgqdnTKu0",
+      "projectId": "1QhMRJYuO8xtYfJD",
+      "project": {
+        "updatedAt": "2026-01-23T16:30:55.431Z",
+        "createdAt": "2026-01-22T15:39:16.810Z",
+        "id": "1QhMRJYuO8xtYfJD",
+        "name": "DAVID ABOSCH <david@recognition-circular.org>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1a262c4f-45e8-438c-8358-3323325186ca"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version 24c93445",
+    "description": ""
+  }
+}

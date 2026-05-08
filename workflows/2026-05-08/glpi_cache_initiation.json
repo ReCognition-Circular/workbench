@@ -1,0 +1,893 @@
+{
+  "updatedAt": "2026-02-26T16:20:16.031Z",
+  "createdAt": "2026-02-26T09:34:48.246Z",
+  "id": "M7Naqlq66rYdxpec33s1v",
+  "name": "glpi cache initiation",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6b743beb-b8e4-4660-af56-f186abfb51c2",
+      "name": "When clicking \u2018Execute workflow\u2019"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Manufacturers data from GLPI\nconst manufacturers = [\n  { \"id\": 1, \"name\": \"XXXX\", \"comment\": \"\", \"date_mod\": \"2025-02-12 17:51:50\", \"date_creation\": \"2025-02-12 17:51:50\" },\n  { \"id\": 2, \"name\": \"Intel\", \"comment\": \"\", \"date_mod\": \"2025-02-23 12:54:24\", \"date_creation\": \"2025-02-23 12:54:24\" },\n  { \"id\": 3, \"name\": \"Polycom\", \"comment\": \"\", \"date_mod\": \"2025-03-07 10:49:49\", \"date_creation\": \"2025-03-07 10:49:49\" },\n  { \"id\": 4, \"name\": \"Yealink\", \"comment\": \"\", \"date_mod\": \"2025-03-07 11:01:50\", \"date_creation\": \"2025-03-07 11:01:50\" },\n  { \"id\": 5, \"name\": \"Lenovo\", \"comment\": \"\", \"date_mod\": \"2025-03-07 14:11:43\", \"date_creation\": \"2025-03-07 14:11:43\" },\n  { \"id\": 6, \"name\": \"HP\", \"comment\": \"\", \"date_mod\": \"2025-03-07 15:03:18\", \"date_creation\": \"2025-03-07 15:03:18\" },\n  { \"id\": 7, \"name\": \"DELL\", \"comment\": \"\", \"date_mod\": \"2025-03-13 12:03:27\", \"date_creation\": \"2025-03-13 12:03:27\" },\n  { \"id\": 8, \"name\": \"Fujitsu\", \"comment\": \"\", \"date_mod\": \"2025-03-14 11:18:56\", \"date_creation\": \"2025-03-14 11:18:56\" },\n  { \"id\": 9, \"name\": \"Apple\", \"comment\": \"\", \"date_mod\": \"2025-04-03 08:08:51\", \"date_creation\": \"2025-04-03 08:08:51\" },\n  { \"id\": 10, \"name\": \"Samsung\", \"comment\": null, \"date_mod\": \"2025-07-18 11:37:48\", \"date_creation\": \"2025-07-18 11:37:48\" },\n  { \"id\": 11, \"name\": \"AMD\", \"comment\": \"\", \"date_mod\": \"2025-08-29 08:50:27\", \"date_creation\": \"2025-08-29 08:50:27\" },\n  { \"id\": 12, \"name\": \"Microsoft\", \"comment\": \"\", \"date_mod\": \"2025-09-25 12:32:07\", \"date_creation\": \"2025-09-25 12:32:07\" },\n  { \"id\": 13, \"name\": \"Asus\", \"comment\": \"\", \"date_mod\": \"2025-09-25 12:48:38\", \"date_creation\": \"2025-09-25 12:48:38\" },\n  { \"id\": 14, \"name\": \"Geo\", \"comment\": \"\", \"date_mod\": \"2025-11-28 16:25:17\", \"date_creation\": \"2025-11-28 16:25:17\" }\n];\n\n// Transform to cache format - n8n expects array of items\nconst items = manufacturers.map(manufacturer => {\n  return {\n    json: {\n      entity_type: 'manufacturer',\n      glpi_id: manufacturer.id,\n      name: manufacturer.name,\n      normalized_name: manufacturer.name.toLowerCase().trim()\n    }\n  };\n});\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "57aaeb19-936f-46ae-a500-a6593e59f664",
+      "name": "Load Manufacturers"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "glpi_cache_view",
+          "mode": "list",
+          "cachedResultName": "glpi_cache_view"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "glpi_id": "={{ $json.glpi_id }}",
+            "entity_type": "={{ $json.entity_type }}",
+            "name": "={{ $json.name }}",
+            "normalized_name": "={{ $json.normalized_name }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "entity_type",
+              "displayName": "entity_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "glpi_id",
+              "displayName": "glpi_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "normalized_name",
+              "displayName": "normalized_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_seen",
+              "displayName": "last_seen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        416,
+        0
+      ],
+      "id": "a5877023-e170-45bb-841c-c6ca211df059",
+      "name": "Insert Manufacturers to Cache",
+      "credentials": {
+        "postgres": {
+          "id": "V7cbqAVqoEJ2eCid",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Models data from GLPI\nconst models = [\n  {\n    \"id\": 1,\n    \"name\": \"Dell\",\n    \"comment\": null,\n    \"product_number\": \"Xps\",\n    \"weight\": 0,\n    \"required_units\": 1,\n    \"depth\": 1,\n    \"power_connections\": 0,\n    \"power_consumption\": 0,\n    \"is_half_rack\": 0,\n    \"picture_front\": null,\n    \"picture_rear\": null,\n    \"pictures\": null,\n    \"date_mod\": \"2025-02-11 18:19:20\",\n    \"date_creation\": \"2025-02-11 18:19:20\"\n  },\n  {\n    \"id\": 2,\n    \"name\": \"HP\",\n    \"comment\": null,\n    \"product_number\": \"Spectre X360 14\",\n    \"weight\": 0,\n    \"required_units\": 1,\n    \"depth\": 1,\n    \"power_connections\": 0,\n    \"power_consumption\": 0,\n    \"is_half_rack\": 0,\n    \"picture_front\": null,\n    \"picture_rear\": null,\n    \"pictures\": null,\n    \"date_mod\": \"2025-02-11 18:19:20\",\n    \"date_creation\": \"2025-02-11 18:19:20\"\n  },\n  {\n    \"id\": 3,\n    \"name\": \"Lenovo\",\n    \"comment\": null,\n    \"product_number\": \"X1 Carbon Gen 11\",\n    \"weight\": 0,\n    \"required_units\": 1,\n    \"depth\": 1,\n    \"power_connections\": 0,\n    \"power_consumption\": 0,\n    \"is_half_rack\": 0,\n    \"picture_front\": null,\n    \"picture_rear\": null,\n    \"pictures\": null,\n    \"date_mod\": \"2025-02-11 18:19:20\",\n    \"date_creation\": \"2025-02-11 18:19:20\"\n  },\n  {\n    \"id\": 4,\n    \"name\": \"Apple\",\n    \"comment\": null,\n    \"product_number\": \"Mac Pro\",\n    \"weight\": 0,\n    \"required_units\": 1,\n    \"depth\": 1,\n    \"power_connections\": 0,\n    \"power_consumption\": 0,\n    \"is_half_rack\": 0,\n    \"picture_front\": null,\n    \"picture_rear\": null,\n    \"pictures\": null,\n    \"date_mod\": \"2025-02-11 18:19:20\",\n    \"date_creation\": \"2025-02-11 18:19:20\"\n  },\n  {\n    \"id\": 5,\n    \"name\": \"Dell Xps XPS 13 9315\",\n    \"comment\": null,\n    \"product_number\": null,\n    \"weight\": 0,\n    \"required_units\": 1,\n    \"depth\": 1,\n    \"power_connections\": 0,\n    \"power_consumption\": 0,\n    \"is_half_rack\": 0,\n    \"picture_front\": null,\n    \"picture_rear\": null,\n    \"pictures\": null,\n    \"date_mod\": \"2025-02-11 18:44:54\",\n    \"date_creation\": \"2025-02-11 18:44:54\"\n  },\n  {\n    \"id\": 6,\n    \"name\": \"Dell Xps XPS 15 9520\",\n    \"comment\": null,\n    \"product_number\": null,\n    \"weight\": 0,\n    \"required_units\": 1,\n    \"depth\": 1,\n    \"power_connections\": 0,\n    \"power_consumption\": 0,\n    \"is_half_rack\": 0,\n    \"picture_front\": null,\n    \"picture_rear\": null,\n    \"pictures\": null,\n    \"date_mod\": \"2025-02-11 18:44:54\",\n    \"date_creation\": \"2025-02-11 18:44:54\"\n  },\n  {\n    \"id\": 7,\n    \"name\": \"Dell Xps XPS 17 9720\",\n    \"comment\": null,\n    \"product_number\": null,\n    \"weight\": 0,\n    \"required_units\": 1,\n    \"depth\": 1,\n    \"power_connections\": 0,\n    \"power_consumption\": 0,\n    \"is_half_rack\": 0,\n    \"picture_front\": null,\n    \"picture_rear\": null,\n    \"pictures\": null,\n    \"date_mod\": \"2025-02-11 18:44:54\",\n    \"date_creation\": \"2025-02-11 18:44:54\"\n  },\n  {\n    \"id\": 8,\n    \"name\": \"Dell Latitude 7440\",\n    \"comment\": null,\n    \"product_number\": null,\n    \"weight\": 0,\n    \"required_units\": 1,\n    \"depth\": 1,\n    \"power_connections\": 0,\n    \"power_consumption\": 0,\n    \"is_half_rack\": 0,\n    \"picture_front\": null,\n    \"picture_rear\": null,\n    \"pictures\": null,\n    \"date_mod\": \"2025-02-11 18:44:54\",\n    \"date_creation\": \"2025-02-11 18:44:54\"\n  },\n  {\n    \"id\": 9,\n    \"name\": \"Dell Latitude 5440\",\n    \"comment\": null,\n    \"product_number\": null,\n    \"weight\": 0,\n    \"required_units\": 1,\n    \"depth\": 1,\n    \"power_connections\": 0,\n    \"power_consumption\": 0,\n    \"is_half_rack\": 0,\n    \"picture_front\": null,\n    \"picture_rear\": null,\n    \"pictures\": null,\n    \"date_mod\": \"2025-02-11 18:44:54\",\n    \"date_creation\": \"2025-02-11 18:44:54\"\n  },\n  {\n    \"id\": 10,\n    \"name\": \"Dell Latitude 3440\",\n    \"comment\": null,\n    \"product_number\": null,\n    \"weight\": 0,\n    \"required_units\": 1,\n    \"depth\": 1,\n    \"power_connections\": 0,\n    \"power_consumption\": 0,\n    \"is_half_rack\": 0,\n    \"picture_front\": null,\n    \"picture_rear\": null,\n    \"pictures\": null,\n    \"date_mod\": \"2025-02-11 18:44:54\",\n    \"date_creation\": \"2025-02-11 18:44:54\"\n  },\n  {\n    \"id\": 11,\n    \"name\": \"Dell Precision 5480\",\n    \"comment\": null,\n    \"product_number\": null,\n    \"weight\": 0,\n    \"required_units\": 1,\n    \"depth\": 1,\n    \"power_connections\": 0,\n    \"power_consumption\": 0,\n    \"is_half_rack\": 0,\n    \"picture_front\": null,\n    \"picture_rear\": null,\n    \"pictures\": null,\n    \"date_mod\": \"2025-02-11 18:44:54\",\n    \"date_creation\": \"2025-02-11 18:44:54\"\n  },\n  {\n    \"id\": 12,\n    \"name\": \"Dell Precision 7680\",\n    \"comment\": null,\n    \"product_number\": null,\n    \"weight\": 0,\n    \"required_units\": 1,\n    \"depth\": 1,\n    \"power_connections\": 0,\n    \"power_consumption\": 0,\n    \"is_half_rack\": 0,\n    \"picture_front\": null,\n    \"picture_rear\": null,\n    \"pictures\": null,\n    \"date_mod\": \"2025-02-11 18:44:54\",\n    \"date_creation\": \"2025-02-11 18:44:54\"\n  },\n  {\n    \"id\": 13,\n    \"name\": \"Dell Inspiron 16 Plus 7630\",\n    \"comment\": null,\n    \"product_number\": null,\n    \"weight\": 0,\n    \"required_units\": 1,\n    \"depth\": 1,\n    \"power_connections\": 0,\n    \"power_consumption\": 0,\n    \"is_half_rack\": 0,\n    \"picture_front\": null,\n    \"picture_rear\": null,\n    \"pictures\": null,\n    \"date_mod\": \"2025-02-11 18:44:54\",\n    \"date_creation\": \"2025-02-11 18:44:54\"\n  },\n  {\n    \"id\": 14,\n    \"name\": \"Dell Inspiron 14 5430\",\n    \"comment\": null,\n    \"product_number\": null,\n    \"weight\": 0,\n    \"required_units\": 1,\n    \"depth\": 1,\n    \"power_connections\": 0,\n    \"power_consumption\": 0,\n    \"is_half_rack\": 0,\n    \"picture_front\": null,\n    \"picture_rear\": null,\n    \"pictures\": null,\n    \"date_mod\": \"2025-02-11 18:44:54\",\n    \"date_creation\": \"2025-02-11 18:44:54\"\n  },\n  {\n    \"id\": 15,\n    \"name\": \"Dell Inspiron 15 3530\",\n    \"comment\": null,\n    \"product_number\": null,\n    \"weight\": 0,\n    \"required_units\": 1,\n    \"depth\": 1,\n    \"power_connections\": 0,\n    \"power_consumption\": 0,\n    \"is_half_rack\": 0,\n    \"picture_front\": null,\n    \"picture_rear\": null,\n    \"pictures\": null,\n    \"date_mod\": \"2025-02-11 18:44:54\",\n    \"date_creation\": \"2025-02-11 18:44:54\"\n  }\n];\n\n// Transform to cache format\nconst items = models.map(model => {\n  return {\n    json: {\n      entity_type: 'model',\n      glpi_id: model.id,\n      name: model.name,\n      normalized_name: model.name.toLowerCase().trim()\n    }\n  };\n});\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "d48cac6d-25ec-45b6-8ae1-538b2c9195f8",
+      "name": "Load Moelds"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "glpi_cache_view",
+          "mode": "list",
+          "cachedResultName": "glpi_cache_view"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "glpi_id": "={{ $json.glpi_id }}",
+            "entity_type": "={{ $json.entity_type }}",
+            "name": "={{ $json.name }}",
+            "normalized_name": "={{ $json.normalized_name }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "entity_type",
+              "displayName": "entity_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "glpi_id",
+              "displayName": "glpi_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "normalized_name",
+              "displayName": "normalized_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_seen",
+              "displayName": "last_seen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        832,
+        0
+      ],
+      "id": "3bea66ca-a296-484d-ae6f-5f9d97edba1f",
+      "name": "Insert rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "V7cbqAVqoEJ2eCid",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Computer Types data from GLPI\nconst computerTypes = [\n  {\n    \"id\": 1,\n    \"name\": \"Laptop\",\n    \"comment\": \"\",\n    \"date_mod\": \"2025-02-12 17:35:34\",\n    \"date_creation\": \"2025-02-12 17:35:34\"\n  },\n  {\n    \"id\": 2,\n    \"name\": \"Desktop\",\n    \"comment\": \"\",\n    \"date_mod\": \"2025-02-12 17:35:40\",\n    \"date_creation\": \"2025-02-12 17:35:40\"\n  },\n  {\n    \"id\": 3,\n    \"name\": \"All in One\",\n    \"comment\": \"\",\n    \"date_mod\": \"2025-02-12 17:35:47\",\n    \"date_creation\": \"2025-02-12 17:35:47\"\n  },\n  {\n    \"id\": 4,\n    \"name\": \"Tablet\",\n    \"comment\": \"\",\n    \"date_mod\": \"2025-02-12 17:35:52\",\n    \"date_creation\": \"2025-02-12 17:35:52\"\n  },\n  {\n    \"id\": 9,\n    \"name\": \"Type: Notebook\",\n    \"comment\": null,\n    \"date_mod\": \"2025-09-02 15:21:44\",\n    \"date_creation\": \"2025-09-02 15:21:44\"\n  },\n  {\n    \"id\": 10,\n    \"name\": \"Type: Convertible\",\n    \"comment\": null,\n    \"date_mod\": \"2025-10-02 13:03:59\",\n    \"date_creation\": \"2025-10-02 13:03:59\"\n  },\n  {\n    \"id\": 11,\n    \"name\": \"BDB-Donation\",\n    \"comment\": \"\",\n    \"date_mod\": \"2026-02-12 09:34:19\",\n    \"date_creation\": \"2026-02-12 09:34:19\"\n  }\n];\n\n// Transform to cache format\nconst items = computerTypes.map(type => {\n  return {\n    json: {\n      entity_type: 'computer_type',\n      glpi_id: type.id,\n      name: type.name,\n      normalized_name: type.name.toLowerCase().trim()\n    }\n  };\n});\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        144
+      ],
+      "id": "e7f4e9e1-701e-4aa7-9c45-a315a4bfe358",
+      "name": "Load Types"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "glpi_cache_view",
+          "mode": "list",
+          "cachedResultName": "glpi_cache_view"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "glpi_id": "={{ $json.glpi_id }}",
+            "entity_type": "={{ $json.entity_type }}",
+            "name": "={{ $json.name }}",
+            "normalized_name": "={{ $json.normalized_name }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "entity_type",
+              "displayName": "entity_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "glpi_id",
+              "displayName": "glpi_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "normalized_name",
+              "displayName": "normalized_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_seen",
+              "displayName": "last_seen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        352,
+        144
+      ],
+      "id": "9509681e-f459-4027-a871-9e08d95d1993",
+      "name": "Insert rows in a table1",
+      "credentials": {
+        "postgres": {
+          "id": "V7cbqAVqoEJ2eCid",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Processors data from GLPI\nconst processors = [\n  {\n    \"id\": 1,\n    \"designation\": \"Core i9-13900K\",\n    \"frequence\": 5800,\n    \"comment\": \"13\",\n    \"manufacturers_id\": 2,\n    \"frequency_default\": 0,\n    \"nbcores_default\": 24,\n    \"nbthreads_default\": 32,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceprocessormodels_id\": 1,\n    \"date_mod\": \"2025-02-23 12:54:24\",\n    \"date_creation\": \"2025-02-23 12:54:24\"\n  },\n  {\n    \"id\": 2,\n    \"designation\": \"Core i7-13700K\",\n    \"frequence\": 5400,\n    \"comment\": \"13\",\n    \"manufacturers_id\": 2,\n    \"frequency_default\": 0,\n    \"nbcores_default\": 16,\n    \"nbthreads_default\": 24,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceprocessormodels_id\": 2,\n    \"date_mod\": \"2025-02-23 12:54:24\",\n    \"date_creation\": \"2025-02-23 12:54:24\"\n  },\n  {\n    \"id\": 3,\n    \"designation\": \"Core i5-13600K\",\n    \"frequence\": 5100,\n    \"comment\": \"13\",\n    \"manufacturers_id\": 2,\n    \"frequency_default\": 0,\n    \"nbcores_default\": 14,\n    \"nbthreads_default\": 20,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceprocessormodels_id\": 3,\n    \"date_mod\": \"2025-02-23 12:54:24\",\n    \"date_creation\": \"2025-02-23 12:54:24\"\n  },\n  {\n    \"id\": 4,\n    \"designation\": \"Core i9-12900K\",\n    \"frequence\": 5200,\n    \"comment\": \"12\",\n    \"manufacturers_id\": 2,\n    \"frequency_default\": 0,\n    \"nbcores_default\": 16,\n    \"nbthreads_default\": 24,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceprocessormodels_id\": 4,\n    \"date_mod\": \"2025-02-23 12:54:24\",\n    \"date_creation\": \"2025-02-23 12:54:24\"\n  },\n  {\n    \"id\": 5,\n    \"designation\": \"Core i7-12700K\",\n    \"frequence\": 5000,\n    \"comment\": \"12\",\n    \"manufacturers_id\": 2,\n    \"frequency_default\": 0,\n    \"nbcores_default\": 12,\n    \"nbthreads_default\": 20,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceprocessormodels_id\": 5,\n    \"date_mod\": \"2025-02-23 12:54:24\",\n    \"date_creation\": \"2025-02-23 12:54:24\"\n  },\n  {\n    \"id\": 6,\n    \"designation\": \"Core i5-12600K\",\n    \"frequence\": 4900,\n    \"comment\": \"12\",\n    \"manufacturers_id\": 2,\n    \"frequency_default\": 0,\n    \"nbcores_default\": 10,\n    \"nbthreads_default\": 16,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceprocessormodels_id\": 6,\n    \"date_mod\": \"2025-02-23 12:54:24\",\n    \"date_creation\": \"2025-02-23 12:54:24\"\n  },\n  {\n    \"id\": 7,\n    \"designation\": \"Core i9-11900K\",\n    \"frequence\": 5300,\n    \"comment\": \"11\",\n    \"manufacturers_id\": 2,\n    \"frequency_default\": 0,\n    \"nbcores_default\": 8,\n    \"nbthreads_default\": 16,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceprocessormodels_id\": 7,\n    \"date_mod\": \"2025-02-23 12:54:24\",\n    \"date_creation\": \"2025-02-23 12:54:24\"\n  },\n  {\n    \"id\": 8,\n    \"designation\": \"Core i7-11700K\",\n    \"frequence\": 5000,\n    \"comment\": \"11\",\n    \"manufacturers_id\": 2,\n    \"frequency_default\": 0,\n    \"nbcores_default\": 8,\n    \"nbthreads_default\": 16,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceprocessormodels_id\": 8,\n    \"date_mod\": \"2025-02-23 12:54:24\",\n    \"date_creation\": \"2025-02-23 12:54:24\"\n  },\n  {\n    \"id\": 9,\n    \"designation\": \"Core i5-11600K\",\n    \"frequence\": 4900,\n    \"comment\": \"11\",\n    \"manufacturers_id\": 2,\n    \"frequency_default\": 0,\n    \"nbcores_default\": 6,\n    \"nbthreads_default\": 12,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceprocessormodels_id\": 9,\n    \"date_mod\": \"2025-02-23 12:54:24\",\n    \"date_creation\": \"2025-02-23 12:54:24\"\n  },\n  {\n    \"id\": 10,\n    \"designation\": \"Core i9-10900K\",\n    \"frequence\": 5300,\n    \"comment\": \"10\",\n    \"manufacturers_id\": 2,\n    \"frequency_default\": 0,\n    \"nbcores_default\": 10,\n    \"nbthreads_default\": 20,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceprocessormodels_id\": 10,\n    \"date_mod\": \"2025-02-23 12:54:24\",\n    \"date_creation\": \"2025-02-23 12:54:24\"\n  },\n  {\n    \"id\": 11,\n    \"designation\": \"Core i7-10700K\",\n    \"frequence\": 5100,\n    \"comment\": \"10\",\n    \"manufacturers_id\": 2,\n    \"frequency_default\": 0,\n    \"nbcores_default\": 8,\n    \"nbthreads_default\": 16,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceprocessormodels_id\": 11,\n    \"date_mod\": \"2025-02-23 12:54:24\",\n    \"date_creation\": \"2025-02-23 12:54:24\"\n  },\n  {\n    \"id\": 12,\n    \"designation\": \"Core i5-10600K\",\n    \"frequence\": 4800,\n    \"comment\": \"10\",\n    \"manufacturers_id\": 2,\n    \"frequency_default\": 0,\n    \"nbcores_default\": 6,\n    \"nbthreads_default\": 12,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceprocessormodels_id\": 12,\n    \"date_mod\": \"2025-02-23 12:54:24\",\n    \"date_creation\": \"2025-02-23 12:54:24\"\n  },\n  {\n    \"id\": 13,\n    \"designation\": \"Core i9-9900K\",\n    \"frequence\": 5000,\n    \"comment\": \"9\",\n    \"manufacturers_id\": 2,\n    \"frequency_default\": 0,\n    \"nbcores_default\": 8,\n    \"nbthreads_default\": 16,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceprocessormodels_id\": 13,\n    \"date_mod\": \"2025-02-23 12:54:24\",\n    \"date_creation\": \"2025-02-23 12:54:24\"\n  },\n  {\n    \"id\": 14,\n    \"designation\": \"Core i7-9700K\",\n    \"frequence\": 4900,\n    \"comment\": \"9\",\n    \"manufacturers_id\": 2,\n    \"frequency_default\": 0,\n    \"nbcores_default\": 8,\n    \"nbthreads_default\": 8,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceprocessormodels_id\": 14,\n    \"date_mod\": \"2025-02-23 12:54:24\",\n    \"date_creation\": \"2025-02-23 12:54:24\"\n  },\n  {\n    \"id\": 15,\n    \"designation\": \"Core i5-9600K\",\n    \"frequence\": 4600,\n    \"comment\": \"9\",\n    \"manufacturers_id\": 2,\n    \"frequency_default\": 0,\n    \"nbcores_default\": 6,\n    \"nbthreads_default\": 6,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceprocessormodels_id\": 15,\n    \"date_mod\": \"2025-02-23 12:54:24\",\n    \"date_creation\": \"2025-02-23 12:54:24\"\n  }\n];\n\n// Transform to cache format - note: processors use \"designation\" not \"name\"\nconst items = processors.map(processor => {\n  return {\n    json: {\n      entity_type: 'processor',\n      glpi_id: processor.id,\n      name: processor.designation,\n      normalized_name: processor.designation.toLowerCase().trim()\n    }\n  };\n});\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        288
+      ],
+      "id": "0cb27f3b-232c-4142-a86e-2412b07ccdfe",
+      "name": "load processors"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "glpi_cache_view",
+          "mode": "list",
+          "cachedResultName": "glpi_cache_view"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "glpi_id": "={{ $json.glpi_id }}",
+            "entity_type": "={{ $json.entity_type }}",
+            "name": "={{ $json.name }}",
+            "normalized_name": "={{ $json.normalized_name }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "entity_type",
+              "displayName": "entity_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "glpi_id",
+              "displayName": "glpi_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "normalized_name",
+              "displayName": "normalized_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_seen",
+              "displayName": "last_seen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        496,
+        288
+      ],
+      "id": "6a21d386-eda4-4b4b-8217-b6b6ebbe897c",
+      "name": "Insert rows in a table2",
+      "credentials": {
+        "postgres": {
+          "id": "V7cbqAVqoEJ2eCid",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Memory data from GLPI\nconst memory = [\n  {\n    \"id\": 1,\n    \"designation\": \"4GB\",\n    \"frequence\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"size_default\": 0,\n    \"devicememorytypes_id\": 5,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"devicememorymodels_id\": 0,\n    \"date_mod\": \"2025-03-14 11:24:11\",\n    \"date_creation\": \"2025-03-14 10:34:07\"\n  },\n  {\n    \"id\": 2,\n    \"designation\": \"8GB\",\n    \"frequence\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"size_default\": 0,\n    \"devicememorytypes_id\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"devicememorymodels_id\": 0,\n    \"date_mod\": \"2025-03-14 14:45:07\",\n    \"date_creation\": \"2025-03-14 14:45:07\"\n  },\n  {\n    \"id\": 3,\n    \"designation\": \"40gb\",\n    \"frequence\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"size_default\": 0,\n    \"devicememorytypes_id\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"devicememorymodels_id\": 0,\n    \"date_mod\": \"2025-06-17 08:32:14\",\n    \"date_creation\": \"2025-06-17 08:32:14\"\n  },\n  {\n    \"id\": 4,\n    \"designation\": \"32GB\",\n    \"frequence\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"size_default\": 0,\n    \"devicememorytypes_id\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"devicememorymodels_id\": 0,\n    \"date_mod\": \"2025-06-17 15:15:46\",\n    \"date_creation\": \"2025-06-17 15:15:46\"\n  },\n  {\n    \"id\": 5,\n    \"designation\": \"48gb\",\n    \"frequence\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"size_default\": 0,\n    \"devicememorytypes_id\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"devicememorymodels_id\": 0,\n    \"date_mod\": \"2025-06-17 15:22:12\",\n    \"date_creation\": \"2025-06-17 15:22:12\"\n  },\n  {\n    \"id\": 6,\n    \"designation\": \"64GB\",\n    \"frequence\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"size_default\": 0,\n    \"devicememorytypes_id\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"devicememorymodels_id\": 0,\n    \"date_mod\": \"2025-06-20 08:34:53\",\n    \"date_creation\": \"2025-06-20 08:34:53\"\n  },\n  {\n    \"id\": 7,\n    \"designation\": \"16gb\",\n    \"frequence\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"size_default\": 0,\n    \"devicememorytypes_id\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"devicememorymodels_id\": 0,\n    \"date_mod\": \"2025-06-20 09:13:43\",\n    \"date_creation\": \"2025-06-20 09:13:07\"\n  },\n  {\n    \"id\": 15,\n    \"designation\": \"Samsung  8 GB  DDR4  3200 MT/s\",\n    \"frequence\": \"3200\",\n    \"comment\": null,\n    \"manufacturers_id\": 10,\n    \"size_default\": 8,\n    \"devicememorytypes_id\": 2,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"devicememorymodels_id\": null,\n    \"date_mod\": \"2025-07-18 14:49:23\",\n    \"date_creation\": \"2025-07-18 14:49:23\"\n  }\n];\n\n// Transform to cache format - note: memory uses \"designation\" not \"name\"\nconst items = memory.map(mem => {\n  return {\n    json: {\n      entity_type: 'memory',\n      glpi_id: mem.id,\n      name: mem.designation,\n      normalized_name: mem.designation.toLowerCase().trim()\n    }\n  };\n});\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        432
+      ],
+      "id": "2754e47c-bd84-4156-8529-69d134b83de1",
+      "name": "Load memory"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "glpi_cache_view",
+          "mode": "list",
+          "cachedResultName": "glpi_cache_view"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "glpi_id": "={{ $json.glpi_id }}",
+            "entity_type": "={{ $json.entity_type }}",
+            "name": "={{ $json.name }}",
+            "normalized_name": "={{ $json.normalized_name }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "entity_type",
+              "displayName": "entity_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "glpi_id",
+              "displayName": "glpi_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "normalized_name",
+              "displayName": "normalized_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_seen",
+              "displayName": "last_seen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        640,
+        432
+      ],
+      "id": "39fcff74-5b10-4808-ad11-6beee7696ead",
+      "name": "Insert rows in a table3",
+      "credentials": {
+        "postgres": {
+          "id": "V7cbqAVqoEJ2eCid",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Storage data from GLPI (DeviceHardDrive endpoint)\nconst storage = [\n  {\n    \"id\": 1,\n    \"designation\": \"SSD 200gb\",\n    \"rpm\": \"\",\n    \"interfacetypes_id\": 2,\n    \"cache\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"capacity_default\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceharddrivemodels_id\": 0,\n    \"date_mod\": \"2025-03-14 09:46:13\",\n    \"date_creation\": \"2025-03-14 09:46:13\"\n  },\n  {\n    \"id\": 2,\n    \"designation\": \"SSD 251gb\",\n    \"rpm\": \"\",\n    \"interfacetypes_id\": 0,\n    \"cache\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"capacity_default\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceharddrivemodels_id\": 0,\n    \"date_mod\": \"2025-06-17 08:39:43\",\n    \"date_creation\": \"2025-06-17 08:39:43\"\n  },\n  {\n    \"id\": 3,\n    \"designation\": \"SSD 1000GB\",\n    \"rpm\": \"\",\n    \"interfacetypes_id\": 0,\n    \"cache\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"capacity_default\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceharddrivemodels_id\": 0,\n    \"date_mod\": \"2025-06-17 15:16:35\",\n    \"date_creation\": \"2025-06-17 15:16:35\"\n  },\n  {\n    \"id\": 4,\n    \"designation\": \"SSD 500GB\",\n    \"rpm\": \"\",\n    \"interfacetypes_id\": 0,\n    \"cache\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"capacity_default\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceharddrivemodels_id\": 0,\n    \"date_mod\": \"2025-06-17 15:20:59\",\n    \"date_creation\": \"2025-06-17 15:20:46\"\n  },\n  {\n    \"id\": 5,\n    \"designation\": \"SSD 32 GB\",\n    \"rpm\": \"\",\n    \"interfacetypes_id\": 0,\n    \"cache\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"capacity_default\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceharddrivemodels_id\": 0,\n    \"date_mod\": \"2025-07-04 10:51:59\",\n    \"date_creation\": \"2025-07-04 10:51:36\"\n  },\n  {\n    \"id\": 6,\n    \"designation\": \"SSD 320GB\",\n    \"rpm\": \"\",\n    \"interfacetypes_id\": 0,\n    \"cache\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"capacity_default\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceharddrivemodels_id\": 0,\n    \"date_mod\": \"2025-07-15 15:05:47\",\n    \"date_creation\": \"2025-07-15 15:05:29\"\n  },\n  {\n    \"id\": 9,\n    \"designation\": \"HDD 500gb\",\n    \"rpm\": \"\",\n    \"interfacetypes_id\": 0,\n    \"cache\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"capacity_default\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceharddrivemodels_id\": 0,\n    \"date_mod\": \"2025-10-02 14:52:36\",\n    \"date_creation\": \"2025-10-02 14:52:36\"\n  },\n  {\n    \"id\": 10,\n    \"designation\": \"SSD 250\",\n    \"rpm\": \"\",\n    \"interfacetypes_id\": 0,\n    \"cache\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"capacity_default\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceharddrivemodels_id\": 0,\n    \"date_mod\": \"2025-10-03 09:57:34\",\n    \"date_creation\": \"2025-10-03 09:57:34\"\n  },\n  {\n    \"id\": 11,\n    \"designation\": \"HDD 256gb\",\n    \"rpm\": \"\",\n    \"interfacetypes_id\": 0,\n    \"cache\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"capacity_default\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceharddrivemodels_id\": 0,\n    \"date_mod\": \"2025-10-03 10:25:08\",\n    \"date_creation\": \"2025-10-03 10:25:08\"\n  },\n  {\n    \"id\": 12,\n    \"designation\": \"SSD 480\",\n    \"rpm\": \"\",\n    \"interfacetypes_id\": 0,\n    \"cache\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"capacity_default\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceharddrivemodels_id\": 0,\n    \"date_mod\": \"2025-10-03 10:37:16\",\n    \"date_creation\": \"2025-10-03 10:37:16\"\n  },\n  {\n    \"id\": 13,\n    \"designation\": \"HDD 128gb\",\n    \"rpm\": \"\",\n    \"interfacetypes_id\": 0,\n    \"cache\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"capacity_default\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceharddrivemodels_id\": 0,\n    \"date_mod\": \"2025-10-03 11:04:13\",\n    \"date_creation\": \"2025-10-03 11:04:13\"\n  },\n  {\n    \"id\": 14,\n    \"designation\": \"SSD 256gb\",\n    \"rpm\": \"\",\n    \"interfacetypes_id\": 0,\n    \"cache\": \"0\",\n    \"comment\": \"\",\n    \"manufacturers_id\": 0,\n    \"capacity_default\": 0,\n    \"entities_id\": 0,\n    \"is_recursive\": 0,\n    \"deviceharddrivemodels_id\": 0,\n    \"date_mod\": \"2025-10-03 11:15:09\",\n    \"date_creation\": \"2025-10-03 11:15:09\"\n  }\n];\n\n// Transform to cache format - storage uses \"designation\" field\nconst items = storage.map(disk => {\n  return {\n    json: {\n      entity_type: 'storage',\n      glpi_id: disk.id,\n      name: disk.designation,\n      normalized_name: disk.designation.toLowerCase().trim()\n    }\n  };\n});\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        576
+      ],
+      "id": "08bf04c0-8366-4e54-80eb-a8e85accd3a4",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "glpi_cache_view",
+          "mode": "list",
+          "cachedResultName": "glpi_cache_view"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "glpi_id": "={{ $json.glpi_id }}",
+            "entity_type": "={{ $json.entity_type }}",
+            "name": "={{ $json.name }}",
+            "normalized_name": "={{ $json.normalized_name }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "entity_type",
+              "displayName": "entity_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "glpi_id",
+              "displayName": "glpi_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "normalized_name",
+              "displayName": "normalized_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_seen",
+              "displayName": "last_seen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        784,
+        576
+      ],
+      "id": "f65aa5cf-b952-4c0c-8e80-ebfcadf368bb",
+      "name": "Insert rows in a table4",
+      "credentials": {
+        "postgres": {
+          "id": "V7cbqAVqoEJ2eCid",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking \u2018Execute workflow\u2019": {
+      "main": [
+        [
+          {
+            "node": "Load Manufacturers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Manufacturers": {
+      "main": [
+        [
+          {
+            "node": "Insert Manufacturers to Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Manufacturers to Cache": {
+      "main": [
+        []
+      ]
+    },
+    "Load Moelds": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Types": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "load processors": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load memory": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "11c1a76c-d04c-454c-9356-a1ea83b4b641",
+  "activeVersionId": null,
+  "versionCounter": 76,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-02-26T09:34:48.326Z",
+      "createdAt": "2026-02-26T09:34:48.326Z",
+      "role": "workflow:owner",
+      "workflowId": "M7Naqlq66rYdxpec33s1v",
+      "projectId": "1QhMRJYuO8xtYfJD",
+      "project": {
+        "updatedAt": "2026-01-23T16:30:55.431Z",
+        "createdAt": "2026-01-22T15:39:16.810Z",
+        "id": "1QhMRJYuO8xtYfJD",
+        "name": "DAVID ABOSCH <david@recognition-circular.org>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1a262c4f-45e8-438c-8358-3323325186ca"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}
