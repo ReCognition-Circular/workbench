@@ -1,0 +1,72 @@
+services:
+  caddy:
+    image: caddy:latest
+    container_name: workbench-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./docker-volumes/static:/srv/static:ro
+      - ./docker-volumes/media:/srv/media:ro
+    networks:
+      - workbench-network
+
+  web:
+    build: ./app
+    container_name: workbench-web
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+    volumes:
+      - ./app:/app
+      - ./docker-volumes/media:/app/media
+      - ./docker-volumes/static:/app/static
+    networks:
+      - workbench-network
+
+  db:
+    image: postgres:15-alpine
+    container_name: workbench-db
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - workbench-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: workbench-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - workbench-network
+
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /root/workbench-project/docker-volumes/postgres-data
+      o: bind
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /root/workbench-project/docker-volumes/redis-data
+      o: bind
+  caddy_data:
+  caddy_config:
+
+networks:
+  workbench-network:
+    driver: bridge
