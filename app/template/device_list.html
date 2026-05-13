@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Devices - ReCognition Workbench{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-gray-800">Devices</h1>
+        <span class="px-4 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed">
+            + Add Device <span class="text-xs ml-1">(coming soon)</span>
+        </span>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow p-4">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Search</label>
+                <input type="text" name="search" value="{{ search }}" 
+                       class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                       placeholder="Inventory or serial...">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Stage</label>
+                <select name="stage" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                    <option value="">All Stages</option>
+                    {% for s in stages %}
+                        <option value="{{ s.code }}" {% if stage_filter == s.code %}selected{% endif %}>
+                            {{ s.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Grade</label>
+                <select name="grade" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                    <option value="">All Grades</option>
+                    <option value="A" {% if grade_filter == 'A' %}selected{% endif %}>Grade A</option>
+                    <option value="B" {% if grade_filter == 'B' %}selected{% endif %}>Grade B</option>
+                    <option value="C" {% if grade_filter == 'C' %}selected{% endif %}>Grade C</option>
+                    <option value="D" {% if grade_filter == 'D' %}selected{% endif %}>Grade D</option>
+                    <option value="BER" {% if grade_filter == 'BER' %}selected{% endif %}>BER</option>
+                    <option value="UNGRADED" {% if grade_filter == 'UNGRADED' %}selected{% endif %}>Ungraded</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="bg-primary text-white px-4 py-2 rounded hover:bg-blue-700 w-full">
+                    Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Device count -->
+    <div class="text-sm text-gray-500">
+        {{ devices|length }} device{{ devices|length|pluralize }}
+    </div>
+
+    <!-- Device list -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Inventory</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stage</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Updated</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for device in devices %}
+                <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='/devices/{{ device.id }}/'">
+                    <td class="px-6 py-4 font-medium text-gray-900">{{ device.inventory_number }}</td>
+                    <td class="px-6 py-4 text-gray-500">{{ device.serial_number }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">{{ device.device_type }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if device.grade == 'UNGRADED' %}
+                            <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-400">Ungraded</span>
+                        {% elif device.grade == 'A' %}
+                            <span class="px-2 py-1 text-xs rounded bg-green-100 text-green-800">A</span>
+                        {% elif device.grade == 'B' %}
+                            <span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">B</span>
+                        {% elif device.grade == 'C' %}
+                            <span class="px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-800">C</span>
+                        {% elif device.grade == 'D' %}
+                            <span class="px-2 py-1 text-xs rounded bg-orange-100 text-orange-800">D</span>
+                        {% elif device.grade == 'BER' %}
+                            <span class="px-2 py-1 text-xs rounded bg-red-100 text-red-800">BER</span>
+                        {% else %}
+                            <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">{{ device.grade }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded bg-indigo-100 text-indigo-800">{{ device.stage_name }}</span>
+                    </td>
+                    <td class="px-6 py-4 text-gray-500">{{ device.location_code|default:"-" }}</td>
+                    <td class="px-6 py-4 text-gray-500 text-sm">{{ device.updated_at|date:"d M H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                        No devices found.
+                        <span class="text-gray-400">Use the FOG/GLPI pipeline to add devices. Direct entry coming soon.</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

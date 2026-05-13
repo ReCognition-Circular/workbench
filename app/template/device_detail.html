@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}{{ device.inventory_number }} - ReCognition Workbench{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <a href="{% url 'device_list' %}" class="text-sm text-primary hover:underline">&larr; Back to Devices</a>
+            <h1 class="text-2xl font-bold text-gray-800">{{ device.inventory_number }}</h1>
+            <p class="text-sm text-gray-500">{{ device.device_type }} &middot; {{ device.serial_number }}</p>
+        </div>
+        <div class="flex items-center space-x-2">
+            {% if device.stage %}
+                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                    {{ device.stage.name }}
+                </span>
+            {% else %}
+                <span class="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm">
+                    No Stage
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Info -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Specs Card -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Specifications</h2>
+                {% if device.device_specification %}
+                <dl class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <dt class="text-gray-500">Manufacturer</dt>
+                        <dd class="font-medium">{{ device.device_specification.manufacturer }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500">Model</dt>
+                        <dd class="font-medium">{{ device.device_specification.model_name }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500">Processor</dt>
+                        <dd class="font-medium">{{ device.device_specification.processor }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500">Memory</dt>
+                        <dd class="font-medium">{{ device.device_specification.memory_gb }} GB</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500">Storage</dt>
+                        <dd class="font-medium">{{ device.device_specification.storage_size_gb }} GB {{ device.device_specification.storage_type }}</dd>
+                    </div>
+
+                    {% if device.device_specification.memory_gb_upgraded or device.device_specification.storage_size_gb_upgraded or device.device_specification.processor_upgraded %}
+                    <div class="col-span-2 border-t pt-4 mt-2">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-2">Upgrades Fitted</h3>
+                        <dl class="grid grid-cols-2 gap-4 text-sm">
+                            {% if device.device_specification.processor_upgraded %}
+                            <div>
+                                <dt class="text-gray-500">Upgraded Processor</dt>
+                                <dd class="font-medium">{{ device.device_specification.processor_upgraded }}</dd>
+                            </div>
+                            {% endif %}
+                            {% if device.device_specification.memory_gb_upgraded %}
+                            <div>
+                                <dt class="text-gray-500">Upgraded Memory</dt>
+                                <dd class="font-medium">{{ device.device_specification.memory_gb }} GB → {{ device.device_specification.memory_gb_upgraded }} GB</dd>
+                            </div>
+                            {% endif %}
+                            {% if device.device_specification.storage_size_gb_upgraded %}
+                            <div>
+                                <dt class="text-gray-500">Upgraded Storage</dt>
+                                <dd class="font-medium">{{ device.device_specification.storage_size_gb }} GB → {{ device.device_specification.storage_size_gb_upgraded }} GB</dd>
+                            </div>
+                            {% endif %}
+                        </dl>
+                    </div>
+                    {% endif %}
+                </dl>
+                {% else %}
+                <p class="text-gray-400 text-sm">No specifications recorded.</p>
+                {% endif %}
+            </div>
+
+            <!-- Status Card -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Status</h2>
+                <div class="space-y-3 text-sm">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <dt class="text-gray-500">Grade</dt>
+                            <dd class="font-medium">{{ device.get_grade_display }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Ownership</dt>
+                            <dd class="font-medium">{{ device.get_ownership_type_display }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Wipe Status</dt>
+                            <dd class="font-medium">{{ device.get_wipe_status_display }}</dd>
+                            {% if device.wipe_notes %}
+                            <dd class="text-xs text-gray-400">{{ device.wipe_notes }}</dd>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Parts Status</dt>
+                            <dd class="font-medium">{{ device.get_parts_status_display }}</dd>
+                            {% if device.parts_notes %}
+                            <dd class="text-xs text-gray-400">{{ device.parts_notes }}</dd>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if device.parts_cost_pounds != '0.00' and device.parts_cost_pounds != '0' %}
+                    <div class="border-t pt-2">
+                        <span class="text-gray-500">Parts Cost:</span>
+                        <span class="font-medium">&pound;{{ device.parts_cost_pounds }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Location Card -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Location</h2>
+                {% if device.location %}
+                <p class="text-sm font-medium">{{ device.location.code }}</p>
+                {% else %}
+                <p class="text-gray-400 text-sm">No location set.</p>
+                {% endif %}
+            </div>
+
+            <!-- Notes Card -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Notes</h2>
+                <p class="text-sm text-gray-600">{{ device.notes|default:"No notes." }}</p>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Stage Transition Card -->
+            {% if available_stages %}
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Move to Next Stage</h2>
+                <div class="space-y-2">
+                    {% for stage in available_stages %}
+                    <button hx-patch="{% url 'device-detail' device.id %}"
+                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                            hx-vals='{"stage_code": "{{ stage.code }}"}'
+                            hx-target="#stage-status"
+                            class="w-full text-left px-4 py-2 rounded border border-gray-200 hover:bg-blue-50 hover:border-primary text-sm font-medium">
+                        {{ stage.name }}
+                    </button>
+                    {% endfor %}
+                </div>
+                <div id="stage-status" class="mt-3"></div>
+            </div>
+            {% endif %}
+
+            <!-- Quick Info -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Details</h2>
+                <dl class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <dt class="text-gray-500">Created</dt>
+                        <dd>{{ device.created_at|date:"d/m/Y" }}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                        <dt class="text-gray-500">Updated</dt>
+                        <dd>{{ device.updated_at|date:"d/m/Y" }}</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

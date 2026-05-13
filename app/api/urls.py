@@ -4,13 +4,19 @@ API URL Configuration
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-# Create a router for API views
-router = DefaultRouter()
+from .views import (
+    DeviceViewSet,
+    LocationViewSet,
+    StageViewSet,
+    DonorViewSet,
+)
 
-# We'll add actual API endpoints later
-# router.register('devices', DeviceViewSet)
-# router.register('locations', LocationViewSet)
+router = DefaultRouter()
+router.register("devices", DeviceViewSet, basename="device")
+router.register("locations", LocationViewSet, basename="location")
+router.register("stages", StageViewSet, basename="stage")
+router.register("donors", DonorViewSet, basename="donor")
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]

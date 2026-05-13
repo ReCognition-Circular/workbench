@@ -26,7 +26,11 @@ class Stage(models.Model):
         default=False,
         help_text="True if no further transitions allowed"
     )
-    
+    default_zone = models.CharField(
+        max_length=10,
+        blank=True,
+        help_text="Expected racking zone (e.g., A, B, C)"
+    ) 
     quality_gate_checklist = models.JSONField(
         default=dict,
         blank=True,
@@ -52,3 +56,43 @@ class Stage(models.Model):
     
     def __str__(self):
         return f"{self.code} - {self.name}"
+    from django.db import models
+from django.conf import settings
+
+
+class StageTransition(models.Model):
+    """Records every stage change for a device."""
+
+    device = models.ForeignKey(
+        "devices.Device",
+        on_delete=models.CASCADE,
+        related_name="stage_transitions",
+    )
+    from_stage = models.ForeignKey(
+        Stage,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transitions_from",
+    )
+    to_stage = models.ForeignKey(
+        Stage,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="transitions_to",
+    )
+    transitioned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        from_code = self.from_stage.code if self.from_stage else "(start)"
+        return f"{self.device.inventory_number}: {from_code} → {self.to_stage.code}"

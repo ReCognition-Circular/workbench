@@ -3,6 +3,8 @@ Django settings for workbench project.
 """
 
 import os
+import ldap
+from django_auth_ldap.config import LDAPSearch
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -12,12 +14,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-key-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
+DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ["173.212.254.50", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["173.212.254.50", "localhost", "127.0.0.1", "work.recognition-circular.org"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://173.212.254.50",
+    "https://work.recognition-circular.org",
 ]
 
 USE_X_FORWARDED_HOST = True
@@ -42,9 +44,35 @@ INSTALLED_APPS =[
     'locations',
     'photos',
     'workflow',
+    'donors',
     'api',
 ]
+# LDAP Authentication
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'django_auth_ldap.backend.LDAPBackend',
+]
 
+LLDAP_HOST = os.environ.get('LLDAP_HOST', 'localhost')
+LLDAP_PORT = os.environ.get('LLDAP_PORT', '10389')
+LLDAP_BASE_DN = os.environ.get('LLDAP_BASE_DN', 'dc=recognition-circular,dc=org')
+LLDAP_BIND_DN = os.environ.get('LLDAP_BIND_DN', 'uid=admin,ou=people,dc=recognition-circular,dc=org')
+LLDAP_BIND_PASSWORD = os.environ.get('LLDAP_BIND_PASSWORD', 'Rec0gnition123')
+
+AUTH_LDAP_SERVER_URI = f"ldap://{LLDAP_HOST}:{LLDAP_PORT}"
+AUTH_LDAP_BIND_DN = LLDAP_BIND_DN
+AUTH_LDAP_BIND_PASSWORD = LLDAP_BIND_PASSWORD
+AUTH_LDAP_USER_SEARCH = LDAPSearch(
+        LLDAP_BASE_DN, 
+        ldap.SCOPE_SUBTREE,
+        "(uid=%(user)s)"
+        )
+AUTH_LDAP_USER_ATTR_MAP = {"first_name": "givenName", "last_name": "sn", "email": "mail"}
+AUTH_LDAP_ALWAYS_UPDATE_USER = True
+
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/devices/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -55,6 +83,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'api.middleware.APIKeyMiddleware',
 ]
 
 ROOT_URLCONF = 'workbench.urls'
@@ -88,7 +117,15 @@ DATABASES = {
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
 }
+import ldap
+from django_auth_ldap.config import LDAPSearch
 
+AUTH_LDAP_SERVER_URI = f"ldap://{LLDAP_HOST}:{LLDAP_PORT}"
+AUTH_LDAP_BIND_DN = LLDAP_BIND_DN
+AUTH_LDAP_BIND_PASSWORD = LLDAP_BIND_PASSWORD
+AUTH_LDAP_USER_SEARCH = LDAPSearch(LLDAP_BASE_DN, ldap.SCOPE_SUBTREE, "(uid=%(user)s)")
+AUTH_LDAP_USER_ATTR_MAP = {"first_name": "givenName", "last_name": "sn", "email": "mail"}
+AUTH_LDAP_ALWAYS_UPDATE_USER = True
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {

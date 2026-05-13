@@ -115,3 +115,57 @@ class Location(models.Model):
     
     def __str__(self):
         return f"{self.code} ({self.site.code})"
+class LocationScan(models.Model):
+    """
+    LocationScan - Records every time a device is scanned to a location
+    From specification: Audit trail for device movements
+    """
+    device = models.ForeignKey(
+        "devices.Device",
+        on_delete=models.CASCADE,
+        related_name="location_scans",
+        help_text="The device that was scanned"
+    )
+    
+    from_location = models.ForeignKey(
+        Location,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="scans_from",
+        help_text="Previous location (null if first scan)"
+    )
+    
+    to_location = models.ForeignKey(
+        Location,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="scans_to",
+        help_text="New location after scan"
+    )
+    
+    scanned_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Staff member who performed the scan"
+    )
+    
+    notes = models.TextField(
+        blank=True,
+        help_text="Optional note about the move"
+    )
+    
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When the scan occurred"
+    )
+    
+    class Meta:
+        ordering = ["-created_at"]
+    
+    def __str__(self):
+        to = self.to_location.code if self.to_location else "(unknown)"
+        from_loc = self.from_location.code if self.from_location else "(none)"
+        return f"{self.device.inventory_number}: {from_loc} → {to}"
