@@ -9,6 +9,11 @@ from .views import (
     LocationViewSet,
     StageViewSet,
     DonorViewSet,
+    SiteViewSet,
+    StockOverviewView,
+    StockAvailableView,
+    next_inventory_number,
+    check_serial,
 )
 
 router = DefaultRouter()
@@ -16,7 +21,17 @@ router.register("devices", DeviceViewSet, basename="device")
 router.register("locations", LocationViewSet, basename="location")
 router.register("stages", StageViewSet, basename="stage")
 router.register("donors", DonorViewSet, basename="donor")
+router.register("sites", SiteViewSet, basename="site")
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("", include("donations.urls")),
+    path("", include("wipe.urls")),
+    path("stock/overview/", StockOverviewView.as_view(), name="stock-overview"),
+    path("stock/available/", StockAvailableView.as_view(), name="stock-available"),
+    path("inventory/next-number/", next_inventory_number, name="next-inventory-number"),
+    path("inventory/check-serial/", check_serial, name="check-serial"),
+
+
 ]
+

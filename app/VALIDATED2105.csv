@@ -1,0 +1,72 @@
+﻿Name,Entity,Serial number,Status,Type,Model,Location,Inventory number,Creation date,Last update,Comments,Components - Processor,Financial and administrative information - Supplier
+Computer 00018,Root entity,3070016,Refurb pending,Laptop,HP Pavilion 15 2016,VALIDATED,3070016,2025-03-07 15:48,2026-05-21 14:25,"-Removable Disk Drive
+DOES NOT TURN ON
+it crashes",i5-7200U,
+Computer 00023,Root entity,2CE0161JYY,Refurb pending,Laptop,HP ProBook 4720s 2011,VALIDATED,3130001,2025-03-13 11:47,2026-05-21 14:13,,Intel(R) Core(TM) I3 CPU @2.13ghz,
+Computer 00050,Root entity,PC0FZF3U,Refurb in progress,Laptop,Lenovo ThinkPad X260 2016,VALIDATED,3130028,2025-03-13 12:28,2026-05-21 10:36,"- Bad back light
+needs a palmrest replacement. £13
+keyboard replacement needed. £25",Intel(R) Core(TM) i3-6100U CPU @ 2.30GHz,
+Computer 00055,Root entity,R9-OGC4X1,Refurb in progress,Laptop,Lenovo ThinkPad T540p 2013,VALIDATED,3130033,2025-03-13 13:42,2026-05-21 10:22,needs a keyboard replacement.,Intel(R) Core(TM) i3-4000M CPU @ 2.40GHz,
+Computer 00061,Root entity,PF0VL26V,Refurb complete,Laptop,Lenovo ThinkPad E570 2017,VALIDATED,3130039,2025-03-13 13:53,2026-05-21 12:27,good condition,i5-7200U,
+Computer 00096,Root entity,97SRRF2,Refurb complete,Laptop,Dell Latitude E5470 2016,VALIDATED,3140011,2025-03-14 14:11,2026-05-21 10:29,"Ubuntu installed
+May need to check the power button.",Intel(R) Core(TM) i5-6300U CPU @ 2.40GHz,
+Computer 00100,Root entity,3COM502,Refurb pending,Laptop,Dell Inspiron 17 3737 2014,VALIDATED,3140015,2025-03-14 14:15,2026-05-21 14:14,,,
+Computer 00154,Root entity,5CG7314Q4W,Refurb pending,Laptop,HP ENVY 13-ad059na 2017,VALIDATED,5080004,2025-05-08 10:57,2026-05-21 14:24,,Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz,Altavia UK Group Limited.
+Computer 00157,Root entity,R90RF60U,Refurb complete,Laptop,Lenovo V130-15IKB 2017,VALIDATED,5080007,2025-05-08 11:12,2026-05-21 10:01,Ubuntu ready,Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz,Altavia UK Group Limited.
+Computer 00158,Root entity,5CG8122QPV,Refurb complete,Laptop,HP EliteBook 840 G4 2017,VALIDATED,5080008,2025-05-08 11:14,2026-05-21 10:08,Ubuntu installed,Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz,Altavia UK Group Limited.
+Computer 00279,Root entity,PC1FBHVK,Refurb complete,Laptop,Lenovo ThinkPad T490s 2019 ,VALIDATED,7030009,2025-07-03 10:13,2026-05-21 14:40,Replacement touchpad en route 07-05-2026,i5-8265U,MILLS & REEVE
+Computer 00325,Root entity,5CD7021WP4,Refurb complete,Laptop,HP Pavilion 15-au076sa,VALIDATED,9250008,2025-09-25 13:31,2026-05-21 10:48,good condition,,
+Computer 00326,Root entity,R9-0HRCQD,Refurb pending,Laptop,Lenovo ThinkPad L540 2013,VALIDATED,9250009,2025-09-25 13:44,2026-05-21 09:49,needs a key board,,
+Computer 00327,Root entity,CD8281TRR,Refurb in progress,Laptop,HP ProBook 450 G3 2016,VALIDATED,9250010,2025-09-25 14:38,2026-05-21 10:34,needs a keyboard and touchpad.£20,,
+Computer 00427,Root entity,PF2BMW6K,Refurb complete,Laptop,Lenovo V15-ADA,VALIDATED,3050009,2026-03-05 11:41,2026-05-21 12:54,"New screen installed and working.
+Keyboard replacement installed (test needed)
+07-05-26",AMD Ryzen 5 3500U with Radeon Vega Mobile Gfx,
+Computer 00431,Root entity,MP1G6ZR6,Refurb complete,Laptop,Lenovo V330-14ARR,VALIDATED,3050013,2026-03-05 13:30,2026-05-21 14:34,"New keyboard installed (go Callum!), Ultrabay battery en route - 30/04
+Order number: 05-14581-45693",AMD Ryzen 5 2500U with Radeon Vega Mobile Gfx,
+Computer 00432,Root entity,PC-OBAL1X,Refurb pending,Laptop,lenovo thinkpad X250,VALIDATED,3050014,2026-03-05 14:29,2026-05-21 09:45,Some keys doesn't work,,
+Computer 00433,Root entity,PC-09BUCS,Refurb in progress,Laptop,Lenovo ThinkPad T440p 2013,VALIDATED,3050015,2026-03-05 15:17,2026-05-21 09:24,keyboard needs to be replaced.£20,Intel i3-41-4100m,
+Computer 00435,Root entity,246XGT2,Refurb in progress,Laptop,Dell Vostro 5481,VALIDATED,3050017,2026-03-05 15:37,2026-05-21 12:33,"Battery replaced,
+Screen bezel replaced,
+07-05-2026
+Test needed.",Intel(R) Core(TM) i5-8265U CPU @ 1.60GHz,
+Computer 00443,Root entity,CCT7CL3,Refurb in progress,Laptop,Dell Latitude 3520 2021,VALIDATED,3060006,2026-03-06 11:45,2026-05-21 09:16,"Fixed, after much headache.
+Test needed. 
+08/05/2026",11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz,
+Computer 00467,Root entity,5CG1161G3S,Refurb complete,Laptop,HP 245 G8,VALIDATED,3130065,2026-03-13 10:41,2026-05-21 14:14,good condition,AMD Athlon Silver 3050U with Radeon Graphics,
+Computer 00474,Root entity,6KN5WF2,Refurb in progress,Laptop,Dell Latitude 5480,VALIDATED,3190006,2026-03-19 14:13,2026-05-21 10:05,Battery Replacement - £42,Intel(R) Core(TM)i7-7820HQ CPU @2.90ghz,
+Computer 00475,Root entity,LR06W4CX,Refurb complete,Laptop,Lenovo ThinkPad 13 2016,VALIDATED,3190007,2026-03-19 14:19,2026-05-21 09:37,good condition.,Intel(R) Core(TM) i3-6100U CPU @ 2.30GHz,
+Computer 00476,Root entity,44GB462,Refurb complete,Laptop,Dell Latitude E5550,VALIDATED,3190008,2026-03-19 14:27,2026-05-21 08:43,Good condition,Intel(R) Core(TM) i5-5300U CPU @ 2.30GHz,
+Computer 00478,Root entity,2GQPVF2,Refurb in progress,Laptop,Dell Latitude 5280,VALIDATED,3190010,2026-03-19 14:44,2026-05-21 09:37,Speaker replacement - £20,Intel(R) Core(TM) i7-7600U CPU @ 2.80GHz,
+Computer 00480,Root entity,H6L1P72,Refurb in progress,Laptop,Dell Latitude 7250,VALIDATED,3190012,2026-03-19 15:08,2026-05-21 09:41,Touchpad replacement - £21,Intel(R) Core(TM) i5-5300U CPU @ 2.30GHz,
+Computer 00481,Root entity,CMV8Z52,Refurb in progress,Laptop,Dell Latitude E7250,VALIDATED,3190013,2026-03-19 15:24,2026-05-21 10:26,Front Bezel - £25,Intel(R) Core(TM) i5-5300U CPU @ 2.30GHz,
+Computer 00483,Root entity,R90VJKNZ,Refurb pending,Laptop,Lenovo ThinkPad L390,VALIDATED,3260002,2026-03-26 15:41,2026-05-21 08:30,,,
+Computer 00487,Root entity,R90ZPDZ1,Refurb complete,,Lenovo ThinkPad L13 ,VALIDATED,3270001,2026-03-27 10:03,2026-05-21 08:28,"New palm rest installed
+10/04/26
+good condition.",Intel(R) Core(TM) i5-10210U CPU @ 1.60GHz,
+Computer 00495,Root entity,5MXMBL2,Refurb in progress,Laptop,Dell Vostro 15-3568,VALIDATED,4230004,2026-04-23 15:21,2026-05-21 10:56,Has been cedar tested and no problems found.,Intel(R) Core(TM) i3-7130U CPU @ 2.70GHz,
+Computer 00496,Root entity,C0K95L2,Refurb complete,Laptop,Dell Vostro 15-3568,VALIDATED,4240001,2026-04-24 08:55,2026-05-21 13:23,Cedar tested and in good condition.,Intel(R) Core(TM) i3-7130U CPU @ 2.70GHz,
+Computer 00497,Root entity,D3K95L2,Refurb complete,Laptop,Dell Vostro 15-3568,VALIDATED,4240002,2026-04-24 09:15,2026-05-21 12:42,"cedar tested and its in good condition.
+NOT SWITCH ON, BLINKINKNG LIGHTS 21/05/2026",,
+Computer 00498,Root entity,SL10K24790,Refurb in progress,Laptop,lenovo thinkpad T460s,VALIDATED,4300001,2026-04-30 11:03,2026-05-21 08:21,Battery test failed.- £23,Intel(R) Core(TM) i5-6200U CPU @ 2.30GHz,
+Computer 00499,Root entity,PC0BT5Q9,Refurb in progress,Laptop,lenovo thinkpad T460s,VALIDATED,4300002,2026-04-30 11:05,2026-05-21 10:33,Good condition. cannot boot into anything.,Intel(R) Core(TM) i5-6200U CPU @ 2.30GHz,
+Computer 00501,Root entity,PF0WYWKF,Refurb in progress,Laptop,Lenovo ThinkPad T470,VALIDATED,4300004,2026-04-30 12:35,2026-05-21 09:18,"during cedar test no bios logo detected.
+everything else is in good condition.",Intel(R) Core(TM) i5-6300U CPU @ 2.40GHz,
+Computer 00502,Root entity,PC0BT5QB,Refurb in progress,Laptop,lenovo thinkpad T460s,VALIDATED,4300005,2026-04-30 12:38,2026-05-21 09:02,Battery Test Failed. £23,i5-6200U,
+Computer 00503,Root entity,PC0QV0TN,Refurb complete,Laptop,Lenovo ThinkPad T470,VALIDATED,4300006,2026-04-30 12:41,2026-05-21 09:30,Good condition,i5-7200U,
+Computer 00504,Root entity,PC0BT5QB,Refurb in progress,Laptop,lenovo thinkpad T460s,VALIDATED,4300007,2026-04-30 12:46,2026-05-21 09:24,"Keyboard keys don't work - E,#,AltGr 
+£10
+touchpad and keyboard replacement needed.",Intel(R) Core(TM) i5-6200U CPU @ 2.30GHz,
+Computer 00506,Root entity,PC0BT5Q7,Refurb in progress,Laptop,lenovo thinkpad T460s,VALIDATED,5010003,2026-05-01 11:13,2026-05-21 10:08,good condition but the screen is broken ,Intel(R) Core(TM) i5-6200U CPU @ 2.30GHz,
+Computer 00508,Root entity,819X4C2,Refurb in progress,Laptop,Dell Latitude 3470 2015,VALIDATED,5010005,2026-05-01 11:52,2026-05-21 10:15,"ubuntu installed ,not turn on at all.",,
+Computer 00509,Root entity,PC175P9C,Refurb in progress,Laptop,Lenovo ThinkPad T470,VALIDATED,5010006,2026-05-01 13:01,2026-05-21 10:01,good condition. does not want to enter boot menu.,i5-6300U,
+Computer 00511,Root entity,PC0BT5Q2,Refurb complete,Laptop,lenovo thinkpad T460s,VALIDATED,5070001,2026-05-07 12:13,2026-05-21 12:20,good condition,i5-6200U,
+Computer 00513,Root entity,PC175P9C,Refurb in progress,Laptop,Dell Vostro 15-3568,VALIDATED,5070003,2026-05-07 12:32,2026-05-21 13:00,all cedar test passed,,
+Computer 00514,Root entity,PC175P9C,Refurb complete,Laptop,Dell Vostro 15-3568,VALIDATED,5070004,2026-05-07 12:52,2026-05-21 09:22,passed all cedar tests ,Intel(R) Core(TM) i3-7130U CPU @ 2.70GHz,
+Computer 00515,Root entity,R9009L50,Refurb complete,Laptop,Lenovo ThinkPad L440 2013,VALIDATED,5080010,2026-05-08 09:53,2026-05-21 12:17,good condition,Intel(R) Core(TM) i3-4000M CPU @ 2.40GHz,
+Computer 00517,Root entity,4KQPVF2,Refurb complete,Laptop,Dell Latitude 5280,VALIDATED,5080012,2026-05-08 10:15,2026-05-21 11:02,good condition,Intel(R) Core(TM) i7-7600U CPU @ 2.80GHz,
+Computer 00519,Root entity,PC0FZF7Z,Refurb in progress,Laptop,lenovo thinkpad T460s,VALIDATED,5080014,2026-05-08 10:29,2026-05-21 09:29,"one of the battery clips is broken needs to be looked at 
+9:18 21/05/2026
+other than that good condition",Intel(R) Core(TM) i3-6100U CPU @ 2.30GHz,
+Computer 00522,Root entity,CNF0351833,Refurb in progress,Laptop,HP Pavilion DV6,VALIDATED,5150001,2026-05-15 14:35,2026-05-21 14:29,"Touchpad not working 
+may 15 26",,
+Computer 00523,Root entity,CND042BS8C,Refurb complete,Laptop,HP 250 G7 Notebook PC,VALIDATED,5210001,2026-05-21 12:47,2026-05-21 12:47,good condition.,,

@@ -1,7 +1,11 @@
-head>
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}ReCognition Workbench{% endblock %}</title>
+    <title>{% block title %}ReCognition Flow{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'core/Icon.svg' %}">
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -9,8 +13,11 @@ head>
             theme: {
                 extend: {
                     colors: {
-                        primary: '#1a56db',
-                        secondary: '#7c3aed',
+                        primary: '#45af6c',
+                        'primary-dark': '#3a9a5d',
+                        accent: '#d4da4f',
+                        background: '#faf9f6',
+                        muted: '#d3d2cb',
                     }
                 }
             }
@@ -18,19 +25,26 @@ head>
     </script>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <nav class="bg-white shadow-sm border-b">
+<body class="bg-background min-h-screen">
+    <nav class="bg-white shadow-sm border-b border-muted">
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex justify-between h-16">
                 <div class="flex items-center space-x-8">
-                    <a href="/" class="text-xl font-bold text-primary">ReCognition Workbench</a>
+                    <a href="/" class="flex items-center space-x-2">
+                        <img src="{% static 'core/Logo.svg' %}" alt="ReCognition" class="h-10">
+                        <span class="text-xl font-bold text-primary">Flow</span>
+                    </a>
                     <a href="/devices/" class="text-gray-600 hover:text-primary">Devices</a>
                     <a href="/scan/" class="text-gray-600 hover:text-primary">Scan</a>
                     <a href="/admin/" class="text-gray-600 hover:text-primary">Admin</a>
                 </div>
                 <div class="flex items-center">
                     {% if user.is_authenticated %}
-                        <span class="text-sm text-gray-500">{{ user.username }}</span>
+                        <span class="text-sm text-gray-500 mr-4">{{ user.username }}</span>
+                        <form method="post" action="{% url 'logout' %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="text-sm text-gray-500 hover:text-red-600">Logout</button>
+                        </form>
                     {% endif %}
                 </div>
             </div>

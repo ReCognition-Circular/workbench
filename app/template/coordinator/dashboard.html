@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Overview — Coordinator Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h1 class="mb-4">Stock Overview</h1>
+
+  <div class="row g-4 mb-4">
+    <!-- Available for Sale -->
+    <div class="col-md-4">
+      <div class="card border-success h-100">
+        <div class="card-body">
+          <h5 class="card-title text-success">Available for Sale</h5>
+          <p class="display-4">{{ stock.available_for_sale }}</p>
+          <p class="text-muted mb-0">Valuation: £{{ stock.valuation_available }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Available for Device Bank -->
+    <div class="col-md-4">
+      <div class="card border-info h-100">
+        <div class="card-body">
+          <h5 class="card-title text-info">Available for Device Bank</h5>
+          <p class="display-4">{{ stock.available_for_device_bank }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reserved -->
+    <div class="col-md-4">
+      <div class="card border-warning h-100">
+        <div class="card-body">
+          <h5 class="card-title text-warning">Reserved</h5>
+          <p class="display-4">{{ stock.reserved }}</p>
+          <p class="text-muted mb-0">Valuation: £{{ stock.valuation_reserved }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <!-- In Pipeline -->
+    <div class="col-md-6">
+      <div class="card border-secondary h-100">
+        <div class="card-body">
+          <h5 class="card-title text-secondary">In Pipeline</h5>
+          <p class="display-4">{{ stock.in_pipeline }}</p>
+          <p class="text-muted mb-0">Devices not yet at READY stage</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total -->
+    <div class="col-md-6">
+      <div class="card border-dark h-100">
+        <div class="card-body">
+          <h5 class="card-title">Total Devices</h5>
+          <p class="display-4">{{ stock.total_devices }}</p>
+          <p class="text-muted mb-0">All devices in the system</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Valuation Summary -->
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Estimated Valuation</h5>
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Devices</th>
+                <th>Estimated Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Available for Sale</td>
+                <td>{{ stock.available_for_sale }}</td>
+                <td>£{{ stock.valuation_available }}</td>
+              </tr>
+              <tr>
+                <td>Reserved</td>
+                <td>{{ stock.reserved }}</td>
+                <td>£{{ stock.valuation_reserved }}</td>
+              </tr>
+              <tr class="table-active">
+                <td><strong>Total</strong></td>
+                <td><strong>{{ stock.available_for_sale|add:stock.reserved }}</strong></td>
+                <td><strong>£{{ stock.valuation_available|add:stock.valuation_reserved|floatformat:2 }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

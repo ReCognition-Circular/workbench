@@ -10,15 +10,19 @@ from django.views.generic import TemplateView
 from django.views.generic import RedirectView
 
 from . import views
+from api.views import CoordinatorDashboardView
 
 urlpatterns = [
     path('', RedirectView.as_view(url='/devices/', permanent=False)),
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
+    path('', include('donations.urls')),
     path('api-auth/', include('rest_framework.urls')),
     path('devices/', views.device_list, name='device_list'),
     path('devices/<int:pk>/', views.device_detail, name='device_detail'),
+    path("devices/<int:pk>/edit/", views.device_edit, name="device_edit"),
     path('scan/', views.scan_page, name='scan_page'),
+    path('dashboard/', CoordinatorDashboardView.as_view(), name='dashboard'),
     path('manifest.json', TemplateView.as_view(template_name='manifest.json', content_type='application/json')),
     path('accounts/', include('django.contrib.auth.urls')),
 ]

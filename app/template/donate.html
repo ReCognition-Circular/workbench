@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Donate Devices — ReCognition Circular{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-8 px-4">
+    <h1 class="text-2xl font-bold text-gray-800 mb-2">Donate Your Devices</h1>
+    <div class="flex items-center space-x-3 mb-6 p-4 bg-white rounded-lg shadow">
+    <img src="{% static 'core/BDB_Logo.svg' %}" alt="Birmingham Device Bank" class="h-12">
+    <div>
+        <p class="font-semibold text-gray-800">Birmingham Device Bank</p>
+        <p class="text-sm text-gray-500">Part of ReCognition Circular</p>
+    </div>
+</div>
+    <p class="text-gray-500 mb-6">
+        Fill in the form below to register your device donation. You can upload a CSV or enter devices manually.
+    </p>
+
+    {% if error %}
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Contact Details -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">Your Details</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Organisation Name *</label>
+                    <input type="text" name="donor_name" required
+                           class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-primary focus:ring-primary">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Contact Name *</label>
+                    <input type="text" name="donor_contact" required
+                           class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-primary focus:ring-primary">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Email *</label>
+                    <input type="email" name="donor_email" required
+                           class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-primary focus:ring-primary">
+                </div>
+            </div>
+        </div>
+
+        <!-- CSV Upload -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">Upload Device List (CSV)</h2>
+            <p class="text-sm text-gray-500 mb-3">
+                Download our <a href="{% url 'donate_template' %}" class="text-primary underline">CSV template</a>
+                Columns: make, model, serial_number, device_type, notes.
+            </p>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <input type="file" name="csv_file" accept=".csv"
+                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-dark">
+            </div>
+            <p class="text-xs text-amber-600 mt-2">
+                <strong>Important:</strong> We can only issue a Certificate of Data Destruction for devices where a serial number is provided.
+                Devices submitted without serial numbers will be securely wiped but cannot be individually certified.
+            </p>
+        </div>
+
+        <!-- Manual Entry -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">Or Enter Devices Manually</h2>
+            <div id="manual-entries">
+                <div class="grid grid-cols-4 gap-2 mb-2 text-xs font-medium text-gray-500 uppercase">
+                    <div>Make</div>
+                    <div>Model</div>
+                    <div>Serial</div>
+                    <div>Type</div>
+                </div>
+                <div class="manual-row grid grid-cols-4 gap-2 mb-2">
+                    <input type="text" name="manual_make[]" placeholder="Dell"
+                           class="block w-full rounded border-gray-300 shadow-sm text-sm">
+                    <input type="text" name="manual_model[]" placeholder="Latitude 5520"
+                           class="block w-full rounded border-gray-300 shadow-sm text-sm">
+                    <input type="text" name="manual_serial[]" placeholder="ABC123 (optional)"
+                           class="block w-full rounded border-gray-300 shadow-sm text-sm">
+                    <select name="manual_type[]" class="block w-full rounded border-gray-300 shadow-sm text-sm">
+                        <option value="LAPTOP">Laptop</option>
+                        <option value="DESKTOP">Desktop</option>
+                        <option value="TABLET">Tablet</option>
+                        <option value="SERVER">Server</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                </div>
+            </div>
+            <button type="button" onclick="addRow()"
+                    class="text-sm text-primary hover:underline">+ Add another device</button>
+        </div>
+
+        <!-- Notes -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">Additional Information</h2>
+            <textarea name="notes" rows="3"
+                      class="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                      placeholder="Collection instructions, collection address if different, special requirements..."></textarea>
+        </div>
+        <!-- Storage/Wipe Status -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">Data Status</h2>
+            <label class="flex items-start space-x-3">
+                <input type="checkbox" name="storage_removed"
+                       class="mt-1 rounded border-gray-300 text-primary focus:ring-primary">
+                <span class="text-sm text-gray-600">
+                    These devices have had their storage media removed or have already been data-wiped.
+                    If you're not sure, leave this unchecked — we'll handle it.
+                </span>
+            </label>
+        </div>
+        <!-- Declaration -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">Declaration</h2>
+            <label class="flex items-start space-x-3">
+                <input type="checkbox" name="declaration" required
+                       class="mt-1 rounded border-gray-300 text-primary focus:ring-primary">
+                <span class="text-sm text-gray-600">
+                    I confirm that I am authorised to donate these devices. I understand that ReCognition
+                    will securely wipe all data on devices, however a Certificate of Data Destruction will
+                    only be issued for devices where the serial number has been provided.
+            </label>
+        </div>
+
+        <button type="submit"
+                class="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-dark transition">
+            Submit Donation
+        </button>
+    </form>
+</div>
+
+<script>
+    function addRow() {
+        const container = document.getElementById('manual-entries');
+        const row = document.createElement('div');
+        row.className = 'manual-row grid grid-cols-4 gap-2 mb-2';
+        row.innerHTML = `
+            <input type="text" name="manual_make[]" placeholder="Dell"
+                   class="block w-full rounded border-gray-300 shadow-sm text-sm">
+            <input type="text" name="manual_model[]" placeholder="Latitude 5520"
+                   class="block w-full rounded border-gray-300 shadow-sm text-sm">
+            <input type="text" name="manual_serial[]" placeholder="ABC123 (optional)"
+                   class="block w-full rounded border-gray-300 shadow-sm text-sm">
+            <select name="manual_type[]" class="block w-full rounded border-gray-300 shadow-sm text-sm">
+                <option value="LAPTOP">Laptop</option>
+                <option value="DESKTOP">Desktop</option>
+                <option value="TABLET">Tablet</option>
+                <option value="SERVER">Server</option>
+                <option value="OTHER">Other</option>
+            </select>
+        `;
+        container.appendChild(row);
+    }
+</script>
+{% endblock %}

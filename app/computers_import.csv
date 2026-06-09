@@ -1,0 +1,37 @@
+Name,Entity,Serial number,Status,Type,Manufacturer,Model,Location,Inventory number,Creation date,Last update,Comments,Components - Processor,Components - Memory type,Components - Hard drive type
+Computer 00417,Root entity,5CG909424R,Refurb in progress,Laptop,HP,HP ProBook 650 G4,VALIDATED,2270005,2026-02-27 16:06,2026-05-28 08:33,"needs a new keyboard £26
+09/04 - needs screen housing (on way)",Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz,8GB,
+Computer 00505,Root entity,14093685183,Refurb in progress,Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz,Dell Inc.,Dell Latitude 5400 2019,VALIDATED,4300008,2026-04-30 14:54,2026-05-28 15:36,"Screen assy and palmrest replaced.
+Test needed, 08/05/2026",Intel(R) Core(TM) i5-8265U CPU @ 1.60GHz,16gb,Micron 1100 SATA 512GB
+Computer 00510,Root entity,754626-01R9101805,Refurb in progress,Laptop,Fujitsu,Fujitsu Lifebook A series A357,VALIDATED,5010007,2026-05-01 14:53,2026-05-28 09:07,"battery replacement- £35
+Everything else is good.",Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz,8GB,HDD 256gb
+Computer 00518,Root entity,YMKV052224,Refurb in progress,Laptop,Fujitsu,Fujitsu Lifebook A series A357,VALIDATED,5080013,2026-05-08 10:26,2026-05-28 08:40,NO BIOS LOGO DETECTED,Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz,8GB,HDD 256gb
+Computer 00527,Root entity,13G82Q1,Refurb complete,Laptop,DELL,Dell Latitude E6430 2012,VALIDATED,5280001,2026-05-28 13:19,2026-05-28 15:10,Good condition.,Intel(R) Core(TM) i7-2620M CPU @ 2.70GHz,8GB,250 GB HDD
+Computer 00528,Root entity,CND53716YZ,Refurb in progress,Laptop,HP,hp probook 450 G2 2015,VALIDATED,5280002,2026-05-28 13:38,2026-05-28 13:43,Needs a battery.£16,Intel(R) Core(TM) i5-5200 CPU @ 2.20GHz,4GB,
+Computer 00529,Root entity,16MCM53,Refurb complete,Laptop,HP,dell latitude 5510,VALIDATED,5280003,2026-05-28 14:02,2026-05-28 14:05,good condition.,Intel(R) Core(TM) i5-10310U CPU @ 1.70GHz,8GB,BC711NVMeSKhynix512GB
+Computer 00530,Root entity,NXMW2EKO68531038347600,Refurb pending,Laptop,acer,Acer Aspire E5-573 ,VALIDATED,5280004,2026-05-28 14:36,2026-05-28 14:36,"Microphone not working / detected - cedar
+turns off when unplugged - battery problem
+ismail 
+05/28/26",intel (R) Core (TM) i3-4005U CPU e 1.70GHz ,8GB,1TB
+Computer 00531,Root entity,NXMAAEK00232604E277603,Refurb pending,Laptop,acer,Acer Aspire V7-581,VALIDATED,5280005,2026-05-28 15:17,2026-05-28 15:17,,intel (R) Core (TM) i3-2375M CPU @1.50GHz,4GB,HDD 500gb
+Computer 00532,Root entity,NXMAAEK0023604E7603,Refurb complete,Laptop,acer,Acer Aspire V7-581,VALIDATED,5290001,2026-05-29 08:19,2026-05-29 08:22,"battery replacement-£25
+everything else in good condition.",intel (R) Core (TM) i3-2375M CPU @1.50GHz,4GB,
+Computer 00533,Root entity,K5N0CV06B78820C,Refurb pending,Laptop,Asus,Asus VivoBook X512U,VALIDATED,5290002,2026-05-29 08:41,2026-05-29 08:58,UNKNOWN NO CHARGER ,Intel(R) Core(TM) i3-7130U CPU @ 2.70GHz,,
+Computer 00533,Root entity,NXVBXEK0016070389F6600,Refurb pending,Laptop,acer,Acer TravelMate P238 series,VALIDATED,5290003,2026-05-29 08:45,2026-05-29 08:54,"UNKNOWN
+NO CHARGER",,,
+Computer 00534,Root entity,PF0Q6WTT,Refurb pending,Laptop,Lenovo,Lenovo Ideapad 310-15ISK,VALIDATED,5290004,2026-05-29 08:51,2026-05-29 08:54,UNKNOWN NO CHARGER,,,
+Computer 00535,Root entity,EQAB045430,Refurb in progress,Laptop,Fujitsu,LIFEBOOK A3510,VALIDATED,5290005,2026-05-29 09:23,2026-05-29 09:40,"Requires battery - good otherwise (not confirmed by me):
+FMVNBP233
+https://www.ukpowerdepot.co.uk/fujitsu-laptop-batteries-c-121_94/original-4170mah-45wh-fujitsu-fmva77mb-fmvnbp233-battery-p-656465.html
+Callum 29/05/2026",,,
+Computer 00487,Root entity,R90ZPDZ1,Refurb complete,,Lenovo,Lenovo ThinkPad L13 ,VALIDATED,3270001,2026-03-27 10:03,2026-05-21 08:28,"New palm rest installed
+10/04/26
+good condition.",Intel(R) Core(TM) i5-10210U CPU @ 1.60GHz,16gb,
+Computer 00504,Root entity,PC0BT5QB,Refurb in progress,Laptop,Lenovo,lenovo thinkpad T460s,VALIDATED,4300007,2026-04-30 12:46,2026-05-21 09:24,"Keyboard keys don't work - E,#,AltGr 
+£10
+touchpad and keyboard replacement needed.",Intel(R) Core(TM) i5-6200U CPU @ 2.30GHz,8GB,
+Computer 00443,Root entity,CCT7CL3,Refurb in progress,Laptop,DELL,Dell Latitude 3520 2021,VALIDATED,3060006,2026-03-06 11:45,2026-05-21 09:16,"Fixed, after much headache.
+Test needed. 
+08/05/2026",11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz,8GB,HDD 256gb
+Computer 00526,Root entity,5CH11513SA,Refurb in progress,Laptop,HP,HP Pavilion DV6,VALIDATED,5220002,2026-05-22 12:48,2026-05-22 12:56,the shift key is missing.Everything else is good.,Intel (R) Core(TM) i5-2410M CPU @ 2.30GHz,6.69 GiB,
+Computer 00514,Root entity,PC175P9C,Refurb complete,Laptop,DELL,Dell Vostro 15-3568,VALIDATED,5070004,2026-05-07 12:52,2026-05-21 09:22,passed all cedar tests ,Intel(R) Core(TM) i3-7130U CPU @ 2.70GHz,8GB,HDD 128gb

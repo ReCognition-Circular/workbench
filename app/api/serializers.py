@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from devices.models import Device, DeviceSpecification
+from devices.models import Device, DeviceSpecification, Allocation, Recipient, FulfilmentRequest
 from locations.models import Location, Site
 from workflow.models import Stage
 from donors.models import Donor
@@ -91,9 +91,13 @@ class DeviceSerializer(serializers.ModelSerializer):
             'memory_gb_upgraded',
             'storage_size_gb_upgraded',
             'processor_upgraded',
+            'allocation_intent',
+            'market_value_pounds',
             'device_specification',
             'device_specification_data',
             'location',
+            'manufacturer',
+            'model_name',
             'location_code',
             'stage',
             'stage_code',
@@ -107,7 +111,9 @@ class DeviceSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         spec_data = validated_data.pop('device_specification', None)
-        location_code = validated_data.pop('location_code', None)
+        location_code = validated_data.pop('manufacturer',
+            'model_name',
+            'location_code', None)
         stage_code = validated_data.pop('stage_code', None)
         donor_id = validated_data.pop('donor_id', None)
 
@@ -147,7 +153,9 @@ class DeviceSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         spec_data = validated_data.pop('device_specification', None)
-        location_code = validated_data.pop('location_code', None)
+        location_code = validated_data.pop('manufacturer',
+            'model_name',
+            'location_code', None)
         stage_code = validated_data.pop('stage_code', None)
         donor_id = validated_data.pop('donor_id', None)
 
@@ -189,6 +197,8 @@ class DeviceSerializer(serializers.ModelSerializer):
 
 
 class DeviceListSerializer(serializers.ModelSerializer):
+    manufacturer = serializers.CharField(source="device_specification.manufacturer", read_only=True)
+    model_name = serializers.CharField(source="device_specification.model_name", read_only=True)
     location_code = serializers.CharField(source='location.code', read_only=True)
     stage_code = serializers.CharField(source='stage.code', read_only=True)
     stage_name = serializers.CharField(source='stage.name', read_only=True)
@@ -202,6 +212,8 @@ class DeviceListSerializer(serializers.ModelSerializer):
             'serial_number',
             'device_type',
             'grade',
+            'manufacturer',
+            'model_name',
             'location_code',
             'stage_code',
             'stage_name',
@@ -222,3 +234,40 @@ class DeviceLocationUpdateSerializer(serializers.Serializer):
                 f"Active location '{value}' not found"
             )
         return value
+
+class StockOverviewSerializer(serializers.Serializer):
+    """Read-only serializer for stock overview data."""
+    available_for_sale = serializers.IntegerField()
+    available_for_device_bank = serializers.IntegerField()
+    reserved = serializers.IntegerField()
+    in_pipeline = serializers.IntegerField()
+    total_devices = serializers.IntegerField()
+    valuation_available = serializers.DecimalField(max_digits=10, decimal_places=2)
+    valuation_reserved = serializers.DecimalField(max_digits=10, decimal_places=2)
+class StockDevicesSerializer(serializers.Serializer):
+    """Read-only serializer for a single device in stock query results."""
+    inventory_number = serializers.CharField()
+    serial_number = serializers.CharField()
+    device_type = serializers.CharField()
+    grade = serializers.CharField()
+    allocation_intent = serializers.CharField()
+    stage = serializers.SerializerMethodField()
+    memory_gb = serializers.IntegerField(source='device_specification.memory_gb', default=None)
+    storage_size_gb = serializers.IntegerField(source='device_specification.storage_size_gb', default=None)
+    storage_type = serializers.CharField(source='device_specification.storage_type', default=None)
+    processor = serializers.CharField(source='device_specification.processor', default=None)
+    win11_compatible = serializers.CharField()
+    market_value_pounds = serializers.DecimalField(max_digits=8, decimal_places=2, allow_null=True)
+
+    def get_stage(self, obj):
+        return obj.stage.code if obj.stage else None
+
+
+class StockAvailableSerializer(serializers.Serializer):
+    """Read-only serializer for the stock available query response."""
+    available_for_sale = serializers.IntegerField()
+    available_for_donation = serializers.IntegerField()
+    reserved = serializers.IntegerField()
+    in_pipeline = serializers.IntegerField()
+    matching_devices = StockDevicesSerializer(many=True)
+    valuation = serializers.DictField(child=serializers.DecimalField(max_digits=10, decimal_places=2))    

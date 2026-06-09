@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Thank You — ReCognition Circular{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto py-16 px-4 text-center">
+    <div class="bg-white rounded-lg shadow p-8">
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">Thank You!</h1>
+        <p class="text-gray-600 mb-6">
+            Your donation has been registered.
+        </p>
+        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+            <p class="text-sm text-gray-500">Your reference number</p>
+            <p class="text-xl font-bold text-primary">{{ pledge.reference_number }}</p>
+        </div>
+        <p class="text-sm text-gray-500 mb-6">
+            Please quote your reference number when sending devices. We will contact you at
+            <strong>{{ pledge.donor_email }}</strong> to arrange collection or confirm delivery instructions.
+        </p>
+        <p class="text-sm text-gray-400">
+            We will contact you to arrange collection or confirm delivery instructions.
+        </p>
+    </div>
+</div>
+{% endblock %}

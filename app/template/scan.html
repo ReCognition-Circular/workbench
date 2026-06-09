@@ -103,7 +103,7 @@
             method: 'POST', headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
             body: JSON.stringify({location_code: code})
         }).then(r => r.json().then(d => ({s: r.status, b: d}))).then(({s, b}) => {
-            if (s === 200) { lastLocation = code; localStorage.setItem('lastLocation', code); show(b.device + ' moved to ' + b.new_location, 'success'); reset(); }
+            if (s === 200) { lastLocation = code; localStorage.setItem('lastLocation', code); show(b.inventory_number + ' moved to ' + b.location.code, 'success'); reset(); }
             else if (s === 422) show(b.error || 'Invalid', 'warning');
             else show(b.error || 'Not found', 'error');
         }).catch(() => show('Error', 'error'));

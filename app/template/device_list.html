@@ -13,7 +13,7 @@
 
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow p-4">
-        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Search</label>
                 <input type="text" name="search" value="{{ search }}" 
@@ -22,7 +22,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Stage</label>
-                <select name="stage" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                <select name="stage" onchange="this.form.submit()" class="mt-1 block w-full rounded border-gray-300 shadow-sm">                
                     <option value="">All Stages</option>
                     {% for s in stages %}
                         <option value="{{ s.code }}" {% if stage_filter == s.code %}selected{% endif %}>
@@ -33,7 +33,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Grade</label>
-                <select name="grade" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                <select name="grade" onchange="this.form.submit()" class="mt-1 block w-full rounded border-gray-300 shadow-sm">                
                     <option value="">All Grades</option>
                     <option value="A" {% if grade_filter == 'A' %}selected{% endif %}>Grade A</option>
                     <option value="B" {% if grade_filter == 'B' %}selected{% endif %}>Grade B</option>
@@ -43,10 +43,37 @@
                     <option value="UNGRADED" {% if grade_filter == 'UNGRADED' %}selected{% endif %}>Ungraded</option>
                 </select>
             </div>
-            <div class="flex items-end">
-                <button type="submit" class="bg-primary text-white px-4 py-2 rounded hover:bg-blue-700 w-full">
-                    Filter
-                </button>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Wipe</label>
+                <select name="wipe" onchange="this.form.submit()" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                    <option value="">All</option>
+                    <option value="UNKNOWN" {% if parts_filter == 'UNKNOWN' %}selected{% endif %}>Not Known</option>
+                    <option value="PENDING" {% if wipe_filter == 'PENDING' %}selected{% endif %}>Pending</option>
+                    <option value="PASS" {% if wipe_filter == 'PASS' %}selected{% endif %}>Pass</option>
+                    <option value="FAIL" {% if wipe_filter == 'FAIL' %}selected{% endif %}>Fail</option>
+                    <option value="DONOR_WIPED" {% if wipe_filter == 'DONOR_WIPED' %}selected{% endif %}>Donor Wiped</option>
+                    <option value="NO_STORAGE" {% if wipe_filter == 'NO_STORAGE' %}selected{% endif %}>No Storage</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Parts</label>
+                <select name="parts" onchange="this.form.submit()" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                    <option value="">All</option>
+                    <option value="NOT_NEEDED" {% if parts_filter == 'NOT_NEEDED' %}selected{% endif %}>No Parts Required</option>
+                    <option value="REQUESTED" {% if parts_filter == 'REQUESTED' %}selected{% endif %}>Requested</option>
+                    <option value="ORDERED" {% if parts_filter == 'ORDERED' %}selected{% endif %}>Ordered</option>
+                    <option value="RECEIVED" {% if parts_filter == 'RECEIVED' %}selected{% endif %}>Received</option>
+                    <option value="FITTED" {% if parts_filter == 'FITTED' %}selected{% endif %}>Fitted</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Win11</label>
+                <select name="win11" onchange="this.form.submit()" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                    <option value="">All</option>
+                    <option value="YES" {% if win11_filter == 'YES' %}selected{% endif %}>Compatible</option>
+                    <option value="NO" {% if win11_filter == 'NO' %}selected{% endif %}>Not Compatible</option>
+                    <option value="UNKNOWN" {% if win11_filter == 'UNKNOWN' %}selected{% endif %}>Unknown</option>
+                </select>
             </div>
         </form>
     </div>
@@ -55,6 +82,18 @@
     <div class="text-sm text-gray-500">
         {{ devices|length }} device{{ devices|length|pluralize }}
     </div>
+    <div class="text-sm text-gray-500">
+        {{ devices|length }} device{{ devices|length|pluralize }}
+    </div>
+
+    {% if pending_pledges > 0 %}
+    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center space-x-2">
+        <span class="text-amber-600 font-bold text-lg">{{ pending_pledges }}</span>
+        <span class="text-amber-700">pending donation pledge{{ pending_pledges|pluralize }} —
+            <a href="/admin/donations/donationpledge/" class="underline hover:text-amber-900">Review in Admin</a>
+        </span>
+    </div>
+    {% endif %}
 
     <!-- Device list -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
@@ -62,9 +101,12 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Inventory</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Make</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Model</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Wipe</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Parts</th>
+		    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Win11</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stage</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Updated</th>
@@ -74,10 +116,8 @@
                 {% for device in devices %}
                 <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='/devices/{{ device.id }}/'">
                     <td class="px-6 py-4 font-medium text-gray-900">{{ device.inventory_number }}</td>
-                    <td class="px-6 py-4 text-gray-500">{{ device.serial_number }}</td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">{{ device.device_type }}</span>
-                    </td>
+                    <td class="px-6 py-4 text-gray-500">{{ device.manufacturer }}</td>
+                    <td class="px-6 py-4 text-gray-500">{{ device.model_name }}</td>
                     <td class="px-6 py-4">
                         {% if device.grade == 'UNGRADED' %}
                             <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-400">Ungraded</span>
@@ -96,6 +136,35 @@
                         {% endif %}
                     </td>
                     <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded 
+                            {% if device.wipe_status == 'PASS' %}bg-green-100 text-green-800
+                            {% elif device.wipe_status == 'PENDING' %}bg-yellow-100 text-yellow-800
+                            {% elif device.wipe_status == 'FAIL' %}bg-red-100 text-red-800
+                            {% elif device.wipe_status == 'DONOR_WIPED' %}bg-blue-100 text-blue-800
+                            {% elif device.wipe_status == 'NO_STORAGE' %}bg-gray-100 text-gray-600
+                            {% else %}bg-gray-100 text-gray-500{% endif %}">
+                            {{ device.wipe_status|cut:"_" }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded
+                            {% if device.parts_status == 'UNKNOWN' %}bg-gray-100 text-gray-400
+                            {% elif device.parts_status == 'FITTED' %}bg-green-100 text-green-800
+                            {% elif device.parts_status == 'ORDERED' or device.parts_status == 'REQUESTED' %}bg-yellow-100 text-yellow-800
+                            {% elif device.parts_status == 'RECEIVED' %}bg-blue-100 text-blue-800
+                            {% else %}bg-gray-100 text-gray-500{% endif %}">
+                            {{ device.parts_status|cut:"_" }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded 
+                            {% if device.win11_compatible == 'YES' %}bg-green-100 text-green-800
+                            {% elif device.win11_compatible == 'NO' %}bg-red-100 text-red-800
+                            {% else %}bg-gray-100 text-gray-500{% endif %}">
+                            {{ device.win11_compatible }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
                         <span class="px-2 py-1 text-xs rounded bg-indigo-100 text-indigo-800">{{ device.stage_name }}</span>
                     </td>
                     <td class="px-6 py-4 text-gray-500">{{ device.location_code|default:"-" }}</td>
@@ -103,7 +172,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                    <td colspan="10" class="px-6 py-12 text-center text-gray-500">
                         No devices found.
                         <span class="text-gray-400">Use the FOG/GLPI pipeline to add devices. Direct entry coming soon.</span>
                     </td>

@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Edit Device - ReCognition Workbench{% endblock %}
+
+{% block extra_head %}
+<style>
+    .edit-container { max-width: 800px; margin: 0 auto; padding: 1.5rem; }
+    .card { background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card h2 { font-size: 1.125rem; font-weight: 600; color: #1f2937; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .info-item { padding: 0.5rem; background: #f9fafb; border-radius: 6px; }
+    .info-label { font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+    .info-value { font-weight: 600; color: #1f2937; margin-top: 0.125rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.625rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.875rem; }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-group select { background: white; }
+    .btn-save { width: 100%; padding: 0.875rem; background: #1a56db; color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { background: #1648c0; }
+    .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-back { display: inline-block; padding: 0.5rem 1rem; background: #f3f4f6; color: #374151; border-radius: 8px; text-decoration: none; font-size: 0.875rem; margin-bottom: 1rem; }
+    .btn-back:hover { background: #e5e7eb; }
+    .stage-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; background: #e0e7ff; color: #4338ca; }
+    .saved-msg { display: none; padding: 0.75rem; background: #d1fae5; color: #065f46; border-radius: 8px; text-align: center; font-weight: 600; margin-bottom: 1rem; }
+    .saved-msg.visible { display: block; }
+    @media (max-width: 600px) { .info-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-container">
+    <a href="/devices/" class="btn-back">&larr; Back to Devices</a>
+    <div id="saved-msg" class="saved-msg">Device updated successfully</div>
+
+    <div class="card">
+        <h2>Device Information</h2>
+        <div class="info-grid" id="device-info">
+            <div class="info-item">
+                <div class="info-label">Inventory</div>
+                <div class="info-value">{{ device.inventory_number }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Serial</div>
+                <div class="info-value">{{ device.serial_number|default:"-" }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Make / Model</div>
+                <div class="info-value">
+                    {% if device.device_specification %}
+                        {{ device.device_specification.manufacturer }} {{ device.device_specification.model_name }}
+                    {% else %}-{% endif %}
+                </div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Stage</div>
+                <div class="info-value"><span class="stage-badge">{{ device.stage.name|default:"-" }}</span></div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Location</div>
+                <div class="info-value">{{ device.location.code|default:"(none)" }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Device Type</div>
+                <div class="info-value">{{ device.device_type|default:"-" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Edit Fields</h2>
+        <form id="edit-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="notes">Notes</label>
+                <textarea id="notes" name="notes" placeholder="Add notes about this device...">{{ device.notes }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="grade">Grade</label>
+                <select id="grade" name="grade">
+                    <option value="UNGRADED" {% if device.grade == "UNGRADED" %}selected{% endif %}>Not yet graded</option>
+                    <option value="A" {% if device.grade == "A" %}selected{% endif %}>Grade A - Excellent</option>
+                    <option value="B" {% if device.grade == "B" %}selected{% endif %}>Grade B - Good</option>
+                    <option value="C" {% if device.grade == "C" %}selected{% endif %}>Grade C - Fair</option>
+                    <option value="D" {% if device.grade == "D" %}selected{% endif %}>Grade D - Poor</option>
+                    <option value="BER" {% if device.grade == "BER" %}selected{% endif %}>Beyond Economic Repair</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="parts_status">Parts Status</label>
+                <select id="parts_status" name="parts_status">
+                    <option value="NOT_NEEDED" {% if device.parts_status == "NOT_NEEDED" %}selected{% endif %}>No parts required</option>
+                    <option value="REQUESTED" {% if device.parts_status == "REQUESTED" %}selected{% endif %}>Part requested</option>
+                    <option value="ORDERED" {% if device.parts_status == "ORDERED" %}selected{% endif %}>Ordered</option>
+                    <option value="RECEIVED" {% if device.parts_status == "RECEIVED" %}selected{% endif %}>Received</option>
+                    <option value="FITTED" {% if device.parts_status == "FITTED" %}selected{% endif %}>Fitted</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="processor">Processor</label>
+                <input type="text" id="processor" name="processor" value="{{ device.device_specification.processor|default:'' }}">
+            </div>
+            <div class="form-group">
+                <label for="memory_gb">Memory (GB)</label>
+                <input type="number" id="memory_gb" name="memory_gb" value="{{ device.device_specification.memory_gb|default:'' }}">
+            </div>
+            <div class="form-group">
+                <label for="storage_type">Storage Type</label>
+                <select id="storage_type" name="storage_type">
+                    <option value="UNKNOWN" {% if device.device_specification.storage_type == "UNKNOWN" %}selected{% endif %}>Unknown</option>
+                    <option value="HDD" {% if device.device_specification.storage_type == "HDD" %}selected{% endif %}>HDD</option>
+                    <option value="SSD" {% if device.device_specification.storage_type == "SSD" %}selected{% endif %}>SSD</option>
+                    <option value="NVME" {% if device.device_specification.storage_type == "NVME" %}selected{% endif %}>NVMe</option>
+                    <option value="EMMC" {% if device.device_specification.storage_type == "EMMC" %}selected{% endif %}>eMMC</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="storage_size_gb">Storage Size (GB)</label>
+                <input type="number" id="storage_size_gb" name="storage_size_gb" value="{{ device.device_specification.storage_size_gb|default:'' }}">
+            </div>
+            <div class="form-group">
+                <label for="win11_compatible">Windows 11 Compatible</label>
+                <select id="win11_compatible" name="win11_compatible">
+                    <option value="UNKNOWN" {% if device.win11_compatible == "UNKNOWN" %}selected{% endif %}>Unknown</option>
+                    <option value="YES" {% if device.win11_compatible == "YES" %}selected{% endif %}>Yes</option>
+                    <option value="NO" {% if device.win11_compatible == "NO" %}selected{% endif %}>No</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="parts_notes">Parts Notes</label>
+                <textarea id="parts_notes" name="parts_notes" placeholder="Part numbers, order refs...">{{ device.parts_notes }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="parts_cost_pounds">Parts Cost (£)</label>
+                <input type="number" id="parts_cost_pounds" name="parts_cost_pounds" step="0.01" min="0" value="{{ device.parts_cost_pounds }}">
+            </div>
+            <div class="form-group">
+                <label for="wipe_status">Wipe Status</label>
+                <select id="wipe_status" name="wipe_status">
+                    <option value="PENDING" {% if device.wipe_status == "PENDING" %}selected{% endif %}>Needs wiping</option>
+                    <option value="DONOR_WIPED" {% if device.wipe_status == "DONOR_WIPED" %}selected{% endif %}>Donor confirmed pre-wiped</option>
+                    <option value="NO_STORAGE" {% if device.wipe_status == "NO_STORAGE" %}selected{% endif %}>No storage media</option>
+                    <option value="PASS" {% if device.wipe_status == "PASS" %}selected{% endif %}>Wipe completed</option>
+                    <option value="FAIL" {% if device.wipe_status == "FAIL" %}selected{% endif %}>Wipe failed</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="wipe_notes">Wipe Notes</label>
+                <textarea id="wipe_notes" name="wipe_notes" placeholder="Wipe method, date, who performed...">{{ device.wipe_notes }}</textarea>
+            </div>
+            <button type="submit" class="btn-save" id="save-btn">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('edit-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('save-btn');
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        fetch('/api/devices/{{ device.id }}/', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                notes: document.getElementById('notes').value,
+                grade: document.getElementById('grade').value,
+                parts_status: document.getElementById('parts_status').value,
+                parts_notes: document.getElementById('parts_notes').value,
+                parts_cost_pounds: document.getElementById('parts_cost_pounds').value,
+                wipe_status: document.getElementById('wipe_status').value,
+                wipe_notes: document.getElementById('wipe_notes').value,
+                win11_compatible: document.getElementById('win11_compatible').value,
+                device_specification_data: {
+                    processor: document.getElementById('processor').value,
+                    memory_gb: document.getElementById('memory_gb').value,
+                    storage_type: document.getElementById('storage_type').value,
+                    storage_size_gb: document.getElementById('storage_size_gb').value,
+                }
+            })
+        }).then(r => {
+            if (r.ok) {
+                const msg = document.getElementById('saved-msg');
+                msg.classList.add('visible');
+                setTimeout(() => msg.classList.remove('visible'), 3000);
+            }
+        }).finally(() => {
+            btn.disabled = false;
+            btn.textContent = 'Save Changes';
+        });
+    });
+</script>
+{% endblock %}
