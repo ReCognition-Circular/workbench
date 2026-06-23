@@ -6,6 +6,7 @@ class DonationPledge(models.Model):
     donor_name = models.CharField(max_length=200)
     donor_contact = models.CharField(max_length=200, blank=True)
     donor_email = models.EmailField()
+    donor_mobile = models.CharField(max_length=30, blank=True, help_text="Phone number for WhatsApp notifications")
     donor_erpnext_id = models.CharField(max_length=50, blank=True)
     reference_number = models.CharField(max_length=50, unique=True)
 

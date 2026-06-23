@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Manual Device Entry - ReCognition Workbench{% endblock %}
+
+{% block extra_head %}
+<style>
+    .manual-container { max-width: 700px; margin: 0 auto; padding: 1.5rem; }
+    .card { background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card h2 { font-size: 1.125rem; font-weight: 600; color: #1f2937; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb; }
+    .card h3 { font-size: 1rem; font-weight: 600; color: #dc2626; margin-bottom: 0.75rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.625rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.875rem; box-sizing: border-box; }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-group select { background: white; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .warning-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
+    .warning-box p { color: #991b1b; font-size: 0.875rem; margin: 0; }
+    .warning-box ul { color: #991b1b; font-size: 0.875rem; margin: 0.5rem 0 0 1.25rem; padding: 0; }
+    .checkbox-group { display: flex; align-items: flex-start; gap: 0.5rem; margin: 1rem 0; }
+    .checkbox-group input[type="checkbox"] { width: 1.125rem; height: 1.125rem; margin-top: 0.125rem; flex-shrink: 0; }
+    .checkbox-group label { font-size: 0.875rem; font-weight: 500; color: #374151; }
+    .inventory-display { background: #f3f4f6; border: 1px dashed #9ca3af; border-radius: 8px; padding: 0.75rem 1rem; text-align: center; margin-bottom: 1rem; }
+    .inventory-display .label { font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+    .inventory-display .number { font-size: 1.5rem; font-weight: 700; color: #1f2937; font-family: monospace; letter-spacing: 0.1em; }
+    .btn-submit { width: 100%; padding: 0.875rem; background: #1a56db; color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    .btn-submit:hover { background: #1648c0; }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-cancel { display: inline-block; padding: 0.5rem 1rem; background: #f3f4f6; color: #374151; border-radius: 8px; text-decoration: none; font-size: 0.875rem; margin-bottom: 1rem; }
+    .btn-cancel:hover { background: #e5e7eb; }
+    .stage-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; background: #fef3c7; color: #92400e; }
+    .errorlist { color: #dc2626; font-size: 0.8125rem; list-style: none; padding: 0; margin: 0.25rem 0; }
+    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="manual-container">
+    <a href="{% url 'device_list' %}" class="btn-cancel">&larr; Back to devices</a>
+
+    <div class="card">
+        <h2>Manual Device Entry</h2>
+        <p style="color: #6b7280; font-size: 0.875rem; margin: -0.5rem 0 1rem 0;">
+            Use this form only for devices that cannot PXE boot via FOG.
+        </p>
+
+        <div class="warning-box">
+            <h3>&#9888; Guarded Path</h3>
+            <p>This path is for <strong>genuine PXE boot failures only</strong>.</p>
+            <ul>
+                <li>Confirm the device has been tested and failed PXE boot</li>
+                <li>All fields must be accurate — no shortcuts</li>
+                <li>Manual entries are audited and reviewed regularly</li>
+            </ul>
+        </div>
+
+        {% if error %}
+        <div style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; color: #991b1b; font-size: 0.875rem;">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- Auto-generated inventory number -->
+            <div class="inventory-display">
+                <div class="label">Inventory Number (auto-generated)</div>
+                <div class="number">{{ inventory_number }}</div>
+            </div>
+
+            <!-- Manufacturer dropdown -->
+            <div class="form-group">
+                <label for="manufacturer">Manufacturer *</label>
+                <select id="manufacturer" name="manufacturer" required>
+                    <option value="">-- Select manufacturer --</option>
+                    {% for m in manufacturers %}
+                    <option value="{{ m.name }}">{{ m.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Model row -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="model_name">Model Name *</label>
+                    <input type="text" id="model_name" name="model_name" required placeholder="e.g. HP 245 G8 Notebook PC">
+                </div>
+                <div class="form-group">
+                    <label for="model_number">Model Number</label>
+                    <input type="text" id="model_number" name="model_number" placeholder="e.g. 6S6S8EA">
+                </div>
+            </div>
+
+            <!-- Serial number -->
+            <div class="form-group">
+                <label for="serial_number">Serial Number *</label>
+                <input type="text" id="serial_number" name="serial_number" required placeholder="e.g. 5CG1161G3S">
+            </div>
+
+            <!-- Specs row -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="processor">Processor</label>
+                    <input type="text" id="processor" name="processor" placeholder="e.g. Intel i5-1235U">
+                </div>
+                <div class="form-group">
+                    <label for="memory_gb">Memory (GB)</label>
+                    <input type="number" id="memory_gb" name="memory_gb" min="0" max="1024" placeholder="e.g. 8">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="storage_type">Storage Type</label>
+                    <select id="storage_type" name="storage_type">
+                        <option value="UNKNOWN">Unknown</option>
+                        <option value="SSD">SSD</option>
+                        <option value="HDD">HDD</option>
+                        <option value="NVME">NVMe</option>
+                        <option value="EMMC">eMMC</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="storage_size_gb">Storage Size (GB)</label>
+                    <input type="number" id="storage_size_gb" name="storage_size_gb" min="0" max="99999" placeholder="e.g. 256">
+                </div>
+            </div>
+
+            <!-- Reason (guarded path) -->
+            <div class="form-group">
+                <label for="reason">Reason for manual entry *</label>
+                <textarea id="reason" name="reason" required placeholder="Explain why this device cannot PXE boot..."></textarea>
+            </div>
+
+            <!-- Confirmation checkbox -->
+            <div class="checkbox-group">
+                <input type="checkbox" id="confirmed_pxe_failure" name="confirmed_pxe_failure" value="yes" required>
+                <label for="confirmed_pxe_failure">
+                    I confirm this device has been tested and <strong>cannot PXE boot</strong>. 
+                    This is not a shortcut to bypass FOG.
+                </label>
+            </div>
+
+            <button type="submit" class="btn-submit">Create Device</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

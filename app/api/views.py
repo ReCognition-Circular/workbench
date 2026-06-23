@@ -11,7 +11,7 @@ from django.shortcuts import redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Sum, Count
 
-from devices.models import Device, Allocation,DeviceSpecification
+from devices.models import Device, Allocation, DeviceSpecification, AllocationIntent
 from django.db.models import Sum
 from locations.models import Location, Site
 from workflow.models import Stage
@@ -298,6 +298,7 @@ class StockAvailableView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
+        # Base: devices in non-terminal stages, no active reservation
         base = Device.objects.exclude(
             stage__code__in=TERMINAL_STAGES
         ).exclude(
@@ -305,14 +306,14 @@ class StockAvailableView(APIView):
         )
 
         # Apply optional filters
-        type_filter = request.query_params.get('type')
-        grade_filter = request.query_params.get('grade')
-        win11_filter = request.query_params.get('win11')
-        intent_filter = request.query_params.get('intent')
-        min_ram = request.query_params.get('min_memory_gb')
-        min_storage = request.query_params.get('min_storage_gb')
-        storage_type_filter = request.query_params.get('storage_type')
-        processor_filter = request.query_params.get('processor')
+        type_filter = request.query_params.get("type")
+        grade_filter = request.query_params.get("grade")
+        win11_filter = request.query_params.get("win11_compatible")
+        intent_filter = request.query_params.get("intent")
+        min_ram = request.query_params.get("min_memory_gb")
+        min_storage = request.query_params.get("min_storage_gb")
+        storage_type_filter = request.query_params.get("storage_type")
+        processor_filter = request.query_params.get("processor")
 
         if type_filter:
             base = base.filter(device_type=type_filter)
@@ -323,65 +324,117 @@ class StockAvailableView(APIView):
         if intent_filter:
             base = base.filter(allocation_intent=intent_filter)
 
-        # Spec-based filters — join to DeviceSpecification
+        # Spec-based filters
         spec_filters = {}
         if min_ram:
-            spec_filters['memory_gb__gte'] = int(min_ram)
+            spec_filters["memory_gb__gte"] = int(min_ram)
         if min_storage:
-            spec_filters['storage_size_gb__gte'] = int(min_storage)
+            spec_filters["storage_size_gb__gte"] = int(min_storage)
         if storage_type_filter:
-            spec_filters['storage_type'] = storage_type_filter
+            spec_filters["storage_type"] = storage_type_filter
         if processor_filter:
-            spec_filters['processor__icontains'] = processor_filter
+            spec_filters["processor__icontains"] = processor_filter
         if spec_filters:
             matching_specs = DeviceSpecification.objects.filter(**spec_filters)
-            base = base.filter(device_specification__in=matching_specs) 
+            base = base.filter(device_specification__in=matching_specs)
 
-        # Count by intent
-        available_for_sale = base.filter(
-            allocation_intent__in=['UNDECIDED', 'SALE']
-        ).count()
+        # Count by intent (no overlap)
+        needs_classification = base.filter(allocation_intent="UNDECIDED").count()
+        available_for_sale = base.filter(allocation_intent="SALE").count()
+        available_for_device_bank = base.filter(allocation_intent="DEVICE_BANK").count()
+        recycling = base.filter(allocation_intent="RECYCLING").count()
+        other = base.filter(allocation_intent="OTHER").count()
 
-        available_for_donation = base.filter(
-            allocation_intent__in=['UNDECIDED', 'DEVICE_BANK']
-        ).count()
+        # Reserved: devices tagged as RESERVED OR with active allocations
+        reserved_ids = set(
+            base.filter(allocation_intent="RESERVED").values_list("id", flat=True)
+        ) | set(
+            Device.objects.filter(allocations__status="RESERVED").values_list("id", flat=True)
+        )
+        reserved = len(reserved_ids)
 
-        reserved = Device.objects.filter(
-            allocations__status="RESERVED"
-        ).distinct().count()
-
-        # Include in_pipeline: total minus terminal minus dispatched
-        in_pipeline = Device.objects.exclude(
+        # In pipeline: non-terminal, non-reserved
+        in_pipeline_total = Device.objects.exclude(
             stage__code__in=TERMINAL_STAGES
+        ).exclude(
+            allocations__status="RESERVED"
         ).count()
 
-        # Matching devices list — limited to 50
-        matching = base.select_related('device_specification', 'stage').distinct()[:50]
+        # Matching devices (max 100) with allocation recipient info
+        matching = base.select_related(
+            "device_specification", "stage", "donor"
+        ).prefetch_related(
+            "allocations__recipient"
+        ).distinct()[:100]
 
         # Valuation
         total_valuation_sale = 0
-        total_valuation_donation = 0
+        total_valuation_device_bank = 0
         for device in matching:
             if device.market_value_pounds:
-                if device.allocation_intent in ['UNDECIDED', 'SALE']:
+                if device.allocation_intent == "SALE":
                     total_valuation_sale += float(device.market_value_pounds)
-                if device.allocation_intent in ['UNDECIDED', 'DEVICE_BANK']:
-                    total_valuation_donation += float(device.market_value_pounds)
+                elif device.allocation_intent == "DEVICE_BANK":
+                    total_valuation_device_bank += float(device.market_value_pounds)
 
         data = {
-            'available_for_sale': available_for_sale,
-            'available_for_donation': available_for_donation,
-            'reserved': reserved,
-            'in_pipeline': in_pipeline,
-            'matching_devices': matching,
-            'valuation': {
-                'sale': total_valuation_sale,
-                'donation': total_valuation_donation,
+            "needs_classification": needs_classification,
+            "available_for_sale": available_for_sale,
+            "available_for_device_bank": available_for_device_bank,
+            "recycling": recycling,
+            "other": other,
+            "reserved": reserved,
+            "total_devices": base.count(),
+            "matching_devices": matching,
+            "valuation": {
+                "sale": total_valuation_sale,
+                "device_bank": total_valuation_device_bank,
             },
         }
 
         serializer = StockAvailableSerializer(data)
         return Response(serializer.data)
+class StockBulkUpdateView(APIView):
+    """Update allocation_intent for multiple devices at once."""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        device_ids = request.data.get('device_ids', [])
+        allocation_intent = request.data.get('allocation_intent')
+
+        if not device_ids or not allocation_intent:
+            return Response({'error': 'device_ids and allocation_intent are required'}, status=400)
+
+        valid_intents = [c.value for c in AllocationIntent]
+        if allocation_intent not in valid_intents:
+            return Response({'error': f'invalid intent. Must be one of: {", ".join(valid_intents)}'}, status=400)
+
+        count = Device.objects.filter(id__in=device_ids).update(
+            allocation_intent=allocation_intent
+        )
+
+        return Response({'updated': count})
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_device_intent(request, pk):
+    """Update allocation_intent for a single device."""
+    try:
+        device = Device.objects.get(pk=pk)
+    except Device.DoesNotExist:
+        return Response({'error': 'Device not found'}, status=404)
+
+    intent = request.data.get('allocation_intent')
+    if not intent:
+        return Response({'error': 'allocation_intent is required'}, status=400)
+
+    valid_intents = [c.value for c in AllocationIntent]
+    if intent not in valid_intents:
+        return Response({'error': f'invalid intent. Must be one of: {", ".join(valid_intents)}'}, status=400)
+
+    device.allocation_intent = intent
+    device.save()
+    return Response({'status': 'ok', 'allocation_intent': intent})
 
 class CoordinatorDashboardView(TemplateView):
     template_name = "coordinator/dashboard.html"

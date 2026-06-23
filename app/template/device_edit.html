@@ -70,7 +70,7 @@
 
     <div class="card">
         <h2>Edit Fields</h2>
-        <form id="edit-form">
+	<form id="edit-form">
             {% csrf_token %}
             <div class="form-group">
                 <label for="notes">Notes</label>
@@ -145,10 +145,26 @@
                     <option value="FAIL" {% if device.wipe_status == "FAIL" %}selected{% endif %}>Wipe failed</option>
                 </select>
             </div>
-            <div class="form-group">
+	    <div class="form-group">
                 <label for="wipe_notes">Wipe Notes</label>
                 <textarea id="wipe_notes" name="wipe_notes" placeholder="Wipe method, date, who performed...">{{ device.wipe_notes }}</textarea>
             </div>
+            <div class="form-group">
+                <label for="allocation_intent">Allocation Intent</label>
+                <select id="allocation_intent" name="allocation_intent">
+		    <option value="UNDECIDED" {% if device.allocation_intent == "UNDECIDED" %}selected{% endif %}>To be classified</option>
+                    <option value="SALE" {% if device.allocation_intent == "SALE" %}selected{% endif %}>Sale / Lease</option>
+                    <option value="DEVICE_BANK" {% if device.allocation_intent == "DEVICE_BANK" %}selected{% endif %}>Device Bank</option>
+                    <option value="RECYCLING" {% if device.allocation_intent == "RECYCLING" %}selected{% endif %}>Recycling</option>
+		    <option value="RESERVED" {% if device.allocation_intent == "RESERVED" %}selected{% endif %}>Reserved</option>
+                    <option value="OTHER" {% if device.allocation_intent == "OTHER" %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="market_value_pounds">Market Value (£)</label>
+                <input type="number" id="market_value_pounds" name="market_value_pounds" step="0.01" min="0" value="{{ device.market_value_pounds|default:'' }}">
+            </div>
+
             <button type="submit" class="btn-save" id="save-btn">Save Changes</button>
         </form>
     </div>
@@ -176,12 +192,14 @@
                 wipe_status: document.getElementById('wipe_status').value,
                 wipe_notes: document.getElementById('wipe_notes').value,
                 win11_compatible: document.getElementById('win11_compatible').value,
-                device_specification_data: {
+                allocation_intent: document.getElementById('allocation_intent').value,
+                market_value_pounds: document.getElementById('market_value_pounds').value || null,
+		device_specification_data: {
                     processor: document.getElementById('processor').value,
-                    memory_gb: document.getElementById('memory_gb').value,
+                    memory_gb: document.getElementById('memory_gb').value || null,
                     storage_type: document.getElementById('storage_type').value,
-                    storage_size_gb: document.getElementById('storage_size_gb').value,
-                }
+                    storage_size_gb: document.getElementById('storage_size_gb').value || null,
+                }    
             })
         }).then(r => {
             if (r.ok) {

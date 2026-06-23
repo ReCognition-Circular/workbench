@@ -1,8 +1,26 @@
 from django.db import models
+from django.utils.text import slugify
 from locations.models import Location
 from workflow.models import Stage
 from donors.models import Donor
 from django.conf import settings
+
+class Manufacturer(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
 
 class DeviceType(models.TextChoices):
     LAPTOP = "LAPTOP", "Laptop"
@@ -55,6 +73,7 @@ class AllocationIntent(models.TextChoices):
     SALE = 'SALE', 'Sale'
     DEVICE_BANK = 'DEVICE_BANK', 'Device Bank'
     RECYCLING = 'RECYCLING', 'Recycling'
+    RESERVED = 'RESERVED', 'Reserved'
     OTHER = 'OTHER', 'Other'
 
 class AllocationType(models.TextChoices):
@@ -294,6 +313,10 @@ class Device(models.Model):
         blank=True,
         related_name="device",
     )
+    reserved_for_name = models.CharField(
+        max_length=200, blank=True,
+        help_text="Organisation/person this device is reserved for"
+    )
     location = models.ForeignKey(
         Location, on_delete=models.SET_NULL, null=True, blank=True, related_name="devices"
     )
@@ -324,6 +347,15 @@ class Device(models.Model):
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        # Auto-calculate Windows 11 compatibility from processor spec
+        if self.device_specification and self.device_specification.processor:
+            from devices.win11_check import determine_win11_compatible
+            self.win11_compatible = determine_win11_compatible(
+                self.device_specification.processor
+            )
+        super().save(*args, **kwargs)
 
     class Meta:
         ordering = ["-created_at"]

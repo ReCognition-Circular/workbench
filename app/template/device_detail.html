@@ -123,6 +123,25 @@
                                 {% endif %}
                             </dd>
                         </div>
+			    <div>
+                        <dt class="text-gray-500">Allocation Intent</dt>
+                        <dd>
+                            <span class="px-2 py-0.5 text-xs rounded font-medium
+                                {% if device.allocation_intent == 'UNDECIDED' %}bg-purple-100 text-purple-800
+                                {% elif device.allocation_intent == 'SALE' %}bg-green-100 text-green-800
+                                {% elif device.allocation_intent == 'DEVICE_BANK' %}" style="background:#d4da4f;color:#333;"
+                                {% elif device.allocation_intent == 'RECYCLING' %}bg-red-100 text-red-800
+                                {% elif device.allocation_intent == 'RESERVED' %}bg-orange-100 text-orange-800
+                                {% elif device.allocation_intent == 'OTHER' %}bg-gray-100 text-gray-600
+                                {% else %}bg-gray-100 text-gray-500{% endif %}">
+                                {{ device.get_allocation_intent_display|default:"Undecided" }}
+                            </span>
+                        </dd>
+                    </div>
+                            <div>
+                            <dt class="text-gray-500">Market Value</dt>
+                            <dd class="font-medium">{% if device.market_value_pounds %}&pound;{{ device.market_value_pounds }}{% else %}-{% endif %}</dd>
+                            </div>
                         </div>
                     </div>
                     {% if device.parts_cost_pounds != '0.00' and device.parts_cost_pounds != '0' %}
@@ -139,6 +158,9 @@
                 <h2 class="text-lg font-semibold text-gray-800 mb-4">Location</h2>
                 {% if device.location %}
                 <p class="text-sm font-medium">{{ device.location.code }}</p>
+		{% if device.donor %}
+                <p class="text-xs text-gray-400 mt-1">Donor: {{ device.donor.name }}</p>
+                {% endif %}
                 {% else %}
                 <p class="text-gray-400 text-sm">No location set.</p>
                 {% endif %}

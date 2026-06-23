@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Stock Available - ReCognition Flow{% endblock %}
+
+{% block extra_head %}
+<style>
+    .device-card {
+        @apply bg-white rounded-lg shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow;
+    }
+    .device-card.selected {
+        @apply border-primary ring-2 ring-primary/30;
+    }
+    #action-bar {
+        transition: all 0.2s ease;
+    }
+    #action-bar.hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-10px);
+    }
+    .toast {
+        @apply fixed bottom-6 right-6 px-6 py-3 rounded-lg shadow-lg text-white text-sm z-50;
+        transition: all 0.3s ease;
+    }
+    .toast.success { @apply bg-green-600; }
+    .toast.error { @apply bg-red-600; }
+    .toast.hidden { opacity: 0; transform: translateY(20px); pointer-events: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold text-gray-800">Stock Available</h1>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-6 gap-4" id="summary-cards">
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h3 class="text-sm text-gray-500">To be classified</h3>
+            <p class="text-3xl font-bold text-purple-500" id="count-tbc">—</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h3 class="text-sm text-gray-500">Available for Sale</h3>
+            <p class="text-3xl font-bold text-primary" id="count-sale">—</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h3 class="text-sm text-gray-500">Device Bank</h3>
+            <p class="text-3xl font-bold" id="count-db" style="color: #d4da4f;">—</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h3 class="text-sm text-gray-500">Recycling</h3>
+            <p class="text-3xl font-bold text-red-500" id="count-recycling">—</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h3 class="text-sm text-gray-500">Reserved</h3>
+            <p class="text-3xl font-bold text-orange-500" id="count-reserved">—</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h3 class="text-sm text-gray-500">Total</h3>
+            <p class="text-3xl font-bold text-gray-700" id="count-total">—</p>
+        </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div id="action-bar" class="hidden bg-white rounded-lg shadow-sm p-4 border-l-4 border-primary">
+        <div class="flex items-center justify-between">
+            <div>
+                <span class="text-sm font-medium text-gray-700" id="selected-count">0 selected</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button data-intent="SALE" class="px-4 py-2 bg-primary text-white rounded text-sm hover:bg-primary-dark bulk-action-btn">Mark as Sale</button>
+                <button data-intent="DEVICE_BANK" class="px-4 py-2 rounded text-sm bulk-action-btn" style="background:#d4da4f;color:#333;">Mark as Device Bank</button>
+                <button data-intent="RECYCLING" class="px-4 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600 bulk-action-btn">Mark as Recycling</button>
+		<button data-intent="RESERVED" class="px-4 py-2 bg-orange-500 text-white rounded text-sm hover:bg-orange-600 bulk-action-btn">Mark as Reserved</button>
+                <button data-intent="UNDECIDED" class="px-4 py-2 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400 bulk-action-btn">Mark as TBC</button>
+                <button id="clear-selection" class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow-sm p-4" id="filter-section">
+        <h2 class="text-sm font-medium text-gray-700 mb-3">Filter</h2>
+        <div class="grid grid-cols-1 md:grid-cols-7 gap-3">
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Device Type</label>
+                <select id="filter-type" class="w-full rounded border-gray-300 text-sm">
+                    <option value="">All</option>
+                    <option value="LAPTOP">Laptop</option>
+                    <option value="DESKTOP">Desktop</option>
+                    <option value="TABLET">Tablet</option>
+                    <option value="PHONE">Phone</option>
+                    <option value="MONITOR">Monitor</option>
+                    <option value="OTHER">Other</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Grade</label>
+                <select id="filter-grade" class="w-full rounded border-gray-300 text-sm">
+                    <option value="">All</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                    <option value="UNGRADED">Ungraded</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Min RAM</label>
+                <select id="filter-ram" class="w-full rounded border-gray-300 text-sm">
+                    <option value="">Any</option>
+                    <option value="4">4 GB</option>
+                    <option value="8">8 GB</option>
+                    <option value="16">16 GB</option>
+                    <option value="32">32 GB</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Storage</label>
+                <select id="filter-storage" class="w-full rounded border-gray-300 text-sm">
+                    <option value="">Any</option>
+                    <option value="SSD">SSD</option>
+                    <option value="HDD">HDD</option>
+                    <option value="NVME">NVMe</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Win 11</label>
+                <select id="filter-win11" class="w-full rounded border-gray-300 text-sm">
+                    <option value="">Any</option>
+                    <option value="YES">Compatible</option>
+                    <option value="NO">Not Compatible</option>
+                    <option value="UNKNOWN">Unknown</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Intent</label>
+                <select id="filter-intent" class="w-full rounded border-gray-300 text-sm">
+                    <option value="">All</option>
+                    <option value="UNDECIDED">TBC</option>
+                    <option value="SALE">Sale</option>
+                    <option value="DEVICE_BANK">Device Bank</option>
+                    <option value="RECYCLING">Recycling</option>
+		    <option value="RESERVED">Reserved</option>
+                    <option value="OTHER">Other</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Search</label>
+                <input type="text" id="filter-search" class="w-full rounded border-gray-300 text-sm" placeholder="Inventory or serial...">
+            </div>
+        </div>
+        <div class="flex justify-between items-center mt-4">
+            <div class="flex space-x-2">
+                <button id="apply-filters" class="px-6 py-2 bg-primary text-white rounded hover:bg-primary-dark text-sm">Apply Filters</button>
+                <button id="clear-filters" class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Clear</button>
+            </div>
+            <label class="flex items-center space-x-2 text-sm text-gray-500">
+                <input type="checkbox" id="select-all" class="rounded border-gray-300">
+                <span>Select all</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Devices -->
+    <div id="devices-container">
+        <div class="text-center py-12 text-gray-400">
+            <p>Select filters and click <strong>Apply Filters</strong> to see matching devices.</p>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<!-- Reserve Modal -->
+<div id="reserve-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+        <h3 class="text-lg font-semibold mb-4">Reserve Devices</h3>
+        <p class="text-sm text-gray-500 mb-4">Mark <span id="reserve-count" class="font-bold"></span> device(s) as reserved. Who are they for?</p>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Organisation Name</label>
+        <input type="text" id="reserve-organisation" class="w-full rounded border-gray-300 border px-3 py-2 text-sm mb-4" placeholder="e.g. Acme Corp" autofocus>
+        <div class="flex justify-end space-x-3">
+            <button id="reserve-cancel" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+            <button id="reserve-confirm" class="px-4 py-2 bg-orange-500 text-white rounded text-sm hover:bg-orange-600">Reserve</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const API_URL = '/api/stock/available/';
+    const BULK_URL = '/api/stock/bulk-update/';
+    const container = document.getElementById('devices-container');
+    const actionBar = document.getElementById('action-bar');
+    const selectedCount = document.getElementById('selected-count');
+    const toast = document.getElementById('toast');
+    let selectedIds = new Set();
+
+    function showToast(msg, type) {
+        toast.textContent = msg;
+        toast.className = 'toast ' + type;
+        setTimeout(() => toast.className = 'toast ' + type + ' hidden', 3000);
+    }
+
+    function getCSRF() {
+        return document.cookie.split('; ').find(c => c.startsWith('csrftoken=')).split('=')[1];
+    }
+
+    function updateActionBar() {
+        const count = selectedIds.size;
+        selectedCount.textContent = count + ' selected';
+        actionBar.classList.toggle('hidden', count === 0);
+        const checkboxes = document.querySelectorAll('.device-checkbox');
+        const allChecked = checkboxes.length > 0 && [...checkboxes].every(cb => cb.checked);
+        document.getElementById('select-all').checked = allChecked;
+    }
+
+    function fetchStock() {
+        const params = {};
+        const type = document.getElementById('filter-type').value;
+        const grade = document.getElementById('filter-grade').value;
+        const ram = document.getElementById('filter-ram').value;
+        const storage = document.getElementById('filter-storage').value;
+        const win11 = document.getElementById('filter-win11').value;
+        const intent = document.getElementById('filter-intent').value;
+        const search = document.getElementById('filter-search').value;
+
+        if (type) params.type = type;
+        if (grade) params.grade = grade;
+        if (ram) params.min_memory_gb = ram;
+        if (storage) params.storage_type = storage;
+        if (win11) params.win11_compatible = win11;
+        if (intent) params.intent = intent;
+
+        const qs = new URLSearchParams(params).toString();
+        const url = qs ? `${API_URL}?${qs}` : API_URL;
+
+        container.innerHTML = '<div class="text-center py-8 text-gray-400"><p>Loading…</p></div>';
+
+        fetch(url, { headers: { 'Accept': 'application/json' } })
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('count-tbc').textContent = data.needs_classification;
+                document.getElementById('count-sale').textContent = data.available_for_sale;
+                document.getElementById('count-db').textContent = data.available_for_device_bank;
+                document.getElementById('count-recycling').textContent = data.recycling;
+                document.getElementById('count-reserved').textContent = data.reserved;
+                document.getElementById('count-total').textContent = data.total_devices;
+
+                selectedIds.clear();
+                updateActionBar();
+
+                let devices = data.matching_devices || [];
+
+                if (search) {
+                    const q = search.toLowerCase();
+                    devices = devices.filter(d =>
+                        (d.inventory_number && d.inventory_number.toLowerCase().includes(q)) ||
+                        (d.serial_number && d.serial_number.toLowerCase().includes(q))
+                    );
+                }
+
+                if (devices.length === 0) {
+                    container.innerHTML = '<div class="text-center py-12 text-gray-400"><p>No matching devices found.</p></div>';
+                    return;
+                }
+
+                let html = '<div class="text-sm text-gray-500 mb-2">' + devices.length + ' device' + (devices.length !== 1 ? 's' : '') + '</div>';
+                html += '<div class="space-y-2">';
+                devices.forEach(function(d) {
+                    var gradeColor = 'bg-gray-100 text-gray-700';
+                    if (d.grade === 'UNGRADED') gradeColor = 'bg-gray-100 text-gray-400';
+                    else if (d.grade === 'A') gradeColor = 'bg-green-100 text-green-800';
+                    else if (d.grade === 'B') gradeColor = 'bg-blue-100 text-blue-800';
+                    else if (d.grade === 'C') gradeColor = 'bg-yellow-100 text-yellow-800';
+                    else if (d.grade === 'D') gradeColor = 'bg-orange-100 text-orange-800';
+                    else if (d.grade === 'BER') gradeColor = 'bg-red-100 text-red-800';
+                    else if (d.allocation_intent === 'RESERVED') { intentBg = 'background:#f97316;color:white;'; intentLabel = 'Reserved'; }
+                    var win11Color = 'bg-gray-100 text-gray-500';
+                    if (d.win11_compatible === 'YES') win11Color = 'bg-green-100 text-green-800';
+                    else if (d.win11_compatible === 'NO') win11Color = 'bg-red-100 text-red-800';
+
+                    var intentBg = '';
+                    var intentLabel = d.allocation_intent;
+                    if (d.allocation_intent === 'DEVICE_BANK') { intentBg = 'background:#d4da4f;color:#333;'; intentLabel = 'Device Bank'; }
+                    else if (d.allocation_intent === 'SALE') { intentBg = 'background:#45af6c;color:white;'; intentLabel = 'Sale'; }
+                    else if (d.allocation_intent === 'RECYCLING') { intentBg = 'background:#ef4444;color:white;'; intentLabel = 'Recycling'; }
+                    else if (d.allocation_intent === 'UNDECIDED') { intentBg = 'background:#a855f7;color:white;'; intentLabel = 'TBC'; }
+                    else if (d.allocation_intent === 'OTHER') { intentBg = 'background:#6b7280;color:white;'; intentLabel = 'Other'; }
+
+                    var specParts = [];
+                    if (d.memory_gb) specParts.push(d.memory_gb + ' GB RAM');
+                    if (d.storage_size_gb) specParts.push(d.storage_size_gb + ' GB ' + (d.storage_type || ''));
+                    else if (d.storage_type && d.storage_type !== 'UNKNOWN') specParts.push(d.storage_type);
+                    var spec = specParts.join(' \u00b7 ') || '\u2014';
+
+                    var manufacturer = d.manufacturer || '';
+                    var processor = d.processor ? d.processor.substring(0, 40) : '';
+
+                    html += '<div class="device-card" data-id="' + d.id + '">';
+                    html += '<div class="flex items-start">';
+                    html += '<div class="flex-shrink-0 pt-1 pr-3">';
+                    html += '<input type="checkbox" class="device-checkbox rounded border-gray-300" value="' + d.id + '">';
+                    html += '</div>';
+                    html += '<div class="flex-1 min-w-0">';
+                    html += '<div class="flex items-center space-x-3">';
+                    html += '<a href="/devices/' + d.id + '/" class="font-medium text-gray-900 hover:text-primary">' + d.inventory_number + '</a>';
+                    html += '<span class="px-2 py-0.5 text-xs rounded ' + gradeColor + '">' + d.grade + '</span>';
+                    html += '<span class="px-2 py-0.5 text-xs rounded ' + win11Color + '">Win11: ' + d.win11_compatible + '</span>';
+                    html += '<span class="text-xs text-gray-400">' + d.device_type + '</span>';
+                    html += '</div>';
+                    html += '<div class="mt-1 text-sm text-gray-500">' + manufacturer + ' ' + processor + '</div>';
+                    html += '<div class="mt-1 text-sm text-gray-400">' + spec + '</div>';
+                    if (d.recipient_name) {
+                        html += '<div class="mt-1 text-xs text-orange-600">Allocated to: ' + d.recipient_name + '</div>';
+                    }
+                    html += '</div>';
+                    html += '<div class="flex-shrink-0 text-right text-xs space-y-1">';
+                    html += '<div><span class="px-2 py-0.5 rounded text-xs font-medium" style="' + intentBg + '">' + intentLabel + '</span></div>';
+                    html += '<div class="text-gray-400">' + (d.stage || '') + '</div>';
+                    if (d.market_value_pounds) {
+                        html += '<div class="font-medium text-gray-700">\u00a3' + d.market_value_pounds + '</div>';
+                    }
+                    html += '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                });
+                html += '</div>';
+                container.innerHTML = html;
+
+                document.querySelectorAll('.device-checkbox').forEach(function(cb) {
+                    cb.addEventListener('change', function() {
+                        var id = parseInt(this.value);
+                        if (this.checked) selectedIds.add(id);
+                        else selectedIds.delete(id);
+                        updateActionBar();
+                        this.closest('.device-card').classList.toggle('selected', this.checked);
+                    });
+                });
+            })
+            .catch(function(err) {
+                container.innerHTML = '<div class="text-center py-12 text-red-400"><p>Error loading stock data.</p><p class="text-xs mt-2">' + err.message + '</p></div>';
+            });
+    }
+
+    document.getElementById('select-all').addEventListener('change', function() {
+        document.querySelectorAll('.device-checkbox').forEach(function(cb) {
+            cb.checked = this.checked;
+            var id = parseInt(cb.value);
+            if (this.checked) selectedIds.add(id);
+            else selectedIds.delete(id);
+            cb.closest('.device-card').classList.toggle('selected', this.checked);
+        }.bind(this));
+        updateActionBar();
+    });
+
+    document.getElementById('clear-selection').addEventListener('click', function() {
+        document.querySelectorAll('.device-checkbox').forEach(function(cb) {
+            cb.checked = false;
+            cb.closest('.device-card').classList.remove('selected');
+        });
+        selectedIds.clear();
+        document.getElementById('select-all').checked = false;
+        updateActionBar();
+    });
+
+    document.querySelectorAll('.bulk-action-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            if (selectedIds.size === 0) return;
+            var intent = this.dataset.intent;
+            if (!confirm('Mark ' + selectedIds.size + ' device' + (selectedIds.size !== 1 ? 's' : '') + ' as "' + intent + '"?')) return;
+
+            var csrf = getCSRF();
+            fetch(BULK_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+                body: JSON.stringify({device_ids: Array.from(selectedIds), allocation_intent: intent})
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(result) {
+                if (result.error) {
+                    showToast('Error: ' + result.error, 'error');
+                } else {
+                    showToast('Updated ' + result.updated + ' device' + (result.updated !== 1 ? 's' : ''), 'success');
+                    selectedIds.clear();
+                    updateActionBar();
+                    fetchStock();
+                }
+            })
+            .catch(function(err) { showToast('Error: ' + err.message, 'error'); });
+        });
+    });
+
+    document.getElementById('apply-filters').addEventListener('click', fetchStock);
+    document.getElementById('clear-filters').addEventListener('click', function() {
+        document.querySelectorAll('#filter-section select').forEach(function(s) { s.value = ''; });
+        document.getElementById('filter-search').value = '';
+        fetchStock();
+    });
+
+    fetchStock();
+})();
+</script>
+{% endblock %}

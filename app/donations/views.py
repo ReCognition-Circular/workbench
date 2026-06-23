@@ -4,9 +4,12 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import render, redirect
+from django.core.mail import send_mail
 
 import csv
 import io
+import os
+import requests
 
 from .models import DonationPledge, ExpectedDevice
 from .serializers import (
@@ -132,6 +135,37 @@ def donate_page(request):
             transfer_of_title_signed=True,
         )
 
+        # Send WhatsApp notification via n8n
+        n8n_webhook_url = os.environ.get('N8N_DONATION_WEBHOOK_URL')
+        if n8n_webhook_url:
+            try:
+                requests.post(n8n_webhook_url, json={
+                    'donor_name': donor_name,
+                    'donor_contact': donor_contact,
+                    'donor_email': donor_email,
+                    'donor_mobile': donor_mobile,
+                    'reference_number': reference,
+                    'notes': notes,
+                }, timeout=5)
+            except Exception:
+                pass  # Don't block donation if notification fails
+
+        # Send email confirmation
+        try:
+            send_mail(
+                'Thank you for your donation',
+                f'Hi {donor_name},\n\n'
+                f'Thank you for your donation offer (ref: {reference}).\n\n'
+                f'We will be in touch within 3 working days to arrange drop-off or collection.\n\n'
+                f'If you have any questions, reply to this email or message us on WhatsApp at +447380995263.\n\n'
+                f'Thank you for supporting digital inclusion in Birmingham.\n'
+                f'— ReCognition Circular CIC',
+                'Birmingham Device Bank <info@birminghamdevicebank.org>',
+                [donor_email, 'info@recognition-circular.org'],
+                fail_silently=False,
+            )
+        except Exception:
+            pass  # Don't block donation if email fails
         # Parse CSV upload
         csv_file = request.FILES.get("csv_file")
         if csv_file:

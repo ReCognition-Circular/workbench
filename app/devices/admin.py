@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Device, DeviceSpecification, DeviceType, Grade, Recipient, Allocation, FulfilmentRequest
+from .models import Device, DeviceSpecification, DeviceType, Grade, Recipient, Allocation, FulfilmentRequest, Manufacturer
 
 class DeviceTypeListFilter(admin.SimpleListFilter):
     title = "device type"
@@ -26,6 +26,10 @@ class GradeListFilter(admin.SimpleListFilter):
             return queryset.filter(grade=self.value())
         return queryset
 
+@admin.register(Manufacturer)
+class ManufacturerAdmin(admin.ModelAdmin):
+    list_display = ["name", "slug"]
+    prepopulated_fields = {"slug": ("name",)}
 
 @admin.register(Device)
 class DeviceAdmin(admin.ModelAdmin):

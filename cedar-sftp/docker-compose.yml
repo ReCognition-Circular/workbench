@@ -1,0 +1,16 @@
+services:
+  sftp:
+    image: atmoz/sftp:latest
+    container_name: cedar-sftp
+    restart: unless-stopped
+    ports:
+      - "2222:22"
+    volumes:
+      - sftp_data:/home/cedar/incoming
+      - ./sftp/users.conf:/etc/sftp/users.conf:ro
+    environment:
+      - TZ=Europe/London
+
+volumes:
+  sftp_data:
+    driver: local

@@ -43,6 +43,11 @@ class DeviceSpecificationSerializer(serializers.ModelSerializer):
 
 
 class DeviceSpecificationWriteSerializer(serializers.ModelSerializer):
+    memory_gb = serializers.IntegerField(allow_null=True, required=False)
+    storage_size_gb = serializers.IntegerField(allow_null=True, required=False)
+    memory_gb_upgraded = serializers.IntegerField(allow_null=True, required=False)
+    storage_size_gb_upgraded = serializers.IntegerField(allow_null=True, required=False)
+
     class Meta:
         model = DeviceSpecification
         fields = [
@@ -63,6 +68,10 @@ class DeviceSerializer(serializers.ModelSerializer):
     location = LocationSerializer(read_only=True)
     stage = StageSerializer(read_only=True)
     donor = DonorSerializer(read_only=True)
+
+    # Manufacturer and model name from device_specification
+    manufacturer = serializers.CharField(source='device_specification.manufacturer', read_only=True)
+    model_name = serializers.CharField(source='device_specification.model_name', read_only=True)
 
     # Write-only fields for creating/updating via API
     location_code = serializers.CharField(write_only=True, required=False)
@@ -111,9 +120,7 @@ class DeviceSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         spec_data = validated_data.pop('device_specification', None)
-        location_code = validated_data.pop('manufacturer',
-            'model_name',
-            'location_code', None)
+        location_code = validated_data.pop('location_code', None)
         stage_code = validated_data.pop('stage_code', None)
         donor_id = validated_data.pop('donor_id', None)
 
@@ -153,9 +160,7 @@ class DeviceSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         spec_data = validated_data.pop('device_specification', None)
-        location_code = validated_data.pop('manufacturer',
-            'model_name',
-            'location_code', None)
+        location_code = validated_data.pop('location_code', None)
         stage_code = validated_data.pop('stage_code', None)
         donor_id = validated_data.pop('donor_id', None)
 
@@ -240,7 +245,6 @@ class StockOverviewSerializer(serializers.Serializer):
     available_for_sale = serializers.IntegerField()
     available_for_device_bank = serializers.IntegerField()
     reserved = serializers.IntegerField()
-    in_pipeline = serializers.IntegerField()
     total_devices = serializers.IntegerField()
     valuation_available = serializers.DecimalField(max_digits=10, decimal_places=2)
     valuation_reserved = serializers.DecimalField(max_digits=10, decimal_places=2)
@@ -258,16 +262,26 @@ class StockDevicesSerializer(serializers.Serializer):
     processor = serializers.CharField(source='device_specification.processor', default=None)
     win11_compatible = serializers.CharField()
     market_value_pounds = serializers.DecimalField(max_digits=8, decimal_places=2, allow_null=True)
+    recipient_name = serializers.SerializerMethodField()
+    id = serializers.IntegerField()
 
     def get_stage(self, obj):
         return obj.stage.code if obj.stage else None
 
+    def get_recipient_name(self, obj):
+        allocation = obj.allocations.filter(status="RESERVED").first()
+        if allocation and allocation.recipient:
+            return allocation.recipient.name
+        return None
 
 class StockAvailableSerializer(serializers.Serializer):
     """Read-only serializer for the stock available query response."""
+    needs_classification = serializers.IntegerField()
     available_for_sale = serializers.IntegerField()
-    available_for_donation = serializers.IntegerField()
+    available_for_device_bank = serializers.IntegerField()
+    recycling = serializers.IntegerField()
+    other = serializers.IntegerField()
     reserved = serializers.IntegerField()
-    in_pipeline = serializers.IntegerField()
+    total_devices = serializers.IntegerField()
     matching_devices = StockDevicesSerializer(many=True)
-    valuation = serializers.DictField(child=serializers.DecimalField(max_digits=10, decimal_places=2))    
+    valuation = serializers.DictField(child=serializers.DecimalField(max_digits=10, decimal_places=2))

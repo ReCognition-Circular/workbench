@@ -12,8 +12,10 @@ from .views import (
     SiteViewSet,
     StockOverviewView,
     StockAvailableView,
+    StockBulkUpdateView,
     next_inventory_number,
     check_serial,
+    update_device_intent,
 )
 
 router = DefaultRouter()
@@ -29,9 +31,10 @@ urlpatterns = [
     path("", include("wipe.urls")),
     path("stock/overview/", StockOverviewView.as_view(), name="stock-overview"),
     path("stock/available/", StockAvailableView.as_view(), name="stock-available"),
+    path('stock/bulk-update/', StockBulkUpdateView.as_view(), name='stock-bulk-update'),
+    path('devices/<int:pk>/intent/', update_device_intent, name='update-device-intent'),
     path("inventory/next-number/", next_inventory_number, name="next-inventory-number"),
     path("inventory/check-serial/", check_serial, name="check-serial"),
-
 
 ]
 
