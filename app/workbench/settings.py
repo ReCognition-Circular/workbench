@@ -48,6 +48,7 @@ INSTALLED_APPS =[
     'donations',
     'wipe',
     'api',
+    'integrations'
 ]
 # LDAP Authentication
 AUTHENTICATION_BACKENDS = [
@@ -191,3 +192,7 @@ EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'info@birminghamdevicebank.org')
+# ERPNext Integration
+ERPNEXT_URL = os.getenv("ERPNEXT_URL", "https://erp.recognition-circular.org")
+ERPNEXT_API_KEY = os.getenv("ERPNEXT_API_KEY", "")
+ERPNEXT_API_SECRET = os.getenv("ERPNEXT_API_SECRET", "")
