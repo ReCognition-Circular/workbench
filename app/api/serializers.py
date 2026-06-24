@@ -285,3 +285,148 @@ class StockAvailableSerializer(serializers.Serializer):
     total_devices = serializers.IntegerField()
     matching_devices = StockDevicesSerializer(many=True)
     valuation = serializers.DictField(child=serializers.DecimalField(max_digits=10, decimal_places=2))
+class RecipientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipient
+        fields = '__all__'
+
+
+class AllocationOnRecipientSerializer(serializers.ModelSerializer):
+    inventory_number = serializers.CharField(source="device.inventory_number")
+    serial_number = serializers.CharField(source="device.serial_number")
+    device_type = serializers.CharField(source="device.device_type")
+    grade = serializers.CharField(source="device.grade")
+    stage = serializers.CharField(source="device.stage.code", default=None)
+    wipe_status = serializers.CharField(source="device.wipe_status")
+    parts_status = serializers.CharField(source="device.parts_status")
+    manufacturer = serializers.CharField(source="device.device_specification.manufacturer", default=None)
+    model_name = serializers.CharField(source="device.device_specification.model_name", default=None)
+
+    class Meta:
+        model = Allocation
+        fields = [
+            'id', 'status', 'allocation_type', 'price_pounds',
+            'target_ready_by', 'allocated_at', 'dispatched_at',
+            'inventory_number', 'serial_number', 'device_type',
+            'grade', 'stage', 'wipe_status', 'parts_status',
+            'manufacturer', 'model_name',
+        ]
+
+
+class RecipientDetailSerializer(serializers.ModelSerializer):
+    allocations = serializers.SerializerMethodField()
+    fulfilment_requests = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Recipient
+        fields = '__all__'
+
+    def get_allocations(self, obj):
+        allocations = obj.allocation_set.select_related(
+            "device", "device__device_specification", "device__stage"
+        ).all()
+        return AllocationOnRecipientSerializer(allocations, many=True).data
+
+    def get_fulfilment_requests(self, obj):
+        requests = obj.fulfilmentrequest_set.all()
+        return FulfilmentRequestOnRecipientSerializer(requests, many=True).data
+
+
+class FulfilmentRequestOnRecipientSerializer(serializers.ModelSerializer):
+    allocated_device_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FulfilmentRequest
+        fields = [
+            'id', 'erpnext_order_id', 'summary', 'target_date',
+            'status', 'delivery_method', 'delivery_scheduled_date',
+            'allocated_device_count',
+        ]
+
+    def get_allocated_device_count(self, obj):
+        return obj.allocation_set.count()
+class DeviceOnFulfilmentSerializer(serializers.ModelSerializer):
+    """Read-only serializer for a device within an FR detail view."""
+    inventory_number = serializers.CharField(source="device.inventory_number")
+    serial_number = serializers.CharField(source="device.serial_number")
+    device_type = serializers.CharField(source="device.device_type")
+    grade = serializers.CharField(source="device.grade")
+    stage = serializers.CharField(source="device.stage.code", default=None)
+    stage_name = serializers.CharField(source="device.stage.name", default=None)
+    wipe_status = serializers.CharField(source="device.wipe_status")
+    parts_status = serializers.CharField(source="device.parts_status")
+    manufacturer = serializers.CharField(source="device.device_specification.manufacturer", default=None)
+    model_name = serializers.CharField(source="device.device_specification.model_name", default=None)
+    processor = serializers.CharField(source="device.device_specification.processor", default=None)
+    memory_gb = serializers.IntegerField(source="device.device_specification.memory_gb", default=None)
+    allocation_type = serializers.CharField()
+    target_ready_by = serializers.DateField()
+    allocated_at = serializers.DateTimeField()
+    status = serializers.CharField()
+
+    class Meta:
+        model = Allocation
+        fields = [
+            'id', 'inventory_number', 'serial_number', 'device_type',
+            'grade', 'stage', 'stage_name', 'wipe_status', 'parts_status',
+            'manufacturer', 'model_name', 'processor', 'memory_gb',
+            'allocation_type', 'target_ready_by', 'allocated_at', 'status',
+        ]
+
+
+class FulfilmentRequestDetailSerializer(serializers.ModelSerializer):
+    """Detail serializer for a single FR — includes devices and stage breakdown."""
+    allocated_devices = serializers.SerializerMethodField()
+    allocated_count = serializers.SerializerMethodField()
+    shortfall = serializers.SerializerMethodField()
+    stage_breakdown = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FulfilmentRequest
+        fields = [
+            'id', 'erpnext_order_id', 'erpnext_order_url', 'recipient',
+            'summary', 'quantity', 'target_date', 'status',
+            'delivery_method', 'delivery_address', 'delivery_scheduled_date',
+            'requested_spec', 'notes', 'created_at',
+            'allocated_devices', 'allocated_count', 'shortfall', 'stage_breakdown',
+        ]
+
+    def get_allocated_devices(self, obj):
+        allocations = obj.allocation_set.select_related(
+            "device", "device__device_specification", "device__stage"
+        ).all()
+        return DeviceOnFulfilmentSerializer(allocations, many=True).data
+
+    def get_allocated_count(self, obj):
+        return obj.allocation_set.count()
+
+    def get_shortfall(self, obj):
+        return max(0, obj.quantity - obj.allocation_set.count())
+
+    def get_stage_breakdown(self, obj):
+        stages = {}
+        for alloc in obj.allocation_set.select_related("device__stage").all():
+            stage_code = alloc.device.stage.code if alloc.device.stage else "NO_STAGE"
+            stages[stage_code] = stages.get(stage_code, 0) + 1
+        return stages
+
+
+class FulfilmentRequestListSerializer(serializers.ModelSerializer):
+    """List serializer for FR index — summary only."""
+    recipient_name = serializers.CharField(source="recipient.name", default=None)
+    allocated_count = serializers.SerializerMethodField()
+    shortfall = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FulfilmentRequest
+        fields = [
+            'id', 'erpnext_order_id', 'summary', 'quantity',
+            'target_date', 'status', 'delivery_method', 'delivery_scheduled_date',
+            'recipient_name', 'allocated_count', 'shortfall',
+        ]
+
+    def get_allocated_count(self, obj):
+        return obj.allocation_set.count()
+
+    def get_shortfall(self, obj):
+        return max(0, obj.quantity - obj.allocation_set.count())    

@@ -28,6 +28,12 @@ urlpatterns = [
     path('dashboard/', CoordinatorDashboardView.as_view(), name='dashboard'),
     path('manifest.json', TemplateView.as_view(template_name='manifest.json', content_type='application/json')),
     path('accounts/', include('django.contrib.auth.urls')),
+    path('recipients/', views.recipient_list, name='recipient_list'),
+    path('recipients/new/', views.recipient_create, name='recipient_create'),
+    path('recipients/<int:pk>/', views.recipient_detail, name='recipient_detail'),
+    path('recipients/<int:pk>/edit/', views.recipient_edit, name='recipient_edit'),
+    path('fulfilment-requests/', views.fulfilment_request_list, name='fr_list'),
+    path('fulfilment-requests/<int:pk>/', views.fulfilment_request_detail, name='fr_detail'),
 ]
 
 if settings.DEBUG:

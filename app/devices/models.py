@@ -174,6 +174,10 @@ class Allocation(models.Model):
     dispatched_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
     cancel_reason = models.TextField(blank=True)
+    target_ready_by = models.DateField(
+        null=True, blank=True,
+        help_text="Target date for devices to be ready for dispatch"
+    )
 
     def __str__(self):
         return f"{self.device} → {self.recipient} ({self.get_status_display()})"
@@ -183,6 +187,7 @@ class FulfilmentRequest(models.Model):
     """A request to fulfil — comes from ERPNext Sales Order."""
     erpnext_order_id = models.CharField(max_length=50, unique=True)
     erpnext_order_url = models.URLField(blank=True)
+    quantity = models.IntegerField(default=0, help_text="Number of devices requested")
 
     recipient = models.ForeignKey(
         'Recipient', on_delete=models.SET_NULL, null=True

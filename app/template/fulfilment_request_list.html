@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Fulfilment Requests - ReCognition Workbench{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-gray-800">Fulfilment Requests</h1>
+        <span class="text-sm text-gray-400">{{ fr_data|length }} order(s)</span>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Summary</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Allocated</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Shortfall</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Target</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for item in fr_data %}
+                <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='/fulfilment-requests/{{ item.fr.id }}/'">
+                    <td class="px-4 py-3 font-medium text-primary">{{ item.fr.erpnext_order_id }}</td>
+                    <td class="px-4 py-3">{{ item.fr.recipient.name|default:"—" }}</td>
+                    <td class="px-4 py-3 text-gray-500 max-w-xs truncate">{{ item.fr.summary }}</td>
+                    <td class="px-4 py-3 text-right">{{ item.fr.quantity }}</td>
+                    <td class="px-4 py-3 text-right">{{ item.allocated }}</td>
+                    <td class="px-4 py-3 text-right">
+                        {% if item.shortfall > 0 %}
+                        <span class="text-red-600 font-medium">{{ item.shortfall }}</span>
+                        {% else %}
+                        <span class="text-green-600">0</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">{{ item.fr.target_date|date:"d/m/Y"|default:"—" }}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-0.5 text-xs rounded font-medium
+                            {% if item.fr.status == 'COMPLETE' %}bg-green-100 text-green-800
+                            {% elif item.fr.status == 'IN_PROGRESS' %}bg-blue-100 text-blue-800
+                            {% elif item.fr.status == 'READY' %}bg-indigo-100 text-indigo-800
+                            {% elif item.fr.status == 'PENDING' %}bg-yellow-100 text-yellow-800
+                            {% elif item.fr.status == 'CANCELLED' %}bg-gray-100 text-gray-500{% endif %}">
+                            {{ item.fr.get_status_display }}
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="px-4 py-12 text-center text-gray-400">No fulfilment requests yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

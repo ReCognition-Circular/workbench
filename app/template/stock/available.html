@@ -169,20 +169,42 @@
         </div>
     </div>
 </div>
-
 <div id="toast" class="toast hidden"></div>
 <!-- Reserve Modal -->
 <div id="reserve-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
         <h3 class="text-lg font-semibold mb-4">Reserve Devices</h3>
-        <p class="text-sm text-gray-500 mb-4">Mark <span id="reserve-count" class="font-bold"></span> device(s) as reserved. Who are they for?</p>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Organisation Name</label>
-        <input type="text" id="reserve-organisation" class="w-full rounded border-gray-300 border px-3 py-2 text-sm mb-4" placeholder="e.g. Acme Corp" autofocus>
+        <p class="text-sm text-gray-500 mb-4">Mark <span id="reserve-count" class="font-bold"></span> device(s) as reserved.</p>
+
+        <!-- Recipient selector -->
+        <div id="recipient-select-section">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Recipient</label>
+            <select id="reserve-recipient" class="w-full rounded border-gray-300 border px-3 py-2 text-sm mb-2">
+                <option value="">— Select recipient —</option>
+            </select>
+            <button type="button" id="reserve-new-recipient-btn" class="text-xs text-primary hover:underline mb-4">+ New recipient</button>
+        </div>
+
+        <!-- Inline new recipient form (hidden by default) -->
+        <div id="reserve-new-recipient-form" class="hidden space-y-3 mb-4 p-3 bg-gray-50 rounded">
+            <p class="text-sm font-medium text-gray-700">New Recipient</p>
+            <input type="text" id="reserve-new-name" class="w-full rounded border-gray-300 border px-3 py-2 text-sm" placeholder="Name *" required>
+            <select id="reserve-new-type" class="w-full rounded border-gray-300 border px-3 py-2 text-sm">
+                <option value="DEVICE_BANK_HUB">Device Bank Hub</option>
+                <option value="CUSTOMER">Customer</option>
+            </select>
+            <div class="flex space-x-2">
+                <button type="button" id="reserve-create-and-select" class="px-3 py-1.5 bg-primary text-white rounded text-sm">Create & Select</button>
+                <button type="button" id="reserve-cancel-new" class="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-600">Cancel</button>
+            </div>
+        </div>
+
         <div class="flex justify-end space-x-3">
             <button id="reserve-cancel" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
-            <button id="reserve-confirm" class="px-4 py-2 bg-orange-500 text-white rounded text-sm hover:bg-orange-600">Reserve</button>
+            <button id="reserve-confirm" class="px-4 py-2 bg-orange-500 text-white rounded text-sm hover:bg-orange-600" disabled>Reserve</button>
         </div>
     </div>
+</div>
 </div>
 
 <script>
@@ -362,11 +384,20 @@
         document.getElementById('select-all').checked = false;
         updateActionBar();
     });
-
     document.querySelectorAll('.bulk-action-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             if (selectedIds.size === 0) return;
             var intent = this.dataset.intent;
+
+            // Reserved opens the modal instead of confirming directly
+            if (intent === 'RESERVED') {
+                var modal = document.getElementById('reserve-modal');
+                document.getElementById('reserve-count').textContent = selectedIds.size;
+                loadRecipients();
+                modal.classList.remove('hidden');
+                return;
+            }
+
             if (!confirm('Mark ' + selectedIds.size + ' device' + (selectedIds.size !== 1 ? 's' : '') + ' as "' + intent + '"?')) return;
 
             var csrf = getCSRF();
@@ -389,7 +420,123 @@
             .catch(function(err) { showToast('Error: ' + err.message, 'error'); });
         });
     });
+// Reserve modal handlers
+    function loadRecipients() {
+        var select = document.getElementById('reserve-recipient');
+        select.innerHTML = '<option value="">— Loading... —</option>';
+        fetch('/api/recipients/', { headers: { 'Accept': 'application/json' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                select.innerHTML = '<option value="">— Select recipient —</option>';
+                (data.results || []).forEach(function(r) {
+                    var opt = document.createElement('option');
+                    opt.value = r.id;
+                    opt.textContent = r.name + ' (' + (r.recipient_type === 'CUSTOMER' ? 'Customer' : 'Hub') + ')';
+                    select.appendChild(opt);
+                });
+                document.getElementById('reserve-confirm').disabled = true;
+            })
+            .catch(function() {
+                select.innerHTML = '<option value="">— Error loading —</option>';
+            });
+    }
 
+    document.getElementById('reserve-recipient').addEventListener('change', function() {
+        document.getElementById('reserve-confirm').disabled = !this.value;
+    });
+
+    document.getElementById('reserve-confirm').addEventListener('click', function() {
+        var recipientId = document.getElementById('reserve-recipient').value;
+        if (!recipientId || selectedIds.size === 0) return;
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Reserving...';
+
+        var csrf = getCSRF();
+        fetch('/api/stock/reserve/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify({
+                device_ids: Array.from(selectedIds),
+                recipient_id: parseInt(recipientId)
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(result) {
+            if (result.error) {
+                showToast('Error: ' + result.error, 'error');
+                btn.disabled = false;
+                btn.textContent = 'Reserve';
+            } else {
+                showToast('Reserved ' + result.reserved + ' device' + (result.reserved !== 1 ? 's' : ''), 'success');
+                document.getElementById('reserve-modal').classList.add('hidden');
+                selectedIds.clear();
+                updateActionBar();
+                fetchStock();
+                btn.disabled = false;
+                btn.textContent = 'Reserve';
+            }
+        })
+        .catch(function(err) {
+            showToast('Error: ' + err.message, 'error');
+            btn.disabled = false;
+            btn.textContent = 'Reserve';
+        });
+    });
+
+    document.getElementById('reserve-cancel').addEventListener('click', function() {
+        document.getElementById('reserve-modal').classList.add('hidden');
+    });
+
+    // Inline new recipient form
+    document.getElementById('reserve-new-recipient-btn').addEventListener('click', function() {
+        document.getElementById('recipient-select-section').classList.add('hidden');
+        document.getElementById('reserve-new-recipient-form').classList.remove('hidden');
+    });
+
+    document.getElementById('reserve-cancel-new').addEventListener('click', function() {
+        document.getElementById('reserve-new-recipient-form').classList.add('hidden');
+        document.getElementById('recipient-select-section').classList.remove('hidden');
+    });
+
+    document.getElementById('reserve-create-and-select').addEventListener('click', function() {
+        var name = document.getElementById('reserve-new-name').value.trim();
+        var type = document.getElementById('reserve-new-type').value;
+        if (!name) { showToast('Name is required', 'error'); return; }
+
+        var csrf = getCSRF();
+        fetch('/api/recipients/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify({name: name, recipient_type: type})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(recipient) {
+            if (recipient.id) {
+                // Add to dropdown and select it
+                var select = document.getElementById('reserve-recipient');
+                var opt = document.createElement('option');
+                opt.value = recipient.id;
+                opt.textContent = recipient.name + ' (' + (recipient.recipient_type === 'CUSTOMER' ? 'Customer' : 'Hub') + ')';
+                select.appendChild(opt);
+                select.value = recipient.id;
+                document.getElementById('reserve-confirm').disabled = false;
+                // Hide new recipient form
+                document.getElementById('reserve-new-recipient-form').classList.add('hidden');
+                document.getElementById('recipient-select-section').classList.remove('hidden');
+                document.getElementById('reserve-new-name').value = '';
+                showToast('Recipient created', 'success');
+            } else {
+                showToast('Error creating recipient', 'error');
+            }
+        })
+        .catch(function(err) { showToast('Error: ' + err.message, 'error'); });
+    });
+
+    // Close modal on Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') document.getElementById('reserve-modal').classList.add('hidden');
+    });
     document.getElementById('apply-filters').addEventListener('click', fetchStock);
     document.getElementById('clear-filters').addEventListener('click', function() {
         document.querySelectorAll('#filter-section select').forEach(function(s) { s.value = ''; });

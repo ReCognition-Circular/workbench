@@ -11,7 +11,7 @@ from django.shortcuts import redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Sum, Count
 
-from devices.models import Device, Allocation, DeviceSpecification, AllocationIntent
+from devices.models import Device, Allocation, DeviceSpecification, AllocationIntent, Recipient, FulfilmentRequest
 from django.db.models import Sum
 from locations.models import Location, Site
 from workflow.models import Stage
@@ -27,6 +27,12 @@ from .serializers import (
     DeviceLocationUpdateSerializer,
     StockOverviewSerializer,
     StockAvailableSerializer,
+    RecipientSerializer,
+    RecipientDetailSerializer,
+    AllocationOnRecipientSerializer,
+    FulfilmentRequestOnRecipientSerializer,
+    FulfilmentRequestListSerializer,
+    FulfilmentRequestDetailSerializer,
 )
 
 class DeviceViewSet(
@@ -506,3 +512,80 @@ def check_serial(request):
     exists = Device.objects.filter(serial_number=serial).exists()
     
     return Response({'exists': exists, 'serial_number': serial})    
+
+class RecipientViewSet(viewsets.ModelViewSet):
+    """CRUD for recipients. Detail view includes allocated devices."""
+    queryset = Recipient.objects.all()
+    serializer_class = RecipientSerializer
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = {
+        "recipient_type": ["exact"],
+    }
+    search_fields = ["name", "contact_email", "contact_phone"]
+
+    def retrieve(self, request, *args, **kwargs):
+        """Override detail to include allocations and fulfilment requests."""
+        instance = self.get_object()
+        serializer = RecipientDetailSerializer(instance)
+        return Response(serializer.data)
+class ReserveView(APIView):
+    """Reserve devices for a recipient — creates Allocation records."""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        device_ids = request.data.get('device_ids', [])
+        recipient_id = request.data.get('recipient_id')
+
+        if not device_ids or not recipient_id:
+            return Response({'error': 'device_ids and recipient_id are required'}, status=400)
+
+        try:
+            recipient = Recipient.objects.get(id=recipient_id)
+        except Recipient.DoesNotExist:
+            return Response({'error': 'Recipient not found'}, status=404)
+
+        devices = Device.objects.filter(id__in=device_ids)
+        if not devices.exists():
+            return Response({'error': 'No matching devices found'}, status=404)
+
+        count = 0
+        for device in devices:
+            Allocation.objects.create(
+                device=device,
+                recipient=recipient,
+                status='RESERVED',
+                allocation_type='SALE',
+                allocated_by=request.user if request.user.is_authenticated else None,
+            )
+            device.allocation_intent = 'RESERVED'
+            device.save(update_fields=['allocation_intent'])
+            count += 1
+
+        return Response({'reserved': count})    
+class FulfilmentRequestViewSet(viewsets.ReadOnlyModelViewSet):
+    """List and detail views for fulfilment requests with allocation progress."""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = {
+        "status": ["exact"],
+        "recipient": ["exact"],
+    }
+    search_fields = ["erpnext_order_id", "summary"]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return FulfilmentRequestListSerializer
+        return FulfilmentRequestDetailSerializer
+
+    def get_queryset(self):
+        qs = FulfilmentRequest.objects.select_related("recipient").all()
+        if self.action == "retrieve":
+            qs = qs.prefetch_related(
+                "allocation_set__device__device_specification",
+                "allocation_set__device__stage",
+            )
+        return qs    

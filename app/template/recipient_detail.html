@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}{{ recipient.name }} - ReCognition Workbench{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <div>
+            <a href="/recipients/" class="text-sm text-primary hover:underline">&larr; Back to Recipients</a>
+            <h1 class="text-2xl font-bold text-gray-800">{{ recipient.name }}</h1>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span class="px-3 py-1 rounded-full text-sm font-medium 
+                {% if recipient.recipient_type == 'CUSTOMER' %}bg-blue-100 text-blue-800
+                {% else %}bg-green-100 text-green-800{% endif %}">
+                {{ recipient.get_recipient_type_display }}
+            </span>
+            <a href="/recipients/{{ recipient.id }}/edit/" class="px-3 py-1 bg-green-600 text-white rounded-full text-sm hover:bg-green-700">Edit</a>
+        </div>
+    </div>
+
+    <!-- Contact Info -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Contact Details</h2>
+        <dl class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <dt class="text-gray-500">Contact Name</dt>
+                <dd class="font-medium">{{ recipient.contact_name|default:"—" }}</dd>
+            </div>
+            <div>
+                <dt class="text-gray-500">Email</dt>
+                <dd class="font-medium">{{ recipient.contact_email|default:"—" }}</dd>
+            </div>
+            <div>
+                <dt class="text-gray-500">Phone</dt>
+                <dd class="font-medium">{{ recipient.contact_phone|default:"—" }}</dd>
+            </div>
+            <div>
+                <dt class="text-gray-500">ERPNext ID</dt>
+                <dd class="font-medium">{{ recipient.erpnext_customer_id|default:"Not linked" }}</dd>
+            </div>
+            <div class="col-span-2">
+                <dt class="text-gray-500">Address</dt>
+                <dd class="font-medium">{{ recipient.address|default:"—"|linebreaksbr }}</dd>
+            </div>
+        </dl>
+    </div>
+
+    <!-- Allocated Devices -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Allocated Devices</h2>
+        {% if allocations %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Inventory</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Make/Model</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Stage</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Wipe</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Parts</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Allocation</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Target Ready</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for a in allocations %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 font-medium">
+                            <a href="/devices/{{ a.device.id }}/" class="text-primary hover:underline">{{ a.device.inventory_number }}</a>
+                        </td>
+                        <td class="px-4 py-3 text-gray-500">
+                            {% with spec=a.device.device_specification %}
+                                {{ spec.manufacturer|default:"" }} {{ spec.model_name|default:"" }}
+                            {% endwith %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 text-xs rounded
+                                {% if a.device.grade == 'A' %}bg-green-100 text-green-800
+                                {% elif a.device.grade == 'B' %}bg-blue-100 text-blue-800
+                                {% elif a.device.grade == 'C' %}bg-yellow-100 text-yellow-800
+                                {% elif a.device.grade == 'D' %}bg-orange-100 text-orange-800
+                                {% elif a.device.grade == 'BER' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-500{% endif %}">
+                                {{ a.device.grade }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 text-xs rounded bg-indigo-100 text-indigo-800">{{ a.device.stage.name|default:"-" }}</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 text-xs rounded
+                                {% if a.device.wipe_status == 'PASS' %}bg-green-100 text-green-800
+                                {% elif a.device.wipe_status == 'PENDING' %}bg-yellow-100 text-yellow-800
+                                {% elif a.device.wipe_status == 'FAIL' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-500{% endif %}">
+                                {{ a.device.wipe_status }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 text-xs rounded
+                                {% if a.device.parts_status == 'FITTED' or a.device.parts_status == 'NOT_NEEDED' %}bg-green-100 text-green-800
+                                {% elif a.device.parts_status == 'ORDERED' or a.device.parts_status == 'REQUESTED' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-gray-100 text-gray-500{% endif %}">
+                                {{ a.device.parts_status|cut:"_" }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-gray-500">{{ a.get_allocation_type_display }}</td>
+                        <td class="px-4 py-3 font-medium">{% if a.price_pounds %}£{{ a.price_pounds }}{% else %}—{% endif %}</td>
+                        <td class="px-4 py-3">{{ a.target_ready_by|date:"d/m/Y"|default:"—" }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 text-xs rounded font-medium
+                                {% if a.status == 'RESERVED' %}bg-orange-100 text-orange-800
+                                {% elif a.status == 'DISPATCHED' %}bg-green-100 text-green-800
+                                {% elif a.status == 'CANCELLED' %}bg-gray-100 text-gray-500{% endif %}">
+                                {{ a.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-gray-400 text-sm">No devices allocated to this recipient yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- Fulfilment Requests -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Fulfilment Requests</h2>
+        {% if fulfilment_requests %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Summary</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Target Date</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Devices Allocated</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for fr in fulfilment_requests %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 font-medium text-gray-900">{{ fr.erpnext_order_id }}</td>
+                        <td class="px-4 py-3 text-gray-500">{{ fr.summary }}</td>
+                        <td class="px-4 py-3">{{ fr.target_date|date:"d/m/Y"|default:"—" }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 text-xs rounded font-medium
+                                {% if fr.status == 'COMPLETE' %}bg-green-100 text-green-800
+                                {% elif fr.status == 'IN_PROGRESS' %}bg-blue-100 text-blue-800
+                                {% elif fr.status == 'READY' %}bg-indigo-100 text-indigo-800
+                                {% elif fr.status == 'PENDING' %}bg-yellow-100 text-yellow-800
+                                {% elif fr.status == 'CANCELLED' %}bg-gray-100 text-gray-500{% endif %}">
+                                {{ fr.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 font-medium">{{ fr.allocation_set.count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-gray-400 text-sm">No fulfilment requests for this recipient.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

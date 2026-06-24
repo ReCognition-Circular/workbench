@@ -16,6 +16,9 @@ from .views import (
     next_inventory_number,
     check_serial,
     update_device_intent,
+    RecipientViewSet,
+    ReserveView,
+    FulfilmentRequestViewSet
 )
 
 router = DefaultRouter()
@@ -24,6 +27,8 @@ router.register("locations", LocationViewSet, basename="location")
 router.register("stages", StageViewSet, basename="stage")
 router.register("donors", DonorViewSet, basename="donor")
 router.register("sites", SiteViewSet, basename="site")
+router.register("recipients", RecipientViewSet, basename="recipient")
+router.register(r'fulfilment-requests', FulfilmentRequestViewSet, basename='fulfilment-request')
 
 urlpatterns = [
     path("", include(router.urls)),
@@ -32,6 +37,7 @@ urlpatterns = [
     path("stock/overview/", StockOverviewView.as_view(), name="stock-overview"),
     path("stock/available/", StockAvailableView.as_view(), name="stock-available"),
     path('stock/bulk-update/', StockBulkUpdateView.as_view(), name='stock-bulk-update'),
+    path('stock/reserve/', ReserveView.as_view(), name='stock-reserve'),
     path('devices/<int:pk>/intent/', update_device_intent, name='update-device-intent'),
     path("inventory/next-number/", next_inventory_number, name="next-inventory-number"),
     path("inventory/check-serial/", check_serial, name="check-serial"),

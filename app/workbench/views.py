@@ -1,10 +1,10 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db import models
 from devices.models import Device
 from workflow.models import Stage
 from donations.models import DonationPledge
-from devices.models import DeviceSpecification, Manufacturer
+from devices.models import DeviceSpecification, Manufacturer, Recipient, FulfilmentRequest
 from devices.utils import generate_manual_inventory_number
 
 @login_required
@@ -289,3 +289,124 @@ def dashboard(request):
 def stock_available_page(request):
     """Stock available page (front-end for Sales Manager)."""
     return render(request, "stock/available.html")
+@login_required
+def recipient_list(request):
+    """List all recipients."""
+    recipients = Recipient.objects.all().order_by("name")
+    return render(request, "recipient_list.html", {
+        "recipients": recipients,
+    })
+
+
+@login_required
+def recipient_detail(request, pk):
+    """Recipient detail with allocated devices and fulfilment requests."""
+    recipient = get_object_or_404(Recipient, pk=pk)
+    allocations = recipient.allocation_set.select_related(
+        "device", "device__device_specification", "device__stage"
+    ).all()
+    fulfilment_requests = recipient.fulfilmentrequest_set.all()
+    return render(request, "recipient_detail.html", {
+        "recipient": recipient,
+        "allocations": allocations,
+        "fulfilment_requests": fulfilment_requests,
+    })
+
+
+@login_required
+def recipient_create(request):
+    """Create a new recipient."""
+    if request.method == "POST":
+        name = request.POST.get("name")
+        recipient_type = request.POST.get("recipient_type")
+        contact_name = request.POST.get("contact_name", "")
+        contact_email = request.POST.get("contact_email", "")
+        contact_phone = request.POST.get("contact_phone", "")
+        address = request.POST.get("address", "")
+        erpnext_customer_id = request.POST.get("erpnext_customer_id", "")
+
+        if not name or not recipient_type:
+            return render(request, "recipient_form.html", {
+                "error": "Name and Type are required.",
+                "recipient": None,
+            })
+
+        recipient = Recipient.objects.create(
+            name=name,
+            recipient_type=recipient_type,
+            contact_name=contact_name,
+            contact_email=contact_email,
+            contact_phone=contact_phone,
+            address=address,
+            erpnext_customer_id=erpnext_customer_id,
+        )
+        return redirect("recipient_detail", pk=recipient.pk)
+
+    return render(request, "recipient_form.html", {
+        "recipient": None,
+    })
+
+
+@login_required
+def recipient_edit(request, pk):
+    """Edit an existing recipient."""
+    recipient = get_object_or_404(Recipient, pk=pk)
+
+    if request.method == "POST":
+        recipient.name = request.POST.get("name", recipient.name)
+        recipient.recipient_type = request.POST.get("recipient_type", recipient.recipient_type)
+        recipient.contact_name = request.POST.get("contact_name", "")
+        recipient.contact_email = request.POST.get("contact_email", "")
+        recipient.contact_phone = request.POST.get("contact_phone", "")
+        recipient.address = request.POST.get("address", "")
+        recipient.erpnext_customer_id = request.POST.get("erpnext_customer_id", "")
+        recipient.save()
+        return redirect("recipient_detail", pk=recipient.pk)
+
+    return render(request, "recipient_form.html", {
+        "recipient": recipient,
+    })
+@login_required
+def fulfilment_request_list(request):
+    frs = FulfilmentRequest.objects.select_related('recipient').all()
+    # Annotate with allocated count and compute shortfall
+    fr_data = []
+    for fr in frs:
+        allocated = fr.allocation_set.count()
+        fr_data.append({
+            'fr': fr,
+            'allocated': allocated,
+            'shortfall': max(0, fr.quantity - allocated),
+        })
+    return render(request, 'fulfilment_request_list.html', {'fr_data': fr_data})
+
+
+@login_required
+def fulfilment_request_detail(request, pk):
+    fr = get_object_or_404(
+        FulfilmentRequest.objects.select_related('recipient'),
+        pk=pk
+    )
+    allocations = fr.allocation_set.select_related(
+        'device', 'device__device_specification', 'device__stage',
+    ).all()
+
+    # Stage breakdown
+    stage_counts = {}
+    device_allocations = []
+    for a in allocations:
+        stage_code = a.device.stage.code if a.device.stage else 'NO_STAGE'
+        stage_counts[stage_code] = stage_counts.get(stage_code, 0) + 1
+        device_allocations.append(a)
+
+    allocated_count = len(device_allocations)
+    shortfall = max(0, fr.quantity - allocated_count)
+
+    return render(request, 'fulfilment_request_detail.html', {
+        'fulfilment_request': fr,
+        'allocations': device_allocations,
+        'stage_counts': stage_counts,
+        'allocated_count': allocated_count,
+        'shortfall': shortfall,
+    })    
+
