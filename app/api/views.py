@@ -8,6 +8,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import redirect
+import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Sum, Count
 
@@ -35,6 +36,42 @@ from .serializers import (
     FulfilmentRequestDetailSerializer,
 )
 
+class DeviceFilter(django_filters.FilterSet):
+    """Custom filter set for DeviceViewSet supporting related model fields."""
+    manufacturer = django_filters.CharFilter(
+        field_name="device_specification__manufacturer",
+        lookup_expr="icontains",
+    )
+    model_number = django_filters.CharFilter(
+        field_name="device_specification__model_number",
+        lookup_expr="icontains",
+    )
+    model_name = django_filters.CharFilter(
+        field_name="device_specification__model_name",
+        lookup_expr="icontains",
+    )
+    location_code = django_filters.CharFilter(
+        field_name="location__code",
+        lookup_expr="icontains",
+    )
+    location_id = django_filters.NumberFilter(
+        field_name="location__id",
+        lookup_expr="exact",
+    )
+    
+    class Meta:
+        model = Device
+        fields = {
+            "device_type": ["exact"],
+            "grade": ["exact"],
+            "ownership_type": ["exact"],
+            "stage__code": ["exact"],
+            "donor__id": ["exact"],
+            "created_at": ["gte", "lte"],
+            "allocation_intent": ["exact"],
+        }
+
+
 class DeviceViewSet(
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
@@ -49,19 +86,14 @@ class DeviceViewSet(
         "device_specification", "location", "stage", "donor"
     ).all()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = {
-        "device_type": ["exact"],
-        "grade": ["exact"],
-        "ownership_type": ["exact"],
-        "stage__code": ["exact"],
-        "location__code": ["exact"],
-        "donor__id": ["exact"],
-        "created_at": ["gte", "lte"],
-    }
+    filterset_class = DeviceFilter
     search_fields = [
         "inventory_number",
         "serial_number",
         "notes",
+        "device_specification__manufacturer",
+        "device_specification__model_name",
+        "device_specification__model_number",
     ]
     ordering_fields = [
         "created_at",
@@ -74,7 +106,6 @@ class DeviceViewSet(
         if self.action == "list":
             return DeviceListSerializer
         return DeviceSerializer
-
     def perform_create(self, serializer):
         """Create device and run serial matching against ExpectedDevice."""
         serial_number = serializer.validated_data.get("serial_number", "")
@@ -307,8 +338,6 @@ class StockAvailableView(APIView):
         # Base: devices in non-terminal stages, no active reservation
         base = Device.objects.exclude(
             stage__code__in=TERMINAL_STAGES
-        ).exclude(
-            allocations__status="RESERVED"
         )
 
         # Apply optional filters

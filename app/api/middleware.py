@@ -5,6 +5,8 @@ from .models import APIKey
 
 PUBLIC_API_PATHS = [
     "/api/donation-pledges/",
+    "/api/integration/",
+
 ]
 
 

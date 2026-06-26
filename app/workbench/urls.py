@@ -34,6 +34,7 @@ urlpatterns = [
     path('recipients/<int:pk>/edit/', views.recipient_edit, name='recipient_edit'),
     path('fulfilment-requests/', views.fulfilment_request_list, name='fr_list'),
     path('fulfilment-requests/<int:pk>/', views.fulfilment_request_detail, name='fr_detail'),
+    path('api/integration/', include('integrations.urls')),
 ]
 
 if settings.DEBUG:

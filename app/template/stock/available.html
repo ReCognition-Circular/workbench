@@ -35,23 +35,23 @@
 
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-6 gap-4" id="summary-cards">
-        <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="bg-white rounded-lg shadow-sm p-6 cursor-pointer" onclick="filterByIntent('UNDECIDED')">
             <h3 class="text-sm text-gray-500">To be classified</h3>
             <p class="text-3xl font-bold text-purple-500" id="count-tbc">—</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="bg-white rounded-lg shadow-sm p-6 cursor-pointer" onclick="filterByIntent('SALE')">
             <h3 class="text-sm text-gray-500">Available for Sale</h3>
             <p class="text-3xl font-bold text-primary" id="count-sale">—</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="bg-white rounded-lg shadow-sm p-6 cursor-pointer" onclick="filterByIntent('DEVICE_BANK')">
             <h3 class="text-sm text-gray-500">Device Bank</h3>
             <p class="text-3xl font-bold" id="count-db" style="color: #d4da4f;">—</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="bg-white rounded-lg shadow-sm p-6 cursor-pointer" onclick="filterByIntent('RECYCLING')">
             <h3 class="text-sm text-gray-500">Recycling</h3>
             <p class="text-3xl font-bold text-red-500" id="count-recycling">—</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="bg-white rounded-lg shadow-sm p-6 cursor-pointer" onclick="filterByIntent('RESERVED')">
             <h3 class="text-sm text-gray-500">Reserved</h3>
             <p class="text-3xl font-bold text-orange-500" id="count-reserved">—</p>
         </div>
@@ -235,6 +235,10 @@
         const allChecked = checkboxes.length > 0 && [...checkboxes].every(cb => cb.checked);
         document.getElementById('select-all').checked = allChecked;
     }
+    window.filterByIntent = function(intent) {
+        document.getElementById('filter-intent').value = intent;
+        fetchStock();
+    };	
 
     function fetchStock() {
         const params = {};

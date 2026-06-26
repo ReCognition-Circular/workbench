@@ -12,8 +12,9 @@
     </div>
 
     <!-- Filters -->
+<!-- Filters -->
     <div class="bg-white rounded-lg shadow p-4">
-        <form method="get" class="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-9 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Search</label>
                 <input type="text" name="search" value="{{ search }}" 
@@ -41,6 +42,35 @@
                     <option value="D" {% if grade_filter == 'D' %}selected{% endif %}>Grade D</option>
                     <option value="BER" {% if grade_filter == 'BER' %}selected{% endif %}>BER</option>
                     <option value="UNGRADED" {% if grade_filter == 'UNGRADED' %}selected{% endif %}>Ungraded</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Manufacturer</label>
+                <input type="text" name="manufacturer" value="{{ manufacturer_filter }}" 
+                       class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                       placeholder="Filter manufacturer..."
+                       list="manufacturer-list">
+                <datalist id="manufacturer-list">
+                    {% for m in manufacturers %}
+                        <option value="{{ m }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Model</label>
+                <input type="text" name="model_number" value="{{ model_number_filter }}" 
+                       class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                       placeholder="Filter model...">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Location</label>
+                <select name="location" onchange="this.form.submit()" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                    <option value="">All Locations</option>
+                    {% for loc in locations %}
+                        <option value="{{ loc.code }}" {% if location_filter == loc.code %}selected{% endif %}>
+                            {{ loc.code }}
+                        </option>
+                    {% endfor %}
                 </select>
             </div>
             <div>
@@ -75,9 +105,16 @@
                     <option value="UNKNOWN" {% if win11_filter == 'UNKNOWN' %}selected{% endif %}>Unknown</option>
                 </select>
             </div>
+	    <div class="flex items-end space-x-2">
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Filter
+                </button>
+                <a href="{% url 'device_list' %}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                    Clear
+                </a>
+            </div>
         </form>
     </div>
-
     <!-- Device count -->
     <div class="text-sm text-gray-500">
         {{ devices|length }} device{{ devices|length|pluralize }}
@@ -96,30 +133,42 @@
     {% endif %}
 
     <!-- Device list -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="bg-white rounded-lg shadow overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Inventory</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Make</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Model</th>
-		    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Intent</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Wipe</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Parts</th>
-		    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Win11</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stage</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Updated</th>
+                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Inventory</th>
+                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Make</th>
+                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Model</th>
+		    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Intent</th>
+                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
+                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Wipe</th>
+                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Parts</th>
+		    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Win11</th>
+                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stage</th>
+                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
+                    <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Updated</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
                 {% for device in devices %}
-                <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='/devices/{{ device.id }}/'">
-                    <td class="px-6 py-4 font-medium text-gray-900">{{ device.inventory_number }}</td>
-                    <td class="px-6 py-4 text-gray-500">{{ device.manufacturer }}</td>
-                    <td class="px-6 py-4 text-gray-500">{{ device.model_name }}</td>
-                    <td class="px-6 py-4">
+		<tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='/devices/{{ device.id }}/'">
+                    <td class="px-3 py-4 font-medium text-gray-900">{{ device.inventory_number }}</td>
+                    <td class="px-3 py-4 text-gray-500">{{ device.manufacturer }}</td>
+                    <td class="px-3 py-4 text-gray-500">{{ device.model_name }}</td>
+                    <td class="px-3 py-4">
+                        <span class="px-2 py-1 text-xs rounded
+                            {% if device.allocation_intent == 'UNDECIDED' %}bg-purple-100 text-purple-800
+                            {% elif device.allocation_intent == 'SALE' %}bg-green-100 text-green-800
+                            {% elif device.allocation_intent == 'DEVICE_BANK' %}bg-yellow-100 text-yellow-800
+                            {% elif device.allocation_intent == 'RECYCLING' %}bg-red-100 text-red-800
+                            {% elif device.allocation_intent == 'RESERVED' %}bg-orange-100 text-orange-800
+                            {% elif device.allocation_intent == 'OTHER' %}bg-gray-100 text-gray-600
+                            {% else %}bg-gray-100 text-gray-500{% endif %}">
+                            {{ device.allocation_intent|cut:"_"|default:"TBC" }}
+                        </span>
+                    </td>
+                    <td class="px-3 py-4">
                         {% if device.grade == 'UNGRADED' %}
                             <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-400">Ungraded</span>
                         {% elif device.grade == 'A' %}
@@ -136,20 +185,8 @@
                             <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">{{ device.grade }}</span>
                         {% endif %}
                     </td>
-		    <td class="px-6 py-4">
+                    <td class="px-3 py-4">
                         <span class="px-2 py-1 text-xs rounded
-                            {% if device.allocation_intent == 'UNDECIDED' %}bg-purple-100 text-purple-800
-                            {% elif device.allocation_intent == 'SALE' %}bg-green-100 text-green-800
-                            {% elif device.allocation_intent == 'DEVICE_BANK' %}bg-yellow-100 text-yellow-800
-                            {% elif device.allocation_intent == 'RECYCLING' %}bg-red-100 text-red-800
-                            {% elif device.allocation_intent == 'RESERVED' %}bg-orange-100 text-orange-800
-                            {% elif device.allocation_intent == 'OTHER' %}bg-gray-100 text-gray-600
-                            {% else %}bg-gray-100 text-gray-500{% endif %}">
-                            {{ device.allocation_intent|cut:"_"|default:"TBC" }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-xs rounded 
                             {% if device.wipe_status == 'PASS' %}bg-green-100 text-green-800
                             {% elif device.wipe_status == 'PENDING' %}bg-yellow-100 text-yellow-800
                             {% elif device.wipe_status == 'FAIL' %}bg-red-100 text-red-800
@@ -159,7 +196,7 @@
                             {{ device.wipe_status|cut:"_" }}
                         </span>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 py-4">
                         <span class="px-2 py-1 text-xs rounded
                             {% if device.parts_status == 'UNKNOWN' %}bg-gray-100 text-gray-400
                             {% elif device.parts_status == 'FITTED' %}bg-green-100 text-green-800
@@ -169,25 +206,25 @@
                             {{ device.parts_status|cut:"_" }}
                         </span>
                     </td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-xs rounded 
+                    <td class="px-3 py-4">
+                        <span class="px-2 py-1 text-xs rounded
                             {% if device.win11_compatible == 'YES' %}bg-green-100 text-green-800
                             {% elif device.win11_compatible == 'NO' %}bg-red-100 text-red-800
                             {% else %}bg-gray-100 text-gray-500{% endif %}">
                             {{ device.win11_compatible }}
                         </span>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 py-4">
                         <span class="px-2 py-1 text-xs rounded bg-indigo-100 text-indigo-800">{{ device.stage_name }}</span>
                     </td>
-                    <td class="px-6 py-4 text-gray-500">{{ device.location_code|default:"-" }}</td>
-                    <td class="px-6 py-4 text-gray-500 text-sm">{{ device.updated_at|date:"d M H:i" }}</td>
+                    <td class="px-3 py-4 text-gray-500">{{ device.location_code|default:"-" }}</td>
+                    <td class="px-3 py-4 text-gray-500 text-sm">{{ device.updated_at|date:"d M H:i" }}</td>
                 </tr>
                 {% empty %}
                 <tr>
                     <td colspan="11" class="px-6 py-12 text-center text-gray-500">
                         No devices found.
-			<span class="text-gray-400">Use the FOG pipeline for new devices, or <a href="{% url 'manual_device_create' %}" class="text-blue-600 underline">add manually</a> if PXE boot fails.</span>
+                        <span class="text-gray-400">Use the FOG pipeline for new devices, or <a href="{% url 'manual_device_create' %}" class="text-blue-600 underline">add manually</a> if PXE boot fails.</span>
                     </td>
                 </tr>
                 {% endfor %}

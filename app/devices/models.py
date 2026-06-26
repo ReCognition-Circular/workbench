@@ -210,19 +210,21 @@ class FulfilmentRequest(models.Model):
     delivery_address = models.TextField(blank=True)
     delivery_scheduled_date = models.DateField(null=True, blank=True)
     requested_spec = models.JSONField(
-    blank=True, default=dict,
-    help_text="Structured spec criteria promised to the customer. "
-              "e.g. {'type': 'LAPTOP', 'grade': 'A', 'min_memory_gb': 8}"
-)
+        blank=True, default=dict,
+        help_text="Structured spec criteria promised to the customer. "
+                  "e.g. {'type': 'LAPTOP', 'grade': 'A', 'min_memory_gb': 8}"
+    )
+
+    item_code = models.CharField(max_length=50, blank=True, help_text="ERPNext item code e.g. LAPTOP-STANDARD")
 
     status = models.CharField(
-        max_length=20,
         choices=[
             ('PENDING', 'Pending — awaiting allocation'),
             ('IN_PROGRESS', 'In Progress — devices being allocated'),
             ('READY', 'Ready — all devices picked and awaiting dispatch'),
             ('COMPLETE', 'Complete'),
             ('CANCELLED', 'Cancelled'),
+            ('ON_HOLD', 'On Hold - no matching devices available'),
         ],
         default='PENDING',
     )

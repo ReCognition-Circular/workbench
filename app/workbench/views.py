@@ -6,6 +6,7 @@ from workflow.models import Stage
 from donations.models import DonationPledge
 from devices.models import DeviceSpecification, Manufacturer, Recipient, FulfilmentRequest
 from devices.utils import generate_manual_inventory_number
+from locations.models import Location
 
 @login_required
 def device_list(request):
@@ -18,11 +19,17 @@ def device_list(request):
     wipe_filter = request.GET.get("wipe", "")
     parts_filter = request.GET.get("parts", "")
     win11_filter = request.GET.get("win11", "")
-
+    manufacturer_filter = request.GET.get("manufacturer", "")
+    model_number_filter = request.GET.get("model_number", "")
+    location_filter = request.GET.get("location", "")
+    
     if search:
         devices_qs = devices_qs.filter(
             models.Q(inventory_number__icontains=search)
             | models.Q(serial_number__icontains=search)
+            | models.Q(device_specification__manufacturer__icontains=search)
+            | models.Q(device_specification__model_name__icontains=search)
+            | models.Q(device_specification__model_number__icontains=search)
         )
 
     if stage_filter:
@@ -39,6 +46,20 @@ def device_list(request):
    
     if win11_filter:
         devices_qs = devices_qs.filter(win11_compatible=win11_filter)
+        
+    if manufacturer_filter:
+        devices_qs = devices_qs.filter(
+            device_specification__manufacturer__icontains=manufacturer_filter
+        )
+    
+    if model_number_filter:
+        devices_qs = devices_qs.filter(
+            models.Q(device_specification__model_name__icontains=model_number_filter)
+            | models.Q(device_specification__model_number__icontains=model_number_filter)
+        )
+
+    if location_filter:
+        devices_qs = devices_qs.filter(location__code__icontains=location_filter)
 
     devices_qs = devices_qs.order_by("-created_at")
 
@@ -62,7 +83,9 @@ def device_list(request):
             "win11_compatible": d.win11_compatible,
             "allocation_intent": d.allocation_intent,
         })
-
+    manufacturers = DeviceSpecification.objects.values_list("manufacturer", flat=True).exclude(manufacturer="").distinct().order_by("manufacturer")
+    locations = Location.objects.all().order_by("code")
+        
     return render(request, "device_list.html", {
         "devices": devices,
         "stages": stages,
@@ -72,9 +95,13 @@ def device_list(request):
         "wipe_filter": wipe_filter,
         "parts_filter": parts_filter,
         "win11_filter": win11_filter,
+        "manufacturer_filter": manufacturer_filter,
+        "model_number_filter": model_number_filter,
+        "location_filter": location_filter,
+        "manufacturers": manufacturers,
+        "locations": locations,
         "pending_pledges": DonationPledge.objects.filter(status="PENDING").count(),
     })
-
 
 @login_required
 def device_detail(request, pk):
