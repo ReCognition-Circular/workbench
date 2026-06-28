@@ -22,69 +22,75 @@ def sales_order_webhook(request):
     except json.JSONDecodeError as e:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 
-    # ERPNext webhook wraps the doc under 'doc' key
-    doc = data.get("doc", data)
+    try:
+        doc = data.get("doc", data)
 
-    customer_name = doc.get("customer_name", "")
-    if not customer_name:
-        return JsonResponse({"error": "customer_name is required"}, status=400)
+        customer_name = doc.get("customer_name", "")
+        if not customer_name:
+            return JsonResponse({"error": "customer_name is required"}, status=400)
 
-    # Find or create Recipient by customer_name
-    recipient, created = Recipient.objects.get_or_create(
-        name=customer_name,
-        defaults={"recipient_type": "BUSINESS"},
-    )
+        recipient, created = Recipient.objects.get_or_create(
+            name=customer_name,
+            defaults={"recipient_type": "BUSINESS"},
+        )
 
-    # Get the first item from the items table
-    items = doc.get("items", [])
-    if not items:
-        return JsonResponse({"error": "order has no items"}, status=400)
+        items = doc.get("items", [])
+        if not items:
+            return JsonResponse({"error": "order has no items"}, status=400)
 
-    item = items[0]
-    item_code = item.get("item_code", "")
-    qty = item.get("qty", 0)
-    description = item.get("description", "")
+        item = items[0]
+        item_code = item.get("item_code", "")
+        qty = item.get("qty", 0)
+        description = item.get("description", "")
 
-    # Parse custom specs from description (strip HTML)
-    spec_requirements = {}
-    if description:
-        clean_desc = re.sub(r'<[^>]+>', '', description).strip()
-        try:
-            spec_requirements = json.loads(clean_desc)
-        except json.JSONDecodeError:
-            spec_requirements = {"description": clean_desc}
+        spec_requirements = {}
+        if description:
+            clean_desc = re.sub(r'<[^>]+>', '', description).strip()
+            try:
+                spec_requirements = json.loads(clean_desc)
+            except json.JSONDecodeError:
+                spec_requirements = {"description": clean_desc}
 
-    # Extract or generate order ID
-    order_id = doc.get("name", "")
-    if not order_id:
-        order_id = doc.get("order_id",
-                         f"SO-{timezone.now().strftime('%Y%m%d%H%M%S')}")
+        order_id = doc.get("name", "")
+        if not order_id:
+            return JsonResponse({"error": "order has no name"}, status=400)
 
-    # Create or update the FulfilmentRequest
-    fr, fr_created = FulfilmentRequest.objects.update_or_create(
-        erpnext_order_id=order_id,
-        defaults={
-            "recipient": recipient,
-            "item_code": item_code,
-            "quantity": qty,
-            "summary": description or f"{qty} x {item_code} for {customer_name}",
-            "requested_spec": spec_requirements,
-            "status": "PENDING",
-        },
-    )
+        fr, fr_created = FulfilmentRequest.objects.update_or_create(
+            erpnext_order_id=order_id,
+            defaults={
+                "recipient": recipient,
+                "item_code": item_code,
+                "quantity": qty,
+                "summary": (description or f"{qty} x {item_code} for {customer_name}")[:200],
+                "requested_spec": spec_requirements,
+                "status": "PENDING",
+            },
+        )
 
-    # Log
-    IntegrationLog.objects.create(
-        direction="INBOUND",
-        doctype="Sales Order",
-        doc_name=order_id,
-        action="webhook_received",
-        status="SUCCESS",
-        completed_at=timezone.now(),
-    )
+        IntegrationLog.objects.create(
+            direction="INBOUND",
+            doctype="Sales Order",
+            doc_name=order_id,
+            action="webhook_received",
+            status="SUCCESS",
+            completed_at=timezone.now(),
+        )
 
-    return JsonResponse({
-        "status": "ok",
-        "fulfilment_request_id": fr.id,
-        "created": fr_created,
-    })
+        return JsonResponse({
+            "status": "ok",
+            "fulfilment_request_id": fr.id,
+            "created": fr_created,
+        })
+
+    except Exception as e:
+        logger.exception("Webhook error")
+        IntegrationLog.objects.create(
+            direction="INBOUND",
+            doctype="Sales Order",
+            doc_name=data.get("doc", data).get("name", "unknown"),
+            action="webhook_received",
+            status="FAILED",
+            error_message=str(e),
+            completed_at=timezone.now(),
+        )
+        return JsonResponse({"error": str(e)}, status=500)
