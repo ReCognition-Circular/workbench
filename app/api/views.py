@@ -567,6 +567,7 @@ class ReserveView(APIView):
     def post(self, request):
         device_ids = request.data.get('device_ids', [])
         recipient_id = request.data.get('recipient_id')
+        fulfilment_request_id = request.data.get('fulfilment_request_id')
 
         if not device_ids or not recipient_id:
             return Response({'error': 'device_ids and recipient_id are required'}, status=400)
@@ -575,6 +576,13 @@ class ReserveView(APIView):
             recipient = Recipient.objects.get(id=recipient_id)
         except Recipient.DoesNotExist:
             return Response({'error': 'Recipient not found'}, status=404)
+
+        fulfilment_request = None
+        if fulfilment_request_id:
+            try:
+                fulfilment_request = FulfilmentRequest.objects.get(id=fulfilment_request_id)
+            except FulfilmentRequest.DoesNotExist:
+                return Response({'error': 'FulfilmentRequest not found'}, status=404)
 
         devices = Device.objects.filter(id__in=device_ids)
         if not devices.exists():
@@ -585,6 +593,7 @@ class ReserveView(APIView):
             Allocation.objects.create(
                 device=device,
                 recipient=recipient,
+                fulfilment_request=fulfilment_request,
                 status='RESERVED',
                 allocation_type='SALE',
                 allocated_by=request.user if request.user.is_authenticated else None,
@@ -594,8 +603,10 @@ class ReserveView(APIView):
             count += 1
 
         return Response({'reserved': count})    
-class FulfilmentRequestViewSet(viewsets.ReadOnlyModelViewSet):
-    """List and detail views for fulfilment requests with allocation progress."""
+
+class FulfilmentRequestViewSet(viewsets.ModelViewSet):
+    """CRUD for Fulfilment Requests."""
+    queryset = FulfilmentRequest.objects.select_related("recipient").all()    
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]

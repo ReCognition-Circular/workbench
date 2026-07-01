@@ -61,9 +61,10 @@ def sales_order_webhook(request):
                 "recipient": recipient,
                 "item_code": item_code,
                 "quantity": qty,
-                "summary": (description or f"{qty} x {item_code} for {customer_name}")[:200],
+                "summary": (clean_desc or f"{qty} x {item_code} for {customer_name}")[:200],
                 "requested_spec": spec_requirements,
                 "status": "PENDING",
+                "target_date": doc.get("delivery_date", None),
             },
         )
 

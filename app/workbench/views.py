@@ -117,11 +117,16 @@ def device_detail(request, pk):
         default_next_stages = device.stage.allowed_next_stages.all().order_by("sequence")
         if default_next_stages.exists():
             default_next_stage = default_next_stages.first()
+    # Get allocations for this device
+    allocations = device.allocations.select_related(
+        "fulfilment_request", "fulfilment_request__recipient"
+    ).all()        
 
     return render(request, "device_detail.html", {
         "device": device,
         "stages": stages,
         "default_next_stage": default_next_stage,
+        "allocations": allocations,
     })
 
 
@@ -430,7 +435,7 @@ def fulfilment_request_detail(request, pk):
     shortfall = max(0, fr.quantity - allocated_count)
 
     return render(request, 'fulfilment_request_detail.html', {
-        'fulfilment_request': fr,
+        'fr': fr,
         'allocations': device_allocations,
         'stage_counts': stage_counts,
         'allocated_count': allocated_count,
