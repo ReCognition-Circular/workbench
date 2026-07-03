@@ -41,6 +41,12 @@ urlpatterns = [
     path('devices/<int:pk>/intent/', update_device_intent, name='update-device-intent'),
     path("inventory/next-number/", next_inventory_number, name="next-inventory-number"),
     path("inventory/check-serial/", check_serial, name="check-serial"),
-
 ]
 
+# Location scan endpoints (destination-first workflow)
+from .location_views import location_resolve, scan_device_to_location
+
+urlpatterns += [
+    path('locations/resolve/', location_resolve, name='location-resolve'),
+    path('locations/<str:code>/scan-device/<str:inventory>/', scan_device_to_location, name='scan-device-to-location'),
+]

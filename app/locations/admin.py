@@ -1,10 +1,12 @@
+from django import forms
 from django.contrib import admin
 from .models import Site, Location, LocationScan
+from workflow.models import Stage
 
 
 class LocationInline(admin.TabularInline):
     model = Location
-    fields = ["code", "zone", "shelf", "section", "barcode", "is_active"]
+    fields = ["code", "zone", "shelf", "section", "barcode", "triggers_stage", "is_active"]
     extra = 0
     show_change_link = True
 
@@ -40,12 +42,14 @@ class LocationAdmin(admin.ModelAdmin):
         "shelf",
         "section",
         "barcode",
+        "triggers_stage",
         "is_active",
     ]
     list_filter = [
         SiteListFilter,
         "is_active",
         "zone",
+        "triggers_stage",
     ]
     search_fields = [
         "code",
@@ -54,6 +58,24 @@ class LocationAdmin(admin.ModelAdmin):
     ]
     ordering = ["site", "zone", "shelf", "section"]
     list_editable = ["is_active"]
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if "triggers_stage" in form.base_fields:
+            stages = Stage.objects.values_list("code", flat=True).order_by("code")
+            choices = [("", "--------- (Location only)")] + [(s, s) for s in stages]
+            form.base_fields["triggers_stage"].widget = forms.Select(choices=choices)
+            form.base_fields["triggers_stage"].required = False
+        return form
+
+    def get_changelist_form(self, request, **kwargs):
+        form = super().get_changelist_form(request, **kwargs)
+        if "triggers_stage" in form.base_fields:
+            stages = Stage.objects.values_list("code", flat=True).order_by("code")
+            choices = [("", "--------- (Location only)")] + [(s, s) for s in stages]
+            form.base_fields["triggers_stage"].widget = forms.Select(choices=choices)
+            form.base_fields["triggers_stage"].required = False
+        return form
 
 
 @admin.register(LocationScan)

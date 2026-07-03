@@ -35,6 +35,12 @@ from .serializers import (
     FulfilmentRequestListSerializer,
     FulfilmentRequestDetailSerializer,
 )
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from locations.models import Location
+from devices.models import Device
 
 class DeviceFilter(django_filters.FilterSet):
     """Custom filter set for DeviceViewSet supporting related model fields."""
@@ -146,8 +152,8 @@ class DeviceViewSet(
 
     @action(detail=True, methods=["post"])
     def update_location(self, request, pk=None):
-        """Scan a device to a location barcode."""
-        from locations.models import LocationScan
+        """Scan a device to a location — triggers stage transition if configured."""
+        from workflow.engine import process_location_scan
 
         device = self.get_object()
         serializer = DeviceLocationUpdateSerializer(data=request.data)
@@ -155,15 +161,12 @@ class DeviceViewSet(
 
         location = Location.objects.get(
             code=serializer.validated_data["location_code"]
-        )
+        )   
 
-        device.location = location
-        device.save()
-
-        LocationScan.objects.create(
+        result = process_location_scan(
             device=device,
-            to_location=location,
-            scanned_by=request.user if request.user.is_authenticated else None,
+            location=location,
+            user=request.user if request.user.is_authenticated else None,
         )
 
         if request.content_type and 'form' in request.content_type:
@@ -629,3 +632,42 @@ class FulfilmentRequestViewSet(viewsets.ModelViewSet):
                 "allocation_set__device__stage",
             )
         return qs    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def resolve_barcode(request):
+    """Resolve a barcode string to a location, device, or unknown.
+    
+    GET /api/resolve-barcode/?code=MH18D02
+    GET /api/resolve-barcode/?code=605220042
+    """
+    code = request.query_params.get('code', '').strip()
+    if not code:
+        return Response({'error': 'code parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Try location first (locations have short codes like INT-01, SH-A1, MH18D02)
+    location = Location.objects.filter(code__iexact=code, is_active=True).first()
+    if location:
+        return Response({
+            'type': 'location',
+            'id': location.id,
+            'code': location.code,
+            'name': location.name,
+            'triggers_stage': location.triggers_stage,
+        })
+    
+    # Try device (inventory numbers like 605220042, 606160001)
+    device = Device.objects.filter(inventory_number=code).first()
+    if device:
+        stage_code = device.stage.code if device.stage else None
+        location_code = device.location.code if device.location else None
+        return Response({
+            'type': 'device',
+            'id': device.id,
+            'inventory_number': device.inventory_number,
+            'serial_number': device.serial_number,
+            'stage': stage_code,
+            'location': location_code,
+            'device_type': device.device_type,
+        })
+    
+    return Response({'type': 'unknown', 'code': code}, status=status.HTTP_404_NOT_FOUND)    

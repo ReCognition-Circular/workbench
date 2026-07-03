@@ -53,6 +53,10 @@ class WipeStatus(models.TextChoices):
     FAIL = 'FAIL', "Wipe attempted but failed"
 
 
+class AuditStatus(models.TextChoices):
+    PENDING = "PENDING", "Audit pending"
+    PASS = "PASS", "Audit passed"
+    FAIL = "FAIL", "Audit failed"
 class PartsStatus(models.TextChoices):
     UNKNOWN = 'UNKNOWN', "Not known"
     NOT_NEEDED = 'NOT_NEEDED', "No parts required"
@@ -289,6 +293,12 @@ class Device(models.Model):
         max_length=20, choices=WipeStatus.choices, default=WipeStatus.PENDING
     )
     wipe_notes = models.TextField(blank=True)
+    audit_status = models.CharField(
+        max_length=20, choices=AuditStatus.choices, default=AuditStatus.PENDING
+    )
+    audit_status = models.CharField(
+        max_length=20, choices=AuditStatus.choices, default=AuditStatus.PENDING
+    )
 
     # Parts tracking
     parts_status = models.CharField(

@@ -7,154 +7,344 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="/manifest.json">
-
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/quagga2@1.0.0-alpha.1/dist/quagga.min.js"></script>
 <style>
     html, body { height: 100%; margin: 0; overflow: hidden; }
-    .scan-container { height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 1rem; background: #f3f4f6; overflow-y: auto; }
-    .scan-input { width: 100%; max-width: 400px; padding: 1rem; font-size: 1.5rem; text-align: center; border: 3px solid #d1d5db; border-radius: 12px; outline: none; }
-    .scan-input:focus { border-color: #1a56db; }
-    .device-card { width: 100%; max-width: 400px; background: white; border-radius: 12px; padding: 1.5rem; margin-top: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: none; }
-    .device-card.visible { display: block; }
-    .device-field { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #f3f4f6; }
-    .device-field:last-child { border-bottom: none; }
-    .device-label { color: #6b7280; font-size: 0.875rem; }
-    .device-value { font-weight: 600; text-align: right; }
-    .stage-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; background: #e0e7ff; color: #4338ca; }
-    .location-button { width: 100%; max-width: 400px; padding: 1rem; margin-top: 1rem; background: #1a56db; color: white; border: none; border-radius: 12px; font-size: 1.125rem; font-weight: 600; cursor: pointer; display: none; }
-    .location-button.visible { display: block; }
-    .confirmation { width: 100%; max-width: 400px; padding: 1rem; margin-top: 0.75rem; border-radius: 12px; text-align: center; font-weight: 600; font-size: 1.125rem; display: none; }
-    .confirmation.success { display: block; background: #d1fae5; color: #065f46; }
-    .confirmation.error { display: block; background: #fee2e2; color: #991b1b; }
-    .confirmation.warning { display: block; background: #fef3c7; color: #92400e; }
-    .hint { color: #9ca3af; font-size: 0.875rem; margin-top: 0.5rem; text-align: center; }
-    #scanner-box { width: 100%; max-width: 400px; margin-top: 0.5rem; border-radius: 12px; overflow: hidden; display: none; position: relative; }
-    #scanner-box.active { display: block; }
-    #scanner-box video { width: 100%; border-radius: 12px; }
-    .toggle-camera { width: 100%; max-width: 400px; padding: 0.75rem; margin-top: 0.5rem; background: #374151; color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; }
-    .toggle-camera.active { background: #ef4444; }
-    .scan-line { position: absolute; left: 10%; right: 10%; top: 50%; height: 2px; background: #1a56db; box-shadow: 0 0 8px #1a56db; }
-    @media (max-width: 480px) { .scan-container { padding: 0.5rem; } .scan-input { font-size: 1.25rem; padding: 0.75rem; } }
+    [x-cloak] { display: none !important; }
+    .scan-container { height: 100vh; display: flex; flex-direction: column; padding: 1rem; background: #f3f4f6; overflow-y: auto; }
+    .scanner-box { width: 100%; max-width: 400px; margin: 0 auto 0.5rem; border-radius: 12px; overflow: hidden; position: relative; background: #000; }
+    .scanner-box video { width: 100%; display: block; border-radius: 12px; }
+    .scan-region { position: absolute; inset: 15%; border: 2px dashed rgba(255,255,255,0.6); border-radius: 8px; }
+    .scan-line { position: absolute; left: 15%; right: 15%; top: 50%; height: 2px; background: #3b82f6; box-shadow: 0 0 12px #3b82f6; animation: scanPulse 1.5s ease-in-out infinite; }
+    @keyframes scanPulse { 0%, 100% { opacity: 0.3; top: 30%; } 50% { opacity: 1; top: 65%; } }
+    .destination-header { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: white; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 0.75rem; }
+    .dest-code { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.05em; }
+    .dest-desc { font-size: 0.875rem; opacity: 0.85; margin-top: 0.125rem; }
+    .stage-label { display: inline-flex; align-items: center; gap: 0.375rem; background: rgba(255,255,255,0.2); padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; margin-top: 0.375rem; }
+    .result-item { background: white; border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 0.75rem; }
+    .result-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; flex-shrink: 0; }
+    .result-icon.success { background: #d1fae5; color: #065f46; }
+    .result-icon.error { background: #fee2e2; color: #991b1b; }
+    .result-stage { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 9999px; font-size: 0.65rem; font-weight: 600; background: #e0e7ff; color: #4338ca; }
+    .badge-stage { display: inline-flex; align-items: center; gap: 0.25rem; background: #dbeafe; color: #1e40af; padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
+    .manual-input { width: 100%; max-width: 400px; margin: 0 auto; }
+    .manual-input input { width: 100%; padding: 0.875rem 1rem; font-size: 1.25rem; text-align: center; border: 3px solid #d1d5db; border-radius: 12px; outline: none; }
+    .manual-input input:focus { border-color: #2563eb; }
+    .manual-input input.active { border-color: #2563eb; }
+    .toggle-btn { width: 100%; max-width: 400px; margin: 0.5rem auto 0; padding: 0.625rem; border-radius: 10px; border: 1px solid #d1d5db; background: white; font-size: 0.875rem; font-weight: 600; color: #374151; cursor: pointer; }
+    .toggle-btn:hover { background: #f9fafb; }
+    .clear-btn { padding: 0.375rem 0.875rem; border-radius: 8px; border: 1px solid #d1d5db; background: white; font-size: 0.8rem; color: #6b7280; cursor: pointer; }
+    .clear-btn:hover { background: #f3f4f6; }
+    .empty-state { text-align: center; padding: 2rem 1rem; color: #9ca3af; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="scan-container">
-    <h1 style="font-size:1.5rem;font-weight:700;color:#1f2937;margin-bottom:0.5rem;">Scan Device</h1>
-    <input type="text" id="scan-input" class="scan-input" placeholder="Scan barcode..." autofocus autocomplete="off">
-    <button id="camera-btn" class="toggle-camera">📷 Use Camera</button>
-    <div id="scanner-box"><video id="video" autoplay muted playsinline></video><div class="scan-line"></div></div>
-    <div id="device-card" class="device-card">
-        <div class="device-field"><span class="device-label">Inventory</span><span class="device-value" id="device-inventory"></span></div>
-        <div class="device-field"><span class="device-label">Serial</span><span class="device-value" id="device-serial"></span></div>
-        <div class="device-field"><span class="device-label">Stage</span><span class="device-value"><span class="stage-badge" id="device-stage"></span></span></div>
-        <div class="device-field"><span class="device-label">Location</span><span class="device-value" id="device-location"></span></div>
+<div x-data="scanApp()" class="scan-container" x-cloak>
+    {% csrf_token %}
+    <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+
+    <!-- Destination Header (shown when location is set) -->
+    <template x-if="mode === 'device' && locationCode">
+        <div class="destination-header">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="dest-code" x-text="locationCode"></div>
+                    <div class="dest-desc" x-text="locationDescription"></div>
+                    <template x-if="stageChanged">
+                        <span class="stage-label">Stage: <span x-text="newStage"></span> ✅</span>
+                    </template>
+                    <template x-if="!stageChanged && locationTriggers">
+                        <span class="stage-label">Stage: <span x-text="locationTriggers"></span></span>
+                    </template>
+                    <template x-if="!stageChanged && !locationTriggers">
+                        <span class="stage-label">Location only</span>
+                    </template>
+                </div>
+                <button @click="resetDestination()" class="text-white/70 hover:text-white text-sm underline">Change</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Scanner / Manual Input -->
+    <div class="w-full max-w-md mx-auto">
+        <!-- Camera scanner -->
+        <template x-if="scanMode === 'camera'">
+            <div class="scanner-box" id="scanner-box" :class="{'active': true}">
+                <div class="scan-region"></div>
+                <div class="scan-line"></div>
+            </div>
+        </template>
+
+        <!-- Manual text input -->
+        <template x-if="scanMode === 'manual'">
+            <div class="manual-input">
+                <input type="text" x-model="manualCode" @keydown.enter="processBarcode(manualCode); manualCode = ''"
+                       :placeholder="mode === 'location' ? 'Scan or type location...' : 'Scan or type device barcode...'"
+                       autofocus>
+            </div>
+        </template>
+
+        <!-- Toggle button -->
+        <button class="toggle-btn" @click="toggleScanMode()">
+            <span x-text="scanMode === 'camera' ? '📷 Use text input' : '📷 Use camera'"></span>
+        </button>
+
+        <!-- Instructions -->
+        <p class="text-center text-sm text-gray-400 mt-2" x-text="mode === 'location' ? 'Scan a location barcode to begin' : 'Scan device barcodes to assign to this location'"></p>
     </div>
-    <div id="location-section" style="display:none;width:100%;max-width:400px;margin-top:1rem;">
-        <h2 style="font-size:1rem;font-weight:600;color:#374151;margin-bottom:0.5rem;">Scan Location</h2>
-        <input type="text" id="location-input" class="scan-input" placeholder="Scan shelf barcode..." autocomplete="off">
+
+    <!-- Results list -->
+    <div class="w-full max-w-md mx-auto mt-4 flex-1">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Results</h3>
+            <button class="clear-btn" @click="results = []" x-show="results.length > 0">Clear list</button>
+        </div>
+
+        <template x-if="results.length === 0">
+            <div class="empty-state">
+                <p class="text-lg mb-1">🔍 No scans yet</p>
+                <p class="text-sm">Scan a location first, then scan devices</p>
+            </div>
+        </template>
+
+        <template x-for="r in results" :key="r.id">
+            <div class="result-item">
+                <div class="result-icon" :class="r.success ? 'success' : 'error'" x-text="r.success ? '✅' : '❌'"></div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-semibold text-sm truncate" x-text="r.inventory"></div>
+                    <div class="text-xs text-gray-500 truncate" x-text="r.message"></div>
+                </div>
+                <template x-if="r.newStage">
+                    <span class="badge-stage" x-text="r.newStage"></span>
+                </template>
+            </div>
+        </template>
     </div>
-    <button id="use-last-btn" class="location-button">📍 Use Last Location</button>
-    <div id="confirmation" class="confirmation"></div>
-    <div id="hint" class="hint">Scan a device barcode to begin</div>
 </div>
 
 <script>
-    let lastLocation = localStorage.getItem('lastLocation') || null;
-    let currentDeviceId = null, scanningLocation = false, timeout = null, cameraActive = false, stream = null;
+function scanApp() {
+    return {
+        mode: 'location',       // 'location' | 'device'
+        scanMode: 'camera',     // 'camera' | 'manual'
+        manualCode: '',
+        locationCode: '',
+        locationDescription: '',
+        locationTriggers: '',
+        stageChanged: false,
+        newStage: '',
+        results: [],
+        scannerInitialized: false,
+        quaggaRunning: false,
 
-    const $ = id => document.getElementById(id);
-    const scanInput = $('scan-input'), locationInput = $('location-input'), deviceCard = $('device-card');
-    const locationSection = $('location-section'), useLastBtn = $('use-last-btn');
-    const confirmation = $('confirmation'), hint = $('hint'), cameraBtn = $('camera-btn');
-    const scannerBox = $('scanner-box'), video = $('video');
+        init() {
+            this.initScanner();
+        },
 
-    function show(msg, type) {
-        confirmation.className = 'confirmation ' + type; confirmation.textContent = msg;
-        if (timeout) clearTimeout(timeout);
-        timeout = setTimeout(() => { confirmation.className = 'confirmation'; }, 3000);
-    }
+        toggleScanMode() {
+            if (this.scanMode === 'camera') {
+                this.stopScanner();
+                this.scanMode = 'manual';
+                this.$nextTick(() => {
+                    const input = document.querySelector('.manual-input input');
+                    if (input) input.focus();
+                });
+            } else {
+                this.scanMode = 'camera';
+                this.$nextTick(() => this.initScanner());
+            }
+        },
 
-    function reset() {
-        deviceCard.classList.remove('visible'); locationSection.style.display = 'none';
-        useLastBtn.classList.remove('visible'); scanInput.value = ''; scanInput.focus();
-        currentDeviceId = null; scanningLocation = false; hint.textContent = 'Scan a device to begin';
-    }
+        initScanner() {
+            if (this.scannerInitialized) return;
+            const box = document.getElementById('scanner-box');
+            if (!box) return;
+            this.scannerInitialized = true;
 
-    function handleDevice(barcode) {
-        barcode = barcode.trim(); if (!barcode) return;
-        fetch('/api/devices/?search=' + encodeURIComponent(barcode)).then(r => r.json()).then(data => {
-            let d = Array.isArray(data.results) && data.results.length ? data.results[0] : data.id ? data : null;
-            if (!d) { show('Device not found: ' + barcode, 'error'); reset(); return; }
-            currentDeviceId = d.id;
-            $('device-inventory').textContent = d.inventory_number;
-            $('device-serial').textContent = d.serial_number || '-';
-            $('device-stage').textContent = d.stage ? d.stage.name : '-';
-            $('device-location').textContent = d.location ? d.location.code : '(none)';
-            deviceCard.classList.add('visible'); locationSection.style.display = 'block';
-            if (lastLocation) useLastBtn.classList.add('visible');
-            hint.textContent = 'Now scan shelf barcode'; scanningLocation = true;
-            setTimeout(() => locationInput.focus(), 100);
-        }).catch(() => { show('Error', 'error'); reset(); });
-    }
-
-    function handleLocation(code) {
-        code = code.trim(); if (!currentDeviceId || !code) return;
-        fetch('/api/devices/' + currentDeviceId + '/update_location/', {
-            method: 'POST', headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
-            body: JSON.stringify({location_code: code})
-        }).then(r => r.json().then(d => ({s: r.status, b: d}))).then(({s, b}) => {
-            if (s === 200) { lastLocation = code; localStorage.setItem('lastLocation', code); show(b.inventory_number + ' moved to ' + b.location.code, 'success'); reset(); }
-            else if (s === 422) show(b.error || 'Invalid', 'warning');
-            else show(b.error || 'Not found', 'error');
-        }).catch(() => show('Error', 'error'));
-    }
-
-    scanInput.addEventListener('keydown', e => { if (e.key === 'Enter') { handleDevice(e.target.value); e.target.value = ''; if (cameraActive) stopCamera(); }});
-    locationInput.addEventListener('keydown', e => { if (e.key === 'Enter') { handleLocation(e.target.value); e.target.value = ''; }});
-    useLastBtn.addEventListener('click', () => { if (lastLocation) { handleLocation(lastLocation); }});
-
-    cameraBtn.addEventListener('click', () => { cameraActive ? stopCamera() : startCamera(); });
-
-    function startCamera() {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 640, height: 480 } })
-        .then(s => {
-            stream = s; video.srcObject = s; scannerBox.classList.add('active');
-            cameraBtn.textContent = '⏹ Stop Camera'; cameraBtn.classList.add('active'); cameraActive = true;
-            hint.textContent = 'Point camera at barcode';
-            
-            // Start Quagga
             Quagga.init({
-                inputStream: { name: 'Live', type: 'LiveStream', target: video },
-                decoder: { readers: ['code_128_reader', 'ean_reader', 'ean_8_reader', 'code_39_reader', 'codabar_reader', 'i2of5_reader'] },
-                locate: true
-            }, err => {
-                if (err) { show('Scanner init failed', 'error'); return; }
+                inputStream: {
+                    name: 'Live',
+                    type: 'LiveStream',
+                    target: box,
+                    constraints: { facingMode: 'environment', width: 400, height: 300 },
+                },
+                decoder: {
+                    readers: [
+                        'code_128_reader', 'ean_reader', 'ean_8_reader',
+                        'code_39_reader', 'codabar_reader', 'upc_reader',
+                        'i2of5_reader'
+                    ]
+                },
+                locate: true,
+            }, (err) => {
+                if (err) { console.error('Quagga init err:', err); return; }
                 Quagga.start();
+                this.quaggaRunning = true;
             });
-            
-            Quagga.onDetected(result => {
-                const code = result.codeResult.code;
-                const now = Date.now();
-                if (code) {
-                    if (navigator.vibrate) navigator.vibrate(100);
-                    if (scanningLocation) { handleLocation(code); locationInput.value = code; }
-                    else { handleDevice(code); scanInput.value = code; setTimeout(() => stopCamera(), 500); }
+
+            Quagga.onDetected((data) => {
+                if (!this.quaggaRunning) return;
+                const code = data.codeResult.code;
+                if (!code) return;
+                this.quaggaRunning = false;
+                Quagga.stop();
+                this.scannerInitialized = false;
+                this.processBarcode(code);
+                // Re-init after delay
+                setTimeout(() => {
+                    this.scannerInitialized = false;
+                    if (this.scanMode === 'camera') this.initScanner();
+                }, 800);
+            });
+        },
+
+        stopScanner() {
+            if (this.quaggaRunning) {
+                try { Quagga.stop(); } catch(e) {}
+                this.quaggaRunning = false;
+                this.scannerInitialized = false;
+            }
+        },
+
+        resetDestination() {
+            this.stopScanner();
+            this.mode = 'location';
+            this.locationCode = '';
+            this.locationDescription = '';
+            this.locationTriggers = '';
+            this.stageChanged = false;
+            this.newStage = '';
+            this.$nextTick(() => this.initScanner());
+        },
+
+        async processBarcode(code) {
+            if (!code || code.trim() === '') return;
+            code = code.trim();
+
+            if (this.mode === 'location') {
+                await this.resolveLocation(code);
+            } else {
+                await this.scanDevice(code);
+            }
+        },
+
+        async resolveLocation(code) {
+            try {
+                const resp = await fetch('/api/locations/resolve/?code=' + encodeURIComponent(code));
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    this.results.unshift({
+                        id: Date.now(),
+                        success: false,
+                        inventory: code,
+                        message: data.error || 'Location not found',
+                        newStage: null,
+                    });
+                    return;
                 }
-            });
-        })
-        .catch(() => show('Camera access denied', 'error'));
-    }
 
-    function stopCamera() {
-        try { Quagga.stop(); } catch(e) {}
-        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-        video.srcObject = null; scannerBox.classList.remove('active');
-        cameraBtn.textContent = '📷 Use Camera'; cameraBtn.classList.remove('active'); cameraActive = false;
-        scanInput.focus();
-    }
+                // Set destination and switch to device mode
+                this.locationCode = data.code;
+                this.locationDescription = data.description || '';
+                this.locationTriggers = data.triggers_stage || '';
+                this.stageChanged = false;
+                this.newStage = '';
+                this.mode = 'device';
 
-    window.addEventListener('load', () => scanInput.focus());
-    // Clean up on page unload
-    window.addEventListener('beforeunload', () => { try { Quagga.stop(); } catch(e) {} if (stream) stream.getTracks().forEach(t => t.stop()); });
+                this.results.unshift({
+                    id: Date.now(),
+                    success: true,
+                    inventory: '📍 ' + data.code,
+                    message: 'Destination set — now scan devices',
+                    newStage: null,
+                });
+
+                // Re-focus scanner
+                if (this.scanMode === 'camera') {
+                    this.scannerInitialized = false;
+                    this.$nextTick(() => this.initScanner());
+                } else {
+                    this.$nextTick(() => {
+                        const input = document.querySelector('.manual-input input');
+                        if (input) input.focus();
+                    });
+                }
+
+            } catch (err) {
+                this.results.unshift({
+                    id: Date.now(),
+                    success: false,
+                    inventory: code,
+                    message: 'Network error: ' + err.message,
+                    newStage: null,
+                });
+            }
+        },
+
+        async scanDevice(code) {
+            if (!this.locationCode) {
+                this.results.unshift({
+                    id: Date.now(),
+                    success: false,
+                    inventory: code,
+                    message: 'No destination set — scan a location first',
+                    newStage: null,
+                });
+                return;
+            }
+
+            try {
+                const csrf = document.getElementById('csrf-token').value;
+                const resp = await fetch('/api/locations/' + encodeURIComponent(this.locationCode) + '/scan-device/' + encodeURIComponent(code) + '/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrf },
+                });
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    this.results.unshift({
+                        id: Date.now(),
+                        success: false,
+                        inventory: code,
+                        message: data.error || 'Scan failed',
+                        newStage: null,
+                    });
+                    return;
+                }
+
+                // Update stage info if changed
+                if (data.stage_changed) {
+                    this.stageChanged = true;
+                    this.newStage = data.new_stage;
+                }
+
+                this.results.unshift({
+                    id: Date.now(),
+                    success: true,
+                    inventory: data.inventory_number,
+                    message: data.message,
+                    newStage: data.new_stage || null,
+                });
+
+                // Limit results
+                if (this.results.length > 100) {
+                    this.results = this.results.slice(0, 100);
+                }
+
+            } catch (err) {
+                this.results.unshift({
+                    id: Date.now(),
+                    success: false,
+                    inventory: code,
+                    message: 'Network error: ' + err.message,
+                    newStage: null,
+                });
+            }
+        },
+    };
+}
 </script>
 {% endblock %}

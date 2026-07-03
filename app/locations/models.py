@@ -106,6 +106,15 @@ class Location(models.Model):
         help_text="What this location is used for"
     )
 
+    triggers_stage = models.CharField(
+        max_length=30,
+        blank=True,
+        null=True,
+        help_text="If set, scanning a device to this location will attempt "
+                  "this stage transition (must match a Stage.code value, "
+                  "e.g. 'GRADING', 'IN_REFURB', 'QA_PENDING')"
+    )
+
     max_size = models.CharField(
         max_length=10,
         choices=LocationMaxSize.choices,

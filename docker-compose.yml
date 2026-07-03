@@ -28,6 +28,7 @@ services:
       - ./app:/app
       - ./docker-volumes/media:/app/media
       - ./docker-volumes/static:/app/static
+      - /home/cedar:/cedar  
     networks:
       - workbench-network
 
