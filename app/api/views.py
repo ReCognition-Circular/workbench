@@ -1,7 +1,9 @@
 from django.views.generic import TemplateView
 from rest_framework.test import APIRequestFactory
 from rest_framework.authentication import SessionAuthentication
+import logging
 
+logger = logging.getLogger(__name__)
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import viewsets, mixins, status, filters
 from rest_framework.decorators import action, api_view, permission_classes
@@ -18,6 +20,10 @@ from locations.models import Location, Site
 from workflow.models import Stage
 from donors.models import Donor
 from devices.models import InventorySequence
+from django.utils import timezone
+from django.conf import settings
+from integrations.erpnext_client import ERPNextClient, ERPNextClientError
+from integrations.models import IntegrationLog
 from .serializers import (
     DeviceSerializer,
     DeviceListSerializer,
@@ -267,7 +273,7 @@ class StockOverviewView(APIView):
             stage__code="READY",
             allocation_intent__in=["UNDECIDED", "SALE"],
         ).exclude(
-            allocations__status="RESERVED"
+            allocations__status__in=["RESERVED", "DISPATCHED"]
         ).count()
 
         # Available for device bank: stage=READY, intent=DEVICE_BANK, no active RESERVED allocation
@@ -275,12 +281,12 @@ class StockOverviewView(APIView):
             stage__code="READY",
             allocation_intent="DEVICE_BANK",
         ).exclude(
-            allocations__status="RESERVED"
+            allocations__status__in=["RESERVED", "DISPATCHED"]
         ).count()
 
         # Reserved: linked to any active Allocation
         reserved = Device.objects.filter(
-            allocations__status="RESERVED"
+            allocations__status__in=["RESERVED", "DISPATCHED"]
         ).distinct().count()
 
         # In pipeline: not READY and not allocated
@@ -291,11 +297,11 @@ class StockOverviewView(APIView):
             stage__code="READY",
             allocation_intent__in=["UNDECIDED", "SALE"],
         ).exclude(
-            allocations__status="RESERVED"
+            allocations__status__in=["RESERVED", "DISPATCHED"]
         ).values_list("id", flat=True)
 
         reserved_ids = Device.objects.filter(
-            allocations__status="RESERVED"
+            allocations__status__in=["RESERVED", "DISPATCHED"]
         ).values_list("id", flat=True)
 
         valuation_available = (
@@ -387,7 +393,7 @@ class StockAvailableView(APIView):
         reserved_ids = set(
             base.filter(allocation_intent="RESERVED").values_list("id", flat=True)
         ) | set(
-            Device.objects.filter(allocations__status="RESERVED").values_list("id", flat=True)
+            Device.objects.filter(allocations__status__in=["RESERVED", "DISPATCHED"]).values_list("id", flat=True)
         )
         reserved = len(reserved_ids)
 
@@ -395,7 +401,7 @@ class StockAvailableView(APIView):
         in_pipeline_total = Device.objects.exclude(
             stage__code__in=TERMINAL_STAGES
         ).exclude(
-            allocations__status="RESERVED"
+            allocations__status__in=["RESERVED", "DISPATCHED"]
         ).count()
 
         # Matching devices (max 100) with allocation recipient info
@@ -632,6 +638,99 @@ class FulfilmentRequestViewSet(viewsets.ModelViewSet):
                 "allocation_set__device__stage",
             )
         return qs    
+    @action(detail=True, methods=['post'])
+    def dispatch(self, request, pk=None):
+        """Dispatch all RESERVED allocations for this FR.
+        
+        Transitions allocations to DISPATCHED, records dispatched_at,
+        and pushes a Delivery Note to ERPNext with all device serial numbers.
+        """
+        fr = self.get_object()
+        
+        # Find all RESERVED allocations for this FR
+        allocations = fr.allocation_set.filter(status='RESERVED')
+        
+        if not allocations.exists():
+            return Response(
+                {'error': 'No RESERVED allocations found to dispatch'},
+                status=400
+            )
+        
+        devices = []
+        for alloc in allocations:
+            alloc.status = 'DISPATCHED'
+            alloc.dispatched_at = timezone.now()
+            alloc.save(update_fields=['status', 'dispatched_at'])
+            
+            if alloc.device:
+                devices.append(alloc.device)
+        
+        # Update FR status
+        fr.status = 'COMPLETE'
+        fr.save(update_fields=['status'])
+        
+        # Push Delivery Note to ERPNext
+        dn_result = None
+        try:
+            client = ERPNextClient()
+            
+            serial_numbers = [
+                d.inventory_number for d in devices if d.inventory_number
+            ]
+            
+            dn_data = {
+                "doctype": "Delivery Note",
+                "customer": fr.recipient.name if fr.recipient else "",
+                "company": settings.ERPNEXT_COMPANY,
+                "set_warehouse": settings.ERPNEXT_DEFAULT_WAREHOUSE,
+                "items": [
+                    {
+                        "item_code": fr.item_code or "LAPTOP-UNSPECIFIED",
+                        "qty": len(devices),
+                        "serial_no": "\n".join(serial_numbers),
+                        "warehouse": settings.ERPNEXT_DEFAULT_WAREHOUSE,
+                    }
+                ],
+            }
+            
+            dn_response = client.create("Delivery Note", dn_data)
+            dn_name = dn_response.get("data", {}).get("name", "unknown")
+            
+            # Store the DN reference on allocations
+            for alloc in allocations:
+                alloc.erpnext_dn_reference = dn_name
+                alloc.save(update_fields=['erpnext_dn_reference'])
+            
+            IntegrationLog.objects.create(
+                direction="OUTBOUND",
+                doctype="Delivery Note",
+                doc_name=dn_name,
+                action="create",
+                status="SUCCESS",
+                completed_at=timezone.now(),
+            )
+            
+            dn_result = {"name": dn_name, "status": "created"}
+            
+        except (ERPNextClientError, Exception) as e:
+            logger.exception("Failed to push Delivery Note to ERPNext")
+            IntegrationLog.objects.create(
+                direction="OUTBOUND",
+                doctype="Delivery Note",
+                action="create",
+                status="FAILED",
+                error_message=str(e),
+                completed_at=timezone.now(),
+            )
+            # Still return success for the dispatch itself
+            dn_result = {"error": str(e)}
+        
+        return Response({
+            "status": "dispatched",
+            "allocations_dispatched": len(devices),
+            "delivery_note": dn_result,
+            "fr_status": "COMPLETE",
+        })    
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def resolve_barcode(request):

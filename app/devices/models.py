@@ -93,6 +93,7 @@ class AllocationType(models.TextChoices):
 class AllocationStatus(models.TextChoices):
     RESERVED = 'RESERVED', 'Reserved'
     DISPATCHED = 'DISPATCHED', 'Dispatched'
+    RETURNED = 'RETURNED', 'Returned'
     CANCELLED = 'CANCELLED', 'Cancelled'
 
 
@@ -134,10 +135,12 @@ class Allocation(models.Model):
         choices=[
             ('RESERVED', 'Reserved'),
             ('DISPATCHED', 'Dispatched'),
+            ('RETURNED', 'Returned'),
             ('CANCELLED', 'Cancelled'),
         ],
         default='RESERVED',
     )
+    dispatched_at = models.DateTimeField(null=True, blank=True)
     allocation_type = models.CharField(
         max_length=20,
         choices=[

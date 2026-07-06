@@ -24,7 +24,17 @@
                 {{ fr.get_status_display }}
             </span>
         </div>
-
+        <!-- Dispatch button -->
+        {% if allocated_count > 0 and fr.status != 'COMPLETE' and fr.status != 'CANCELLED' %}
+        <div class="mt-4 flex justify-end">
+            <button id="dispatchAllBtn"
+                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm"
+                    data-fr-id="{{ fr.id }}">
+                🚚 Despatch All ({{ allocated_count }} devices)
+            </button>
+            <div id="dispatchStatus" class="ml-3 text-sm text-gray-500 hidden"></div>
+        </div>
+        {% endif %}
         <!-- Key Stats -->
         <div class="grid grid-cols-4 gap-6 mt-6">
             <div class="bg-gray-50 rounded-lg p-4 text-center">
@@ -213,4 +223,46 @@
     </div>
     {% endif %}
 </div>
+<script>
+document.getElementById('dispatchAllBtn')?.addEventListener('click', function() {
+    const btn = this;
+    const statusDiv = document.getElementById('dispatchStatus');
+    const frId = btn.dataset.frId;
+
+    btn.disabled = true;
+    btn.textContent = 'Dispatching...';
+    statusDiv.classList.remove('hidden');
+    statusDiv.textContent = 'Sending...';
+    statusDiv.className = 'ml-3 text-sm text-gray-500';
+
+    fetch(`/api/fulfilment-requests/${frId}/dispatch/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'dispatched') {
+            statusDiv.textContent = `✅ ${data.allocations_dispatched} devices despatched. DN: ${data.delivery_note?.name || 'pending'}`;
+            statusDiv.className = 'ml-3 text-sm text-green-600';
+            btn.textContent = '✅ Dispatched';
+            // Reload after 2 seconds to reflect changes
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            statusDiv.textContent = '❌ ' + (data.error || 'Failed');
+            statusDiv.className = 'ml-3 text-sm text-red-600';
+            btn.disabled = false;
+            btn.textContent = '🚚 Despatch All';
+        }
+    })
+    .catch(err => {
+        statusDiv.textContent = '❌ Network error';
+        statusDiv.className = 'ml-3 text-sm text-red-600';
+        btn.disabled = false;
+        btn.textContent = '🚚 Despatch All';
+    });
+});
+</script>
 {% endblock %}
