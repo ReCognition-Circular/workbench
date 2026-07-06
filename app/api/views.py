@@ -673,10 +673,27 @@ class FulfilmentRequestViewSet(viewsets.ModelViewSet):
         dn_result = None
         try:
             client = ERPNextClient()
-            
-            serial_numbers = [
-                d.inventory_number for d in devices if d.inventory_number
-            ]
+
+            # First, create Serial Number records in ERPNext
+            created_sns = []
+            for device in devices:
+                if not device.inventory_number:
+                    continue
+                try:
+                    client.create('Serial No', {
+                        'serial_no': device.inventory_number,
+                        'item_code': fr.item_code or 'LAPTOP-UNSPECIFIED',
+                        'status': 'Delivered',
+                    })
+                    created_sns.append(device.inventory_number)
+                except ERPNextClientError as e:
+                    # If it already exists, that's fine — continue
+                    if 'already exists' in str(e).lower():
+                        created_sns.append(device.inventory_number)
+                        continue
+                    raise
+
+            serial_numbers = created_sns
             
             dn_data = {
                 "doctype": "Delivery Note",
