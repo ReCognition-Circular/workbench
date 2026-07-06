@@ -113,6 +113,7 @@ def donate_page(request):
         donor_name = request.POST.get("donor_name", "")
         donor_contact = request.POST.get("donor_contact", "")
         donor_email = request.POST.get("donor_email", "")
+        donor_phone = request.POST.get("donor_phone", "")
         notes = request.POST.get("notes", "")
         declaration = request.POST.get("declaration") == "on"
 
@@ -141,9 +142,9 @@ def donate_page(request):
             try:
                 requests.post(n8n_webhook_url, json={
                     'donor_name': donor_name,
+                    'donor_phone': donor_phone,
                     'donor_contact': donor_contact,
                     'donor_email': donor_email,
-                    'donor_mobile': donor_mobile,
                     'reference_number': reference,
                     'notes': notes,
                 }, timeout=5)
