@@ -25,6 +25,7 @@ from django.conf import settings
 from integrations.erpnext_client import ERPNextClient, ERPNextClientError
 from integrations.models import IntegrationLog
 from .serializers import (
+    CustomerSerializer,    
     DeviceSerializer,
     DeviceListSerializer,
     LocationSerializer,
@@ -41,6 +42,7 @@ from .serializers import (
     FulfilmentRequestListSerializer,
     FulfilmentRequestDetailSerializer,
 )
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -639,7 +641,7 @@ class FulfilmentRequestViewSet(viewsets.ModelViewSet):
             )
         return qs    
     @action(detail=True, methods=['post'])
-    def dispatch(self, request, pk=None):
+    def execute_dispatch(self, request, pk=None):
         """Dispatch all RESERVED allocations for this FR.
         
         Transitions allocations to DISPATCHED, records dispatched_at,
@@ -787,3 +789,77 @@ def resolve_barcode(request):
         })
     
     return Response({'type': 'unknown', 'code': code}, status=status.HTTP_404_NOT_FOUND)    
+class CustomerWebhookView(APIView):
+    """
+    Webhook receiver for ERPNext Customer sync.
+    POST /api/integration/customer/
+    """
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    CUSTOMER_GROUP_MAP = {
+        'Commercial': 'BUSINESS',
+        'Device Bank': 'CHARITY',
+        'eBay': 'BUSINESS',
+        'Individual': 'INDIVIDUAL',
+    }
+
+    def post(self, request):
+        try:
+            data = request.data
+            # Handle both wrapped {"doc": {...}} and bare payloads
+            if 'doc' in data:
+                data = data['doc']
+
+            serializer = CustomerSerializer(data=data)
+            if not serializer.is_valid():
+                IntegrationLog.objects.create(
+                    action='CUSTOMER_SYNC',
+                    status='ERROR',
+                    request_payload=request.data,
+                    response_body=serializer.errors,
+                )
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            erpnext_id = serializer.validated_data['name']
+            customer_name = serializer.validated_data['customer_name']
+            customer_group = serializer.validated_data.get('customer_group', '')
+
+            # Map customer group to recipient type
+            recipient_type = self.CUSTOMER_GROUP_MAP.get(
+                customer_group, 'INDIVIDUAL'
+            )
+
+            recipient, created = Recipient.objects.update_or_create(
+                erpnext_customer_id=erpnext_id,
+                defaults={
+                    'name': customer_name,
+                    'recipient_type': recipient_type,
+                }
+            )
+
+            IntegrationLog.objects.create(
+                action='CUSTOMER_SYNC',
+                status='SUCCESS',
+                request_payload=request.data,
+                response_body={'recipient_id': recipient.id, 'created': created},
+            )
+
+            return Response({
+                'status': 'success',
+                'recipient_id': recipient.id,
+                'created': created,
+            }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.exception("CustomerWebhookView error")
+            IntegrationLog.objects.create(
+                action='CUSTOMER_SYNC',
+                status='ERROR',
+                request_payload=request.data,
+                response_body={'error': str(e)},
+            )
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

@@ -18,7 +18,8 @@ from .views import (
     update_device_intent,
     RecipientViewSet,
     ReserveView,
-    FulfilmentRequestViewSet
+    FulfilmentRequestViewSet,
+    CustomerWebhookView
 )
 
 router = DefaultRouter()
@@ -41,6 +42,7 @@ urlpatterns = [
     path('devices/<int:pk>/intent/', update_device_intent, name='update-device-intent'),
     path("inventory/next-number/", next_inventory_number, name="next-inventory-number"),
     path("inventory/check-serial/", check_serial, name="check-serial"),
+    path('integration/customer/', CustomerWebhookView.as_view(), name='customer-webhook'),
 ]
 
 # Location scan endpoints (destination-first workflow)

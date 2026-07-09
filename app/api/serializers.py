@@ -10,6 +10,10 @@ class SiteSerializer(serializers.ModelSerializer):
         model = Site
         fields = '__all__'
 
+class CustomerSerializer(serializers.Serializer):
+    name = serializers.CharField(required=True)
+    customer_name = serializers.CharField(required=True)
+    customer_group = serializers.CharField(required=False, allow_blank=True, default="")
 
 class LocationSerializer(serializers.ModelSerializer):
     site = SiteSerializer(read_only=True)
