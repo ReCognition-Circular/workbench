@@ -52,3 +52,9 @@ urlpatterns += [
     path('locations/resolve/', location_resolve, name='location-resolve'),
     path('locations/<str:code>/scan-device/<str:inventory>/', scan_device_to_location, name='scan-device-to-location'),
 ]
+# Barcode resolution — detect if a scanned barcode is a location or a device
+from .views import resolve_barcode
+
+urlpatterns += [
+    path('resolve-barcode/', resolve_barcode, name='resolve-barcode'),
+]

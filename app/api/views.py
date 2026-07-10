@@ -767,9 +767,9 @@ def resolve_barcode(request):
     if location:
         return Response({
             'type': 'location',
-            'id': location.id,
+            'id': location.code,
             'code': location.code,
-            'name': location.name,
+            'name': location.description,
             'triggers_stage': location.triggers_stage,
         })
     

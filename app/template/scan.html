@@ -1,350 +1,334 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Scan - ReCognition Workbench{% endblock %}
+{% block title %}Scan{% endblock %}
 
 {% block extra_head %}
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="/manifest.json">
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/quagga2@1.0.0-alpha.1/dist/quagga.min.js"></script>
 <style>
-    html, body { height: 100%; margin: 0; overflow: hidden; }
-    [x-cloak] { display: none !important; }
-    .scan-container { height: 100vh; display: flex; flex-direction: column; padding: 1rem; background: #f3f4f6; overflow-y: auto; }
-    .scanner-box { width: 100%; max-width: 400px; margin: 0 auto 0.5rem; border-radius: 12px; overflow: hidden; position: relative; background: #000; }
-    .scanner-box video { width: 100%; display: block; border-radius: 12px; }
-    .scan-region { position: absolute; inset: 15%; border: 2px dashed rgba(255,255,255,0.6); border-radius: 8px; }
-    .scan-line { position: absolute; left: 15%; right: 15%; top: 50%; height: 2px; background: #3b82f6; box-shadow: 0 0 12px #3b82f6; animation: scanPulse 1.5s ease-in-out infinite; }
-    @keyframes scanPulse { 0%, 100% { opacity: 0.3; top: 30%; } 50% { opacity: 1; top: 65%; } }
-    .destination-header { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: white; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 0.75rem; }
-    .dest-code { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.05em; }
-    .dest-desc { font-size: 0.875rem; opacity: 0.85; margin-top: 0.125rem; }
-    .stage-label { display: inline-flex; align-items: center; gap: 0.375rem; background: rgba(255,255,255,0.2); padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; margin-top: 0.375rem; }
-    .result-item { background: white; border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 0.75rem; }
-    .result-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; flex-shrink: 0; }
-    .result-icon.success { background: #d1fae5; color: #065f46; }
-    .result-icon.error { background: #fee2e2; color: #991b1b; }
-    .result-stage { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 9999px; font-size: 0.65rem; font-weight: 600; background: #e0e7ff; color: #4338ca; }
-    .badge-stage { display: inline-flex; align-items: center; gap: 0.25rem; background: #dbeafe; color: #1e40af; padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
-    .manual-input { width: 100%; max-width: 400px; margin: 0 auto; }
-    .manual-input input { width: 100%; padding: 0.875rem 1rem; font-size: 1.25rem; text-align: center; border: 3px solid #d1d5db; border-radius: 12px; outline: none; }
-    .manual-input input:focus { border-color: #2563eb; }
-    .manual-input input.active { border-color: #2563eb; }
-    .toggle-btn { width: 100%; max-width: 400px; margin: 0.5rem auto 0; padding: 0.625rem; border-radius: 10px; border: 1px solid #d1d5db; background: white; font-size: 0.875rem; font-weight: 600; color: #374151; cursor: pointer; }
-    .toggle-btn:hover { background: #f9fafb; }
-    .clear-btn { padding: 0.375rem 0.875rem; border-radius: 8px; border: 1px solid #d1d5db; background: white; font-size: 0.8rem; color: #6b7280; cursor: pointer; }
-    .clear-btn:hover { background: #f3f4f6; }
-    .empty-state { text-align: center; padding: 2rem 1rem; color: #9ca3af; }
+    #manual-barcode {
+        font-size: 1.2rem;
+        padding: 0.75rem;
+        border: 2px solid #d1d5db;
+        border-radius: 8px;
+        width: 100%;
+        box-sizing: border-box;
+        letter-spacing: 0.05em;
+    }
+    #manual-barcode:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    .destination-badge {
+        background: #3b82f6;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        display: inline-block;
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+    .destination-empty {
+        color: #6b7280;
+        font-style: italic;
+    }
+    #scan-history {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    #scan-history table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    #scan-history th {
+        text-align: left;
+        padding: 0.5rem;
+        border-bottom: 2px solid #e5e7eb;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+        position: sticky;
+        top: 0;
+        background: white;
+    }
+    #scan-history td {
+        padding: 0.5rem;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 0.875rem;
+    }
+    #scan-history tr:hover td {
+        background: #f9fafb;
+    }
+    .badge-stage {
+        display: inline-block;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .badge-stage.changed {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+    .badge-stage.same {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+    .result-ok {
+        color: #16a34a;
+    }
+    .result-err {
+        color: #dc2626;
+    }
+    .result-info {
+        color: #2563eb;
+    }
+    .timestamp {
+        font-size: 0.7rem;
+        color: #9ca3af;
+        white-space: nowrap;
+    }
+    .device-cell {
+        font-weight: 600;
+        font-family: monospace;
+    }
+    .location-cell {
+        font-family: monospace;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div x-data="scanApp()" class="scan-container" x-cloak>
-    {% csrf_token %}
-    <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+<div class="container mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold mb-4">📍 Scan</h1>
 
-    <!-- Destination Header (shown when location is set) -->
-    <template x-if="mode === 'device' && locationCode">
-        <div class="destination-header">
-            <div class="flex items-center justify-between">
-                <div>
-                    <div class="dest-code" x-text="locationCode"></div>
-                    <div class="dest-desc" x-text="locationDescription"></div>
-                    <template x-if="stageChanged">
-                        <span class="stage-label">Stage: <span x-text="newStage"></span> ✅</span>
-                    </template>
-                    <template x-if="!stageChanged && locationTriggers">
-                        <span class="stage-label">Stage: <span x-text="locationTriggers"></span></span>
-                    </template>
-                    <template x-if="!stageChanged && !locationTriggers">
-                        <span class="stage-label">Location only</span>
-                    </template>
-                </div>
-                <button @click="resetDestination()" class="text-white/70 hover:text-white text-sm underline">Change</button>
-            </div>
-        </div>
-    </template>
-
-    <!-- Scanner / Manual Input -->
-    <div class="w-full max-w-md mx-auto">
-        <!-- Camera scanner -->
-        <template x-if="scanMode === 'camera'">
-            <div class="scanner-box" id="scanner-box" :class="{'active': true}">
-                <div class="scan-region"></div>
-                <div class="scan-line"></div>
-            </div>
-        </template>
-
-        <!-- Manual text input -->
-        <template x-if="scanMode === 'manual'">
-            <div class="manual-input">
-                <input type="text" x-model="manualCode" @keydown.enter="processBarcode(manualCode); manualCode = ''"
-                       :placeholder="mode === 'location' ? 'Scan or type location...' : 'Scan or type device barcode...'"
-                       autofocus>
-            </div>
-        </template>
-
-        <!-- Toggle button -->
-        <button class="toggle-btn" @click="toggleScanMode()">
-            <span x-text="scanMode === 'camera' ? '📷 Use text input' : '📷 Use camera'"></span>
-        </button>
-
-        <!-- Instructions -->
-        <p class="text-center text-sm text-gray-400 mt-2" x-text="mode === 'location' ? 'Scan a location barcode to begin' : 'Scan device barcodes to assign to this location'"></p>
+    <!-- Destination indicator -->
+    <div id="destination-area" class="mb-4 p-4 bg-white rounded-lg shadow-sm border">
+        <div class="text-sm text-gray-500 mb-1">Active Destination:</div>
+        <div id="destination-display" class="destination-empty">— scan a location barcode to begin</div>
+        <div id="destination-meta" class="text-xs text-gray-400 mt-1"></div>
+        <button id="clear-destination" class="text-xs text-red-500 hover:text-red-700 mt-1" style="display:none">Clear</button>
     </div>
 
-    <!-- Results list -->
-    <div class="w-full max-w-md mx-auto mt-4 flex-1">
-        <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Results</h3>
-            <button class="clear-btn" @click="results = []" x-show="results.length > 0">Clear list</button>
+    <!-- Scan input -->
+    <div class="p-4 bg-white rounded-lg shadow-sm border">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Scan barcode:</label>
+        <input type="text" id="manual-barcode" placeholder="Point scanner here and scan..." autofocus>
+        <p class="text-xs text-gray-400 mt-1">Scan a location first, then scan devices into it.</p>
+    </div>
+
+    <!-- Results table -->
+    <div id="result-area">
+        <h2 class="text-lg font-semibold mt-6 mb-2">Scan History</h2>
+        <div id="scan-history" class="bg-white rounded-lg shadow-sm border">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Device</th>
+                        <th>From</th>
+                        <th>→</th>
+                        <th>To</th>
+                        <th>Stage</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="history-body">
+                    <tr id="empty-row">
+                        <td colspan="6" style="text-align:center; color:#9ca3af; padding:2rem;">
+                            No scans yet — scan a location to begin
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
-
-        <template x-if="results.length === 0">
-            <div class="empty-state">
-                <p class="text-lg mb-1">🔍 No scans yet</p>
-                <p class="text-sm">Scan a location first, then scan devices</p>
-            </div>
-        </template>
-
-        <template x-for="r in results" :key="r.id">
-            <div class="result-item">
-                <div class="result-icon" :class="r.success ? 'success' : 'error'" x-text="r.success ? '✅' : '❌'"></div>
-                <div class="flex-1 min-w-0">
-                    <div class="font-semibold text-sm truncate" x-text="r.inventory"></div>
-                    <div class="text-xs text-gray-500 truncate" x-text="r.message"></div>
-                </div>
-                <template x-if="r.newStage">
-                    <span class="badge-stage" x-text="r.newStage"></span>
-                </template>
-            </div>
-        </template>
     </div>
 </div>
 
 <script>
-function scanApp() {
-    return {
-        mode: 'location',       // 'location' | 'device'
-        scanMode: 'camera',     // 'camera' | 'manual'
-        manualCode: '',
-        locationCode: '',
-        locationDescription: '',
-        locationTriggers: '',
-        stageChanged: false,
-        newStage: '',
-        results: [],
-        scannerInitialized: false,
-        quaggaRunning: false,
+    // ─── State ────────────────────────────────────────────────
+    let activeDestination = null;
+    let scanTimeout = null;
 
-        init() {
-            this.initScanner();
-        },
+    // ─── DOM refs ─────────────────────────────────────────────
+    const destDisplay = document.getElementById('destination-display');
+    const destMeta = document.getElementById('destination-meta');
+    const clearDestBtn = document.getElementById('clear-destination');
+    const scanInput = document.getElementById('manual-barcode');
+    const historyBody = document.getElementById('history-body');
+    const emptyRow = document.getElementById('empty-row');
 
-        toggleScanMode() {
-            if (this.scanMode === 'camera') {
-                this.stopScanner();
-                this.scanMode = 'manual';
-                this.$nextTick(() => {
-                    const input = document.querySelector('.manual-input input');
-                    if (input) input.focus();
-                });
-            } else {
-                this.scanMode = 'camera';
-                this.$nextTick(() => this.initScanner());
-            }
-        },
+    // ─── API helpers ──────────────────────────────────────────
+    function getCookie(name) {
+        let c = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return c ? c.pop() : '';
+    }
+    const csrfToken = getCookie('csrftoken');
 
-        initScanner() {
-            if (this.scannerInitialized) return;
-            const box = document.getElementById('scanner-box');
-            if (!box) return;
-            this.scannerInitialized = true;
+    async function resolveBarcode(code) {
+        const resp = await fetch('/api/resolve-barcode/?code=' + encodeURIComponent(code));
+        if (!resp.ok) return { type: 'unknown' };
+        return await resp.json();
+    }
 
-            Quagga.init({
-                inputStream: {
-                    name: 'Live',
-                    type: 'LiveStream',
-                    target: box,
-                    constraints: { facingMode: 'environment', width: 400, height: 300 },
-                },
-                decoder: {
-                    readers: [
-                        'code_128_reader', 'ean_reader', 'ean_8_reader',
-                        'code_39_reader', 'codabar_reader', 'upc_reader',
-                        'i2of5_reader'
-                    ]
-                },
-                locate: true,
-            }, (err) => {
-                if (err) { console.error('Quagga init err:', err); return; }
-                Quagga.start();
-                this.quaggaRunning = true;
+    async function scanDeviceToLocation(inventory, locationCode) {
+        const resp = await fetch('/api/locations/' + encodeURIComponent(locationCode) + '/scan-device/' + encodeURIComponent(inventory) + '/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            },
+        });
+        return await resp.json();
+    }
+
+    // ─── UI helpers ───────────────────────────────────────────
+    function setDestination(location) {
+        activeDestination = location;
+        destDisplay.innerHTML = '<span class="destination-badge">' + escapeHtml(location.code) + '</span> — ' + escapeHtml(location.name || location.code);
+        destMeta.textContent = location.triggers_stage ? 'Triggers: ' + location.triggers_stage : 'Location only';
+        clearDestBtn.style.display = 'inline';
+    }
+
+    function clearDestination() {
+        activeDestination = null;
+        destDisplay.innerHTML = '<span class="destination-empty">— scan a location barcode to begin</span>';
+        destMeta.textContent = '';
+        clearDestBtn.style.display = 'none';
+    }
+
+    function addScanRow(device, fromLoc, toLoc, stageFrom, stageTo, stageChanged, timestamp) {
+        // Remove empty row if present
+        if (emptyRow) emptyRow.remove();
+
+        const row = document.createElement('tr');
+        
+        const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+        
+        const stageBadge = stageChanged
+            ? '<span class="badge-stage changed">' + escapeHtml(stageTo) + ' ✅</span>'
+            : '<span class="badge-stage same">' + escapeHtml(stageTo || '—') + '</span>';
+
+        row.innerHTML = `
+            <td class="device-cell">${escapeHtml(device)}</td>
+            <td class="location-cell">${escapeHtml(fromLoc || '—')}</td>
+            <td>→</td>
+            <td class="location-cell"><strong>${escapeHtml(toLoc)}</strong></td>
+            <td>${stageBadge}</td>
+            <td class="timestamp">${timeStr}</td>
+        `;
+
+        // Add a subtle animation
+        row.style.opacity = '0';
+        historyBody.prepend(row);
+        // Force reflow then fade in
+        row.offsetHeight;
+        row.style.transition = 'opacity 0.3s';
+        row.style.opacity = '1';
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ─── Core scan handler ────────────────────────────────────
+    async function handleBarcode(code) {
+        code = code.trim();
+        if (!code) return;
+
+        const resolved = await resolveBarcode(code);
+        console.log('Resolved:', resolved);
+
+        if (resolved.type === 'location') {
+            setDestination({
+                code: resolved.code,
+                name: resolved.name || resolved.code,
+                triggers_stage: resolved.triggers_stage || '',
             });
+            // Show location scan in history
+            addScanRow(
+                '📍 ' + resolved.code,
+                '', '', '', resolved.triggers_stage || 'location',
+                false, new Date().toISOString()
+            );
 
-            Quagga.onDetected((data) => {
-                if (!this.quaggaRunning) return;
-                const code = data.codeResult.code;
-                if (!code) return;
-                this.quaggaRunning = false;
-                Quagga.stop();
-                this.scannerInitialized = false;
-                this.processBarcode(code);
-                // Re-init after delay
-                setTimeout(() => {
-                    this.scannerInitialized = false;
-                    if (this.scanMode === 'camera') this.initScanner();
-                }, 800);
-            });
-        },
-
-        stopScanner() {
-            if (this.quaggaRunning) {
-                try { Quagga.stop(); } catch(e) {}
-                this.quaggaRunning = false;
-                this.scannerInitialized = false;
-            }
-        },
-
-        resetDestination() {
-            this.stopScanner();
-            this.mode = 'location';
-            this.locationCode = '';
-            this.locationDescription = '';
-            this.locationTriggers = '';
-            this.stageChanged = false;
-            this.newStage = '';
-            this.$nextTick(() => this.initScanner());
-        },
-
-        async processBarcode(code) {
-            if (!code || code.trim() === '') return;
-            code = code.trim();
-
-            if (this.mode === 'location') {
-                await this.resolveLocation(code);
-            } else {
-                await this.scanDevice(code);
-            }
-        },
-
-        async resolveLocation(code) {
-            try {
-                const resp = await fetch('/api/locations/resolve/?code=' + encodeURIComponent(code));
-                const data = await resp.json();
-
-                if (!resp.ok) {
-                    this.results.unshift({
-                        id: Date.now(),
-                        success: false,
-                        inventory: code,
-                        message: data.error || 'Location not found',
-                        newStage: null,
-                    });
-                    return;
-                }
-
-                // Set destination and switch to device mode
-                this.locationCode = data.code;
-                this.locationDescription = data.description || '';
-                this.locationTriggers = data.triggers_stage || '';
-                this.stageChanged = false;
-                this.newStage = '';
-                this.mode = 'device';
-
-                this.results.unshift({
-                    id: Date.now(),
-                    success: true,
-                    inventory: '📍 ' + data.code,
-                    message: 'Destination set — now scan devices',
-                    newStage: null,
-                });
-
-                // Re-focus scanner
-                if (this.scanMode === 'camera') {
-                    this.scannerInitialized = false;
-                    this.$nextTick(() => this.initScanner());
-                } else {
-                    this.$nextTick(() => {
-                        const input = document.querySelector('.manual-input input');
-                        if (input) input.focus();
-                    });
-                }
-
-            } catch (err) {
-                this.results.unshift({
-                    id: Date.now(),
-                    success: false,
-                    inventory: code,
-                    message: 'Network error: ' + err.message,
-                    newStage: null,
-                });
-            }
-        },
-
-        async scanDevice(code) {
-            if (!this.locationCode) {
-                this.results.unshift({
-                    id: Date.now(),
-                    success: false,
-                    inventory: code,
-                    message: 'No destination set — scan a location first',
-                    newStage: null,
-                });
+        } else if (resolved.type === 'device') {
+            if (!activeDestination) {
+                addScanRow(
+                    '⚠️ ' + resolved.inventory_number,
+                    resolved.location || '—', '—', resolved.stage || '—', 'No destination set',
+                    false, new Date().toISOString()
+                );
                 return;
             }
 
-            try {
-                const csrf = document.getElementById('csrf-token').value;
-                const resp = await fetch('/api/locations/' + encodeURIComponent(this.locationCode) + '/scan-device/' + encodeURIComponent(code) + '/', {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': csrf },
-                });
-                const data = await resp.json();
+            const result = await scanDeviceToLocation(resolved.inventory_number, activeDestination.code);
+            console.log('Scan result:', result);
 
-                if (!resp.ok) {
-                    this.results.unshift({
-                        id: Date.now(),
-                        success: false,
-                        inventory: code,
-                        message: data.error || 'Scan failed',
-                        newStage: null,
-                    });
-                    return;
-                }
+            const prevLoc = resolved.location || '—';
+            const prevStage = resolved.stage || '—';
+            const newStage = result.new_stage || prevStage;
 
-                // Update stage info if changed
-                if (data.stage_changed) {
-                    this.stageChanged = true;
-                    this.newStage = data.new_stage;
-                }
+            addScanRow(
+                result.stage_changed ? '✅ ' + resolved.inventory_number : resolved.inventory_number,
+                prevLoc, activeDestination.code,
+                prevStage, newStage,
+                result.stage_changed,
+                new Date().toISOString()
+            );
 
-                this.results.unshift({
-                    id: Date.now(),
-                    success: true,
-                    inventory: data.inventory_number,
-                    message: data.message,
-                    newStage: data.new_stage || null,
-                });
+        } else {
+            addScanRow(
+                '❌ ' + code,
+                '—', '—', '—', 'Unknown barcode',
+                false, new Date().toISOString()
+            );
+        }
+    }
 
-                // Limit results
-                if (this.results.length > 100) {
-                    this.results = this.results.slice(0, 100);
-                }
-
-            } catch (err) {
-                this.results.unshift({
-                    id: Date.now(),
-                    success: false,
-                    inventory: code,
-                    message: 'Network error: ' + err.message,
-                    newStage: null,
-                });
+    // ─── Scan input handler ───────────────────────────────────
+    scanInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const code = scanInput.value.trim();
+            scanInput.value = '';
+            if (code) {
+                handleBarcode(code);
             }
-        },
-    };
-}
+        }
+    });
+
+    scanInput.addEventListener('input', function() {
+        if (scanTimeout) clearTimeout(scanTimeout);
+        const val = scanInput.value.trim();
+        if (val.length >= 5) {
+            scanTimeout = setTimeout(function() {
+                const code = scanInput.value.trim();
+                scanInput.value = '';
+                if (code) {
+                    handleBarcode(code);
+                }
+            }, 200);
+        }
+    });
+
+    // ─── Clear destination ────────────────────────────────────
+    clearDestBtn.addEventListener('click', clearDestination);
+
+    // Auto-focus
+    window.addEventListener('load', function() {
+        scanInput.focus();
+    });
+    document.addEventListener('click', function(e) {
+        if (e.target.tagName !== 'INPUT') {
+            scanInput.focus();
+        }
+    });
 </script>
 {% endblock %}
+

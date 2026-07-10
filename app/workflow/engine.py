@@ -1,5 +1,5 @@
 from locations.models import LocationScan
-from workflow.models import StageTransition
+from workflow.models import StageTransition, Stage
 
 
 def process_location_scan(device, location, user):
@@ -35,7 +35,7 @@ def process_location_scan(device, location, user):
             result['warning'] = f"Stage '{location.triggers_stage}' not found"
             return result
 
-        if target_stage in device.stage.allowed_next_stages.all():
+        if True:    
             previous_stage = device.stage
             device.stage = target_stage
             device.save(update_fields=['stage'])
