@@ -162,7 +162,7 @@ def donate_page(request):
                 f'Thank you for supporting digital inclusion in Birmingham.\n'
                 f'— ReCognition Circular CIC',
                 'Birmingham Device Bank <info@birminghamdevicebank.org>',
-                [donor_email, 'info@recognition-circular.org'],
+                [donor_email, 'info@recognition-circular.org', 'info@birminghamdevicebank.org'],
                 fail_silently=False,
             )
         except Exception:

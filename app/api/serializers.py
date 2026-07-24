@@ -95,7 +95,8 @@ class DeviceSerializer(serializers.ModelSerializer):
             'serial_number',
             'device_type',
             'ownership_type',
-            'grade',
+            'initial_grade',
+            'final_grade',
             'wipe_status',
             'wipe_notes',
             'parts_status',
@@ -220,7 +221,8 @@ class DeviceListSerializer(serializers.ModelSerializer):
             'inventory_number',
             'serial_number',
             'device_type',
-            'grade',
+            'initial_grade',
+            'final_grade',
             'manufacturer',
             'model_name',
             'location_code',
@@ -257,7 +259,8 @@ class StockDevicesSerializer(serializers.Serializer):
     inventory_number = serializers.CharField()
     serial_number = serializers.CharField()
     device_type = serializers.CharField()
-    grade = serializers.CharField()
+    initial_grade = serializers.CharField()
+    final_grade = serializers.CharField()
     allocation_intent = serializers.CharField()
     stage = serializers.SerializerMethodField()
     memory_gb = serializers.IntegerField(source='device_specification.memory_gb', default=None)
@@ -299,7 +302,10 @@ class AllocationOnRecipientSerializer(serializers.ModelSerializer):
     inventory_number = serializers.CharField(source="device.inventory_number")
     serial_number = serializers.CharField(source="device.serial_number")
     device_type = serializers.CharField(source="device.device_type")
-    grade = serializers.CharField(source="device.grade")
+    initial_grade = serializers.CharField(source="device.initial_grade")
+    final_grade = serializers.CharField(source="device.final_grade")
+    initial_audit_status = serializers.CharField(source="device.initial_audit_status")
+    final_audit_status = serializers.CharField(source="device.final_audit_status")
     stage = serializers.CharField(source="device.stage.code", default=None)
     wipe_status = serializers.CharField(source="device.wipe_status")
     parts_status = serializers.CharField(source="device.parts_status")
@@ -312,7 +318,7 @@ class AllocationOnRecipientSerializer(serializers.ModelSerializer):
             'id', 'status', 'allocation_type', 'price_pounds',
             'target_ready_by', 'allocated_at', 'dispatched_at',
             'inventory_number', 'serial_number', 'device_type',
-            'grade', 'stage', 'wipe_status', 'parts_status',
+            'initial_grade', 'final_grade', 'stage', 'wipe_status', 'parts_status', 'initial_audit_status', 'final_audit_status',
             'manufacturer', 'model_name',
         ]
 
@@ -354,10 +360,13 @@ class DeviceOnFulfilmentSerializer(serializers.ModelSerializer):
     inventory_number = serializers.CharField(source="device.inventory_number")
     serial_number = serializers.CharField(source="device.serial_number")
     device_type = serializers.CharField(source="device.device_type")
-    grade = serializers.CharField(source="device.grade")
+    initial_grade = serializers.CharField(source="device.initial_grade")
+    final_grade = serializers.CharField(source="device.final_grade")
     stage = serializers.CharField(source="device.stage.code", default=None)
     stage_name = serializers.CharField(source="device.stage.name", default=None)
     wipe_status = serializers.CharField(source="device.wipe_status")
+    initial_audit_status = serializers.CharField(source="device.initial_audit_status")
+    final_audit_status = serializers.CharField(source="device.final_audit_status")
     parts_status = serializers.CharField(source="device.parts_status")
     manufacturer = serializers.CharField(source="device.device_specification.manufacturer", default=None)
     model_name = serializers.CharField(source="device.device_specification.model_name", default=None)
@@ -372,7 +381,7 @@ class DeviceOnFulfilmentSerializer(serializers.ModelSerializer):
         model = Allocation
         fields = [
             'id', 'inventory_number', 'serial_number', 'device_type',
-            'grade', 'stage', 'stage_name', 'wipe_status', 'parts_status',
+            'initial_grade', 'final_grade', 'stage', 'stage_name', 'wipe_status', 'parts_status', 'initial_audit_status', 'final_audit_status',
             'manufacturer', 'model_name', 'processor', 'memory_gb',
             'allocation_type', 'target_ready_by', 'allocated_at', 'status',
         ]

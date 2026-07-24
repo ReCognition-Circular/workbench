@@ -236,7 +236,7 @@
         const search = document.getElementById('filter-search').value;
 
         if (type) params.type = type;
-        if (grade) params.grade = grade;
+        if (grade) params.final_grade = grade;
         if (ram) params.min_memory_gb = ram;
         if (storage) params.storage_type = storage;
         if (win11) params.win11_compatible = win11;
@@ -279,12 +279,12 @@
                 html += '<div class="space-y-2">';
                 devices.forEach(function(d) {
                     var gradeColor = 'bg-gray-100 text-gray-700';
-                    if (d.grade === 'UNGRADED') gradeColor = 'bg-gray-100 text-gray-400';
-                    else if (d.grade === 'A') gradeColor = 'bg-green-100 text-green-800';
-                    else if (d.grade === 'B') gradeColor = 'bg-blue-100 text-blue-800';
-                    else if (d.grade === 'C') gradeColor = 'bg-yellow-100 text-yellow-800';
-                    else if (d.grade === 'D') gradeColor = 'bg-orange-100 text-orange-800';
-                    else if (d.grade === 'BER') gradeColor = 'bg-red-100 text-red-800';
+                    if (d.final_grade === 'UNGRADED') gradeColor = 'bg-gray-100 text-gray-400';
+                    else if (d.final_grade === 'A') gradeColor = 'bg-green-100 text-green-800';
+                    else if (d.final_grade === 'B') gradeColor = 'bg-blue-100 text-blue-800';
+                    else if (d.final_grade === 'C') gradeColor = 'bg-yellow-100 text-yellow-800';
+                    else if (d.final_grade === 'D') gradeColor = 'bg-orange-100 text-orange-800';
+                    else if (d.final_grade === 'BER') gradeColor = 'bg-red-100 text-red-800';
                     else if (d.allocation_intent === 'RESERVED') { intentBg = 'background:#f97316;color:white;'; intentLabel = 'Reserved'; }
                     var win11Color = 'bg-gray-100 text-gray-500';
                     if (d.win11_compatible === 'YES') win11Color = 'bg-green-100 text-green-800';
@@ -315,7 +315,7 @@
                     html += '<div class="flex-1 min-w-0">';
                     html += '<div class="flex items-center space-x-3">';
                     html += '<a href="/devices/' + d.id + '/" class="font-medium text-gray-900 hover:text-primary">' + d.inventory_number + '</a>';
-                    html += '<span class="px-2 py-0.5 text-xs rounded ' + gradeColor + '">' + d.grade + '</span>';
+                    html += '<span class="px-2 py-0.5 text-xs rounded ' + gradeColor + '">' + d.final_grade + '</span>';
                     html += '<span class="px-2 py-0.5 text-xs rounded ' + win11Color + '">Win11: ' + d.win11_compatible + '</span>';
                     html += '<span class="text-xs text-gray-400">' + d.device_type + '</span>';
                     html += '</div>';

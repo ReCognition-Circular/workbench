@@ -24,6 +24,7 @@ from django.utils import timezone
 from django.conf import settings
 from integrations.erpnext_client import ERPNextClient, ERPNextClientError
 from integrations.models import IntegrationLog
+from integrations.services import create_stock_entry
 from .serializers import (
     CustomerSerializer,    
     DeviceSerializer,
@@ -77,9 +78,10 @@ class DeviceFilter(django_filters.FilterSet):
         model = Device
         fields = {
             "device_type": ["exact"],
-            "grade": ["exact"],
-            "ownership_type": ["exact"],
-            "stage__code": ["exact"],
+            "initial_grade": ["exact"],
+            "final_grade": ["exact"],
+      "ownership_type": ["exact"],
+
             "donor__id": ["exact"],
             "created_at": ["gte", "lte"],
             "allocation_intent": ["exact"],
@@ -144,6 +146,13 @@ class DeviceViewSet(
                     device.wipe_status = "DONOR_WIPED"
                     device.save(update_fields=["wipe_status"])
 
+        # Push Stock Entry to ERPNext (non-blocking — device created regardless)
+        try:
+            create_stock_entry(device)
+        except ERPNextClientError:
+            # Logged in IntegrationLog — device still created in Workbench
+            pass    
+        
     def update(self, request, *args, **kwargs):
         """Override update to redirect if coming from a form POST."""
         partial = kwargs.pop('partial', False)
@@ -353,7 +362,8 @@ class StockAvailableView(APIView):
 
         # Apply optional filters
         type_filter = request.query_params.get("type")
-        grade_filter = request.query_params.get("grade")
+        initial_grade_filter = request.query_params.get("initial_grade")
+        final_grade_filter = request.query_params.get("final_grade")
         win11_filter = request.query_params.get("win11_compatible")
         intent_filter = request.query_params.get("intent")
         min_ram = request.query_params.get("min_memory_gb")
@@ -363,8 +373,10 @@ class StockAvailableView(APIView):
 
         if type_filter:
             base = base.filter(device_type=type_filter)
-        if grade_filter:
-            base = base.filter(grade=grade_filter)
+        if initial_grade_filter:
+            base = base.filter(initial_grade=initial_grade_filter)
+        if final_grade_filter:
+            base = base.filter(final_grade=final_grade_filter)
         if win11_filter:
             base = base.filter(win11_compatible=win11_filter)
         if intent_filter:
@@ -640,7 +652,7 @@ class FulfilmentRequestViewSet(viewsets.ModelViewSet):
                 "allocation_set__device__stage",
             )
         return qs    
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], url_path='dispatch')
     def execute_dispatch(self, request, pk=None):
         """Dispatch all RESERVED allocations for this FR.
         
@@ -665,7 +677,10 @@ class FulfilmentRequestViewSet(viewsets.ModelViewSet):
             alloc.save(update_fields=['status', 'dispatched_at'])
             
             if alloc.device:
+                alloc.device.stage = Stage.objects.get(code='DISPATCHED')
+                alloc.device.save(update_fields=['stage'])
                 devices.append(alloc.device)
+
         
         # Update FR status
         fr.status = 'COMPLETE'

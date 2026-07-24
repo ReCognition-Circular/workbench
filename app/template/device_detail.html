@@ -90,9 +90,14 @@
                 <h2 class="text-lg font-semibold text-gray-800 mb-4">Status</h2>
                 <div class="space-y-3 text-sm">
                     <div class="grid grid-cols-2 gap-4">
+			<div>
+                            <dt class="text-gray-500">Initial Grade</dt>
+                            <dd class="font-medium">{{ device.get_initial_grade_display }}</dd>
+                        </div>
                         <div>
-                            <dt class="text-gray-500">Grade</dt>
-                            <dd class="font-medium">{{ device.get_grade_display }}</dd>
+                            <dt class="text-gray-500">Final Grade</dt>
+                            <dd class="font-medium">{{ device.get_final_grade_display }}</dd>
+                        </div>    
                         </div>
                         <div>
                             <dt class="text-gray-500">Ownership</dt>
@@ -104,10 +109,18 @@
                             {% if device.wipe_notes %}
                             <dd class="text-xs text-gray-400">{{ device.wipe_notes }}</dd>
                             {% endif %}
+			</div>
+                        <div>
+                            <dt class="text-gray-500">Initial Audit</dt>
+                            <dd class="font-medium">{{ device.get_initial_audit_status_display }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Final Audit</dt>
+                            <dd class="font-medium">{{ device.get_final_audit_status_display }}</dd>
                         </div>
                         <div>
                             <dt class="text-gray-500">Parts Status</dt>
-                            <dd class="font-medium">{{ device.get_parts_status_display }}</dd>
+                            <dd class="font-medium">{{ device.get_parts_status_display }}</dd>    
                             {% if device.parts_notes %}
                             <dd class="text-xs text-gray-400">{{ device.parts_notes }}</dd>
                             {% endif %}

@@ -34,14 +34,14 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Grade</label>
-                <select name="grade" onchange="this.form.submit()" class="mt-1 block w-full rounded border-gray-300 shadow-sm">                
+                <select name="final_grade" onchange="this.form.submit()" class="mt-1 block w-full rounded border-gray-300 shadow-sm">                
                     <option value="">All Grades</option>
-                    <option value="A" {% if grade_filter == 'A' %}selected{% endif %}>Grade A</option>
-                    <option value="B" {% if grade_filter == 'B' %}selected{% endif %}>Grade B</option>
-                    <option value="C" {% if grade_filter == 'C' %}selected{% endif %}>Grade C</option>
-                    <option value="D" {% if grade_filter == 'D' %}selected{% endif %}>Grade D</option>
-                    <option value="BER" {% if grade_filter == 'BER' %}selected{% endif %}>BER</option>
-                    <option value="UNGRADED" {% if grade_filter == 'UNGRADED' %}selected{% endif %}>Ungraded</option>
+                    <option value="A" {% if final_grade_filter == 'A' %}selected{% endif %}>Grade A</option>
+                    <option value="B" {% if final_grade_filter == 'B' %}selected{% endif %}>Grade B</option>
+                    <option value="C" {% if final_grade_filter == 'C' %}selected{% endif %}>Grade C</option>
+                    <option value="D" {% if final_grade_filter == 'D' %}selected{% endif %}>Grade D</option>
+                    <option value="BER" {% if final_grade_filter == 'BER' %}selected{% endif %}>BER</option>
+                    <option value="UNGRADED" {% if final_grade_filter == 'UNGRADED' %}selected{% endif %}>Ungraded</option>
                 </select>
             </div>
             <div>
@@ -169,20 +169,20 @@
                         </span>
                     </td>
                     <td class="px-3 py-4">
-                        {% if device.grade == 'UNGRADED' %}
+                        {% if device.final_grade == 'UNGRADED' %}
                             <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-400">Ungraded</span>
-                        {% elif device.grade == 'A' %}
+                        {% elif device.final_grade == 'A' %}
                             <span class="px-2 py-1 text-xs rounded bg-green-100 text-green-800">A</span>
-                        {% elif device.grade == 'B' %}
+                        {% elif device.final_grade == 'B' %}
                             <span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">B</span>
-                        {% elif device.grade == 'C' %}
+                        {% elif device.final_grade == 'C' %}
                             <span class="px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-800">C</span>
-                        {% elif device.grade == 'D' %}
+                        {% elif device.final_grade == 'D' %}
                             <span class="px-2 py-1 text-xs rounded bg-orange-100 text-orange-800">D</span>
-                        {% elif device.grade == 'BER' %}
+                        {% elif device.final_grade == 'BER' %}
                             <span class="px-2 py-1 text-xs rounded bg-red-100 text-red-800">BER</span>
                         {% else %}
-                            <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">{{ device.grade }}</span>
+                            <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">{{ device.final_grade }}</span>
                         {% endif %}
                     </td>
                     <td class="px-3 py-4">

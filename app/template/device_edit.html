@@ -76,25 +76,26 @@
                 <label for="notes">Notes</label>
                 <textarea id="notes" name="notes" placeholder="Add notes about this device...">{{ device.notes }}</textarea>
             </div>
-            <div class="form-group">
-                <label for="grade">Grade</label>
-                <select id="grade" name="grade">
-                    <option value="UNGRADED" {% if device.grade == "UNGRADED" %}selected{% endif %}>Not yet graded</option>
-                    <option value="A" {% if device.grade == "A" %}selected{% endif %}>Grade A - Excellent</option>
-                    <option value="B" {% if device.grade == "B" %}selected{% endif %}>Grade B - Good</option>
-                    <option value="C" {% if device.grade == "C" %}selected{% endif %}>Grade C - Fair</option>
-                    <option value="D" {% if device.grade == "D" %}selected{% endif %}>Grade D - Poor</option>
-                    <option value="BER" {% if device.grade == "BER" %}selected{% endif %}>Beyond Economic Repair</option>
+	    <div class="form-group">
+                <label for="initial_grade">Initial Grade (at intake)</label>
+                <select id="initial_grade" name="initial_grade">
+                    <option value="UNGRADED" {% if device.initial_grade == "UNGRADED" %}selected{% endif %}>Not yet graded</option>
+                    <option value="A" {% if device.initial_grade == "A" %}selected{% endif %}>Grade A - Excellent</option>
+                    <option value="B" {% if device.initial_grade == "B" %}selected{% endif %}>Grade B - Good</option>
+                    <option value="C" {% if device.initial_grade == "C" %}selected{% endif %}>Grade C - Fair</option>
+                    <option value="D" {% if device.initial_grade == "D" %}selected{% endif %}>Grade D - Poor</option>
+                    <option value="BER" {% if device.initial_grade == "BER" %}selected{% endif %}>Beyond Economic Repair</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="parts_status">Parts Status</label>
-                <select id="parts_status" name="parts_status">
-                    <option value="NOT_NEEDED" {% if device.parts_status == "NOT_NEEDED" %}selected{% endif %}>No parts required</option>
-                    <option value="REQUESTED" {% if device.parts_status == "REQUESTED" %}selected{% endif %}>Part requested</option>
-                    <option value="ORDERED" {% if device.parts_status == "ORDERED" %}selected{% endif %}>Ordered</option>
-                    <option value="RECEIVED" {% if device.parts_status == "RECEIVED" %}selected{% endif %}>Received</option>
-                    <option value="FITTED" {% if device.parts_status == "FITTED" %}selected{% endif %}>Fitted</option>
+                <label for="final_grade">Final Grade (before dispatch)</label>
+                <select id="final_grade" name="final_grade">
+                    <option value="UNGRADED" {% if device.final_grade == "UNGRADED" %}selected{% endif %}>Not yet graded</option>
+                    <option value="A" {% if device.final_grade == "A" %}selected{% endif %}>Grade A - Excellent</option>
+                    <option value="B" {% if device.final_grade == "B" %}selected{% endif %}>Grade B - Good</option>
+                    <option value="C" {% if device.final_grade == "C" %}selected{% endif %}>Grade C - Fair</option>
+                    <option value="D" {% if device.final_grade == "D" %}selected{% endif %}>Grade D - Poor</option>
+                    <option value="BER" {% if device.final_grade == "BER" %}selected{% endif %}>Beyond Economic Repair</option>
                 </select>
             </div>
             <div class="form-group">
@@ -149,6 +150,22 @@
                 <label for="wipe_notes">Wipe Notes</label>
                 <textarea id="wipe_notes" name="wipe_notes" placeholder="Wipe method, date, who performed...">{{ device.wipe_notes }}</textarea>
             </div>
+	    <div class="form-group">
+                <label for="initial_audit_status">Initial Audit Status</label>
+                <select id="initial_audit_status" name="initial_audit_status">
+                    <option value="NOT_STARTED" {% if device.initial_audit_status == "NOT_STARTED" %}selected{% endif %}>Not started</option>
+                    <option value="PASS" {% if device.initial_audit_status == "PASS" %}selected{% endif %}>Pass</option>
+                    <option value="FAIL" {% if device.initial_audit_status == "FAIL" %}selected{% endif %}>Fail</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="final_audit_status">Final Audit Status</label>
+                <select id="final_audit_status" name="final_audit_status">
+                    <option value="NOT_STARTED" {% if device.final_audit_status == "NOT_STARTED" %}selected{% endif %}>Not started</option>
+                    <option value="PASS" {% if device.final_audit_status == "PASS" %}selected{% endif %}>Pass</option>
+                    <option value="FAIL" {% if device.final_audit_status == "FAIL" %}selected{% endif %}>Fail</option>
+                </select>
+            </div>
             <div class="form-group">
                 <label for="allocation_intent">Allocation Intent</label>
                 <select id="allocation_intent" name="allocation_intent">
@@ -185,12 +202,15 @@
             },
             body: JSON.stringify({
                 notes: document.getElementById('notes').value,
-                grade: document.getElementById('grade').value,
+		initial_grade: document.getElementById('initial_grade').value,
+                final_grade: document.getElementById('final_grade').value,    
                 parts_status: document.getElementById('parts_status').value,
                 parts_notes: document.getElementById('parts_notes').value,
                 parts_cost_pounds: document.getElementById('parts_cost_pounds').value,
                 wipe_status: document.getElementById('wipe_status').value,
                 wipe_notes: document.getElementById('wipe_notes').value,
+		initial_audit_status: document.getElementById('initial_audit_status').value,
+                final_audit_status: document.getElementById('final_audit_status').value,    
                 win11_compatible: document.getElementById('win11_compatible').value,
                 allocation_intent: document.getElementById('allocation_intent').value,
                 market_value_pounds: document.getElementById('market_value_pounds').value || null,

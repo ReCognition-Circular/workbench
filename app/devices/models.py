@@ -52,11 +52,10 @@ class WipeStatus(models.TextChoices):
     PASS = 'PASS', "Wipe completed successfully"
     FAIL = 'FAIL', "Wipe attempted but failed"
 
-
 class AuditStatus(models.TextChoices):
-    PENDING = "PENDING", "Audit pending"
-    PASS = "PASS", "Audit passed"
-    FAIL = "FAIL", "Audit failed"
+    NOT_STARTED = 'NOT_STARTED', "Not yet audited"
+    PASS = 'PASS', "Audit passed"
+    FAIL = 'FAIL', "Audit failed"
 class PartsStatus(models.TextChoices):
     UNKNOWN = 'UNKNOWN', "Not known"
     NOT_NEEDED = 'NOT_NEEDED', "No parts required"
@@ -284,23 +283,31 @@ class Device(models.Model):
     ownership_type = models.CharField(
         max_length=20, choices=OwnershipType.choices, default=OwnershipType.DONATION
     )
-    grade = models.CharField(
+    erpnext_stock_entry = models.CharField(
+    max_length=100, blank=True, null=True,
+    help_text="ERPNext Stock Entry name (e.g. MAT-STE-2026-00001). Null = not yet pushed."
+    )
+
+    # Grades — initial (at intake) and final (before dispatch)
+    initial_grade = models.CharField(
         max_length=20, choices=Grade.choices, default=Grade.UNGRADED
     )
-    grade = models.CharField(
+    final_grade = models.CharField(
         max_length=20, choices=Grade.choices, default=Grade.UNGRADED
     )
 
-    # Wipe status
+    # Wipe status (parallel track)
     wipe_status = models.CharField(
         max_length=20, choices=WipeStatus.choices, default=WipeStatus.PENDING
     )
     wipe_notes = models.TextField(blank=True)
-    audit_status = models.CharField(
-        max_length=20, choices=AuditStatus.choices, default=AuditStatus.PENDING
+
+    # Audit statuses — initial (at intake) and final (before dispatch)
+    initial_audit_status = models.CharField(
+        max_length=20, choices=AuditStatus.choices, default=AuditStatus.NOT_STARTED
     )
-    audit_status = models.CharField(
-        max_length=20, choices=AuditStatus.choices, default=AuditStatus.PENDING
+    final_audit_status = models.CharField(
+        max_length=20, choices=AuditStatus.choices, default=AuditStatus.NOT_STARTED
     )
 
     # Parts tracking

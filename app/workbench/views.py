@@ -72,8 +72,11 @@ def device_list(request):
             "inventory_number": d.inventory_number,
             "serial_number": d.serial_number,
             "device_type": d.device_type,
-            "grade": d.grade,
+            "initial_grade": d.initial_grade,
+            "final_grade": d.final_grade,
             "wipe_status": d.wipe_status,
+            "initial_audit_status": d.initial_audit_status,
+            "final_audit_status": d.final_audit_status,
             "parts_status": d.parts_status,
             "stage_name": d.stage.name if d.stage else "-",
             "location_code": d.location.code if d.location else None,
@@ -142,7 +145,10 @@ def device_edit(request, pk):
     
     if request.method == "POST":
         # Capture form fields from POST data
-        device.grade = request.POST.get("grade", device.grade)
+        device.initial_grade = request.POST.get("initial_grade", device.initial_grade)
+        device.final_grade = request.POST.get("final_grade", device.final_grade)
+        device.initial_audit_status = request.POST.get("initial_audit_status", device.initial_audit_status)
+        device.final_audit_status = request.POST.get("final_audit_status", device.final_audit_status)
         device.wipe_status = request.POST.get("wipe_status", device.wipe_status)
         device.wipe_notes = request.POST.get("wipe_notes", device.wipe_notes)
         device.parts_status = request.POST.get("parts_status", device.parts_status)

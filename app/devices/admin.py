@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db import models
 from .models import Device, DeviceSpecification, DeviceType, Grade, Recipient, Allocation, FulfilmentRequest, Manufacturer
 
 class DeviceTypeListFilter(admin.SimpleListFilter):
@@ -23,7 +24,9 @@ class GradeListFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            return queryset.filter(grade=self.value())
+            return queryset.filter(
+                models.Q(initial_grade=self.value()) | models.Q(final_grade=self.value())
+            )
         return queryset
 
 @admin.register(Manufacturer)
@@ -37,7 +40,8 @@ class DeviceAdmin(admin.ModelAdmin):
         "inventory_number",
         "serial_number",
         "device_type",
-        "grade", 
+        "initial_grade", 
+        "final_grade",
         "allocation_intent",
         "stage",
         "location",
@@ -50,6 +54,9 @@ class DeviceAdmin(admin.ModelAdmin):
         GradeListFilter,
         "allocation_intent",
         "ownership_type",
+        "wipe_status",
+        "initial_audit_status",
+        "final_audit_status",
         "stage",
         "location__site",
     ]
@@ -68,7 +75,7 @@ class DeviceAdmin(admin.ModelAdmin):
             "fields": ["inventory_number", "serial_number"]
         }),
         ("Classification", {
-            "fields": ["device_type", "ownership_type", "grade", "allocation_intent", "market_value_pounds"]
+            "fields": ["device_type", "ownership_type", "initial_grade", "final_grade", "allocation_intent", "market_value_pounds"]
         }),
         ("Location & Status", {
             "fields": ["location", "stage"]
