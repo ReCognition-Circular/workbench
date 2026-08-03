@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="mb-6">
+        <a href="/devices/" class="text-sm text-primary hover:underline">&larr; Back to devices</a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">{{ pledge.donor_name }}</h1>
+        <p class="text-sm text-gray-500 mt-1">Pledge: {{ pledge.reference_number }}</p>
+        <dl class="mt-4 grid grid-cols-4 gap-4 text-sm">
+            <div class="bg-gray-50 rounded p-3 text-center">
+                <dt class="text-gray-500">Total Devices</dt>
+                <dd class="text-2xl font-semibold text-gray-900">{{ summary.total }}</dd>
+            </div>
+            <div class="bg-green-50 rounded p-3 text-center">
+                <dt class="text-green-600">Wipe Complete</dt>
+                <dd class="text-2xl font-semibold text-green-700">{{ summary.wipe_pass }}</dd>
+            </div>
+            <div class="bg-yellow-50 rounded p-3 text-center">
+                <dt class="text-yellow-600">Wipe Pending</dt>
+                <dd class="text-2xl font-semibold text-yellow-700">{{ summary.wipe_pending }}</dd>
+            </div>
+            <div class="bg-blue-50 rounded p-3 text-center">
+                <dt class="text-blue-600">Erase Certs</dt>
+                <dd class="text-2xl font-semibold text-blue-700">{{ summary.erase_certs }}</dd>
+            </div>
+        </dl>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Inventory</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Wipe Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Initial Audit</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Erase Cert</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Audit Certs</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stage</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for item in device_data %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3">
+                        <a href="/devices/{{ item.device.id }}/" class="font-medium text-primary hover:underline">
+                            {{ item.device.inventory_number }}
+                        </a>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-600">{{ item.device.serial_number }}</td>
+                    <td class="px-4 py-3">
+                        {% if item.device.wipe_status == 'PASS' %}
+                            <span class="px-2 py-0.5 text-xs rounded bg-green-100 text-green-800">PASS</span>
+                        {% elif item.device.wipe_status == 'FAIL' %}
+                            <span class="px-2 py-0.5 text-xs rounded bg-red-100 text-red-800">FAIL</span>
+                        {% else %}
+                            <span class="px-2 py-0.5 text-xs rounded bg-yellow-100 text-yellow-700">{{ item.device.wipe_status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if item.device.initial_audit_status == 'PASS' %}
+                            <span class="px-2 py-0.5 text-xs rounded bg-green-100 text-green-800">PASS</span>
+                        {% elif item.device.initial_audit_status == 'FAIL' %}
+                            <span class="px-2 py-0.5 text-xs rounded bg-red-100 text-red-800">FAIL</span>
+                        {% else %}
+                            <span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500">{{ item.device.initial_audit_status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                        {% if item.has_erase_cert %}
+                            <span class="text-green-600 font-medium">&#10003;</span>
+                        {% else %}
+                            <span class="text-gray-400">&mdash;</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-600">{{ item.audit_cert_count }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">{{ item.device.stage.name|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-400">No devices registered for this pledge.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

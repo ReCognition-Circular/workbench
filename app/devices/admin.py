@@ -29,6 +29,57 @@ class GradeListFilter(admin.SimpleListFilter):
             )
         return queryset
 
+class QAStatusListFilter(admin.SimpleListFilter):
+    title = "qa status"
+    parameter_name = "qa_status"
+
+    def lookups(self, request, model_admin):
+        return [('PASS', 'Pass'), ('FAIL', 'Fail')]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(qa_status=self.value())
+        return queryset
+
+
+class ImageListFilter(admin.SimpleListFilter):
+    title = "image"
+    parameter_name = "image"
+
+    def lookups(self, request, model_admin):
+        return [
+            ('NONE', 'None'),
+            ('WINDOWS_11', 'Windows 11'),
+            ('LINUX_UBUNTU', 'Linux - Ubuntu'),
+            ('LINUX_MINT', 'Linux - Mint'),
+            ('LINUX_OTHER', 'Linux - Other'),
+            ('OTHER_OS', 'Other OS'),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(image=self.value())
+        return queryset
+
+
+class AllocationIntentListFilter(admin.SimpleListFilter):
+    title = "allocation intent"
+    parameter_name = "allocation_intent"
+
+    def lookups(self, request, model_admin):
+        return [
+            ('UNDECIDED', 'Undecided'),
+            ('FOR_SALE', 'For Sale'),
+            ('DEVICE_BANK', 'Device Bank'),
+            ('PARTS_HARVESTING', 'Parts Harvesting'),
+            ('RECYCLE', 'Recycle'),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(allocation_intent=self.value())
+        return queryset
+
 @admin.register(Manufacturer)
 class ManufacturerAdmin(admin.ModelAdmin):
     list_display = ["name", "slug"]
@@ -44,6 +95,8 @@ class DeviceAdmin(admin.ModelAdmin):
         "final_grade",
         "allocation_intent",
         "stage",
+        "qa_status",
+        "image", 
         "location",
         "donor",
         "created_at",
@@ -58,6 +111,8 @@ class DeviceAdmin(admin.ModelAdmin):
         "initial_audit_status",
         "final_audit_status",
         "stage",
+        "qa_status", 
+        "image",
         "location__site",
     ]
     search_fields = [
@@ -71,27 +126,29 @@ class DeviceAdmin(admin.ModelAdmin):
     list_select_related = ["stage", "location", "donor"]
 
     fieldsets = [
-        ("Identification", {
-            "fields": ["inventory_number", "serial_number"]
-        }),
-        ("Classification", {
-            "fields": ["device_type", "ownership_type", "initial_grade", "final_grade", "allocation_intent", "market_value_pounds"]
-        }),
-        ("Location & Status", {
-            "fields": ["location", "stage"]
-        }),
-        ("Donor", {
-            "fields": ["donor"]
-        }),
-        ("Notes", {
-            "fields": ["notes"]
-        }),
-        ("Timestamps", {
-            "fields": ["created_at", "updated_at"],
-            "classes": ["collapse"],
-        }),
-    ]
-
+    ("Identification", {
+        "fields": ["inventory_number", "serial_number"]
+    }),
+    ("Classification", {
+        "fields": ["device_type", "ownership_type", "initial_grade", "final_grade", "qa_status", "image"]
+    }),
+    ("Location & Status", {
+        "fields": ["location", "stage", "allocation_intent"]
+    }),
+    ("Donor", {
+        "fields": ["donor"]
+    }),
+    ("Refurbishment", {
+        "fields": ["refurb_notes"]
+    }),
+    ("Notes", {
+        "fields": ["notes"]
+    }),
+    ("Timestamps", {
+        "fields": ["created_at", "updated_at"],
+        "classes": ["collapse"],
+    }),
+]
 
 @admin.register(DeviceSpecification)
 class DeviceSpecificationAdmin(admin.ModelAdmin):

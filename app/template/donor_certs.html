@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Wipe Certificates — ReCognition Circular{% endblock %}
+
+{% block extra_head %}
+<style>
+    .certs-container { max-width: 700px; margin: 2rem auto; padding: 0 1rem; }
+    .card { background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card h1 { font-size: 1.25rem; font-weight: 700; color: #1f2937; margin-bottom: 0.5rem; }
+    .card p { color: #6b7280; margin-bottom: 1rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.25rem; color: #374151; }
+    .form-group input { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem; }
+    .btn { display: inline-block; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; font-size: 0.875rem; cursor: pointer; border: none; text-decoration: none; }
+    .btn-primary { background: #1a56db; color: white; }
+    .btn-primary:hover { background: #1648c0; }
+    .btn-download { background: #059669; color: white; }
+    .btn-download:hover { background: #047857; }
+    .btn-back { background: #f3f4f6; color: #374151; }
+    .error { padding: 0.75rem; background: #fef2f2; color: #b91c1c; border-radius: 8px; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th { text-align: left; padding: 0.5rem; font-size: 0.75rem; color: #6b7280; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; }
+    td { padding: 0.75rem 0.5rem; font-size: 0.875rem; border-bottom: 1px solid #f3f4f6; }
+    .pass { color: #059669; font-weight: 600; }
+    .pending { color: #d97706; font-weight: 600; }
+    .fail { color: #b91c1c; font-weight: 600; }
+    .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+    .summary { font-size: 0.875rem; color: #6b7280; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="certs-container">
+    {% if not pledge %}
+    <div class="card">
+        <h1>Download Your Wipe Certificates</h1>
+        <p>Enter your pledge reference number to view and download your device wipe certificates.</p>
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="reference">Pledge Reference Number</label>
+                <input type="text" id="reference" name="reference" placeholder="e.g. DON-6B4C9297" required>
+            </div>
+            <button type="submit" class="btn btn-primary">View Certificates</button>
+        </form>
+        <p style="margin-top: 1rem; font-size: 0.75rem; color: #9ca3af;">
+            Your reference number can be found in your pledge confirmation email.
+        </p>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="header-actions">
+            <div>
+                <h1 style="margin-bottom: 0.25rem;">{{ pledge.reference_number }}</h1>
+                <p style="margin-bottom: 0;">{{ pledge.donor_name }} — {{ pledge.created_at|date:"j F Y" }}</p>
+            </div>
+            <form method="post" style="display: inline;">
+                {% csrf_token %}
+                <input type="hidden" name="reference" value="{{ pledge.reference_number }}">
+                <button type="submit" name="download" value="all" class="btn btn-download">⬇ Download All Wipe Certificates (ZIP)</button>
+            </form>
+        </div>
+        <p class="summary">{{ devices|length }} device(s) in this pledge</p>
+    </div>
+
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Device</th>
+                    <th>Make / Model</th>
+                    <th>Serial</th>
+                    <th>Wipe Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in devices %}
+                <tr>
+                    <td>{{ d.inventory_number }}</td>
+                    <td>{% if d.device_specification %}{{ d.device_specification.manufacturer }} {{ d.device_specification.model_name }}{% else %}—{% endif %}</td>
+                    <td>{{ d.serial_number }}</td>
+                    <td>
+                        {% if d.wipe_status == "PASS" %}
+                        <span class="pass">✅ Passed</span>
+                        {% elif d.wipe_status == "FAIL" %}
+                        <span class="fail">❌ Failed</span>
+                        {% elif d.wipe_status == "DONOR_WIPED" %}
+                        <span class="pass">✅ Pre-wiped</span>
+                        {% else %}
+                        <span class="pending">⏳ Pending</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <a href="/donate/certs/" class="btn btn-back">← Look up another pledge</a>
+    {% endif %}
+</div>
+{% endblock %}

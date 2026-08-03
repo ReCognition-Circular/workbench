@@ -71,13 +71,25 @@ class StorageType(models.TextChoices):
     EMMC = "EMMC", "eMMC"
     UNKNOWN = "UNKNOWN", "Unknown"
 
+class QAStatus(models.TextChoices):
+    PASS = 'PASS', 'Pass'
+    FAIL = 'FAIL', 'Fail'
+
+class Image(models.TextChoices):
+    NONE = 'NONE', 'None'
+    WINDOWS_11 = 'WINDOWS_11', 'Windows 11'
+    LINUX_UBUNTU = 'LINUX_UBUNTU', 'Linux - Ubuntu'
+    LINUX_MINT = 'LINUX_MINT', 'Linux - Mint'
+    LINUX_OTHER = 'LINUX_OTHER', 'Linux - Other'
+    OTHER_OS = 'OTHER_OS', 'Other OS'
+
 class AllocationIntent(models.TextChoices):
     UNDECIDED = 'UNDECIDED', 'Undecided'
-    SALE = 'SALE', 'Sale'
-    DEVICE_BANK = 'DEVICE_BANK', 'Device Bank'
-    RECYCLING = 'RECYCLING', 'Recycling'
     RESERVED = 'RESERVED', 'Reserved'
-    OTHER = 'OTHER', 'Other'
+    FOR_SALE = 'FOR_SALE', 'For Sale'
+    DEVICE_BANK = 'DEVICE_BANK', 'Device Bank'
+    PARTS_HARVESTING = 'PARTS_HARVESTING', 'Parts Harvesting'
+    RECYCLE = 'RECYCLE', 'Recycle'
 
 class AllocationType(models.TextChoices):
     SALE = 'SALE', 'Sale'
@@ -333,6 +345,13 @@ class Device(models.Model):
         help_text="Manual estimated market value (£)"
     )
     
+    qa_status = models.CharField(
+        max_length=10, choices=QAStatus.choices, null=True, blank=True
+    )
+    refurb_notes = models.TextField(blank=True)
+    image = models.CharField(
+        max_length=20, choices=Image.choices, default=Image.NONE
+    )
     device_specification = models.OneToOneField(
         DeviceSpecification,
         on_delete=models.SET_NULL,

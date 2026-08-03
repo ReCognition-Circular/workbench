@@ -109,6 +109,11 @@
                             {% if device.wipe_notes %}
                             <dd class="text-xs text-gray-400">{{ device.wipe_notes }}</dd>
                             {% endif %}
+			    {% for r in wipe_records %}
+                                {% if r.certificate_type == "ERASE" and r.certificate_file %}
+                                <dd><a href="/media/{{ r.certificate_file }}" class="text-blue-600 underline text-xs">Download Wipe Cert</a></dd>
+                                {% endif %}
+                            {% endfor %}
 			</div>
                         <div>
                             <dt class="text-gray-500">Initial Audit</dt>
@@ -117,8 +122,27 @@
                         <div>
                             <dt class="text-gray-500">Final Audit</dt>
                             <dd class="font-medium">{{ device.get_final_audit_status_display }}</dd>
+			    {% for r in wipe_records %}
+                                {% if r.certificate_type == "AUDIT" and r.certificate_file %}
+                                <dd><a href="/media/{{ r.certificate_file }}" class="text-blue-600 underline text-xs">Download Audit Cert</a></dd>
+                                {% endif %}
+                            {% endfor %}
                         </div>
-                        <div>
+			<div>
+                            <dt class="text-gray-500">QA Status</dt>
+                            <dd class="font-medium">
+                                {% if device.qa_status %}
+                                <span class="px-2 py-0.5 text-xs rounded font-medium {% if device.qa_status == 'PASS' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">{{ device.get_qa_status_display }}</span>
+                                {% else %}
+                                <span class="text-gray-400">Not assessed</span>
+                                {% endif %}
+                            </dd>
+                        </div>
+			<div>
+                            <dt class="text-gray-500">Operating System</dt>
+                            <dd class="font-medium">{{ device.get_image_display|default:"None" }}</dd>
+                        </div>	
+			<div>
                             <dt class="text-gray-500">Parts Status</dt>
                             <dd class="font-medium">{{ device.get_parts_status_display }}</dd>    
                             {% if device.parts_notes %}
@@ -140,12 +164,12 @@
                         <dt class="text-gray-500">Allocation Intent</dt>
                         <dd>
                             <span class="px-2 py-0.5 text-xs rounded font-medium
-                                {% if device.allocation_intent == 'UNDECIDED' %}bg-purple-100 text-purple-800
-                                {% elif device.allocation_intent == 'SALE' %}bg-green-100 text-green-800
-                                {% elif device.allocation_intent == 'DEVICE_BANK' %}" style="background:#d4da4f;color:#333;"
-                                {% elif device.allocation_intent == 'RECYCLING' %}bg-red-100 text-red-800
+			        {% if device.allocation_intent == 'UNDECIDED' %}bg-purple-100 text-purple-800
+                                {% elif device.allocation_intent == 'FOR_SALE' %}bg-green-100 text-green-800
+				{% elif device.allocation_intent == 'DEVICE_BANK' %}bg-blue-100 text-blue-800
+                                {% elif device.allocation_intent == 'RECYCLE' %}bg-red-100 text-red-800
+                                {% elif device.allocation_intent == 'PARTS_HARVESTING' %}bg-yellow-100 text-yellow-800
                                 {% elif device.allocation_intent == 'RESERVED' %}bg-orange-100 text-orange-800
-                                {% elif device.allocation_intent == 'OTHER' %}bg-gray-100 text-gray-600
                                 {% else %}bg-gray-100 text-gray-500{% endif %}">
                                 {{ device.get_allocation_intent_display|default:"Undecided" }}
                             </span>

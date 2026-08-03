@@ -10,7 +10,7 @@ import csv
 import io
 import os
 import requests
-
+from django.http import HttpResponse
 from .models import DonationPledge, ExpectedDevice
 from .serializers import (
     DonationPledgeSerializer,
@@ -223,3 +223,57 @@ def donate_template(request):
     writer.writerow(['HP', 'EliteBook 840', 'XYZ789', 'LAPTOP', ''])
     
     return response    
+def donor_certs(request):
+    """Public page — donor enters pledge reference, sees wipe status and downloads certs."""
+    import zipfile, io
+    from pathlib import Path
+    from devices.models import Device
+    from wipe.models import DataWipeRecord
+
+    pledge = None
+    devices = []
+    error = None
+
+    if request.method == "POST":
+        reference = request.POST.get("reference", "").strip()
+        if reference:
+            try:
+                pledge = DonationPledge.objects.get(reference_number=reference)
+                devices = Device.objects.filter(donation_pledge=pledge).select_related(
+                    "device_specification"
+                ).order_by("inventory_number")
+
+                # Attach wipe status + cert availability
+                for d in devices:
+                    d._erase_cert = DataWipeRecord.objects.filter(
+                        device=d, certificate_type="ERASE"
+                    ).first()
+            except DonationPledge.DoesNotExist:
+                error = "Pledge reference not found. Please check and try again."
+        else:
+            error = "Please enter a pledge reference number."
+
+        # Handle download-all request
+        if pledge and request.POST.get("download") == "all":
+            records = DataWipeRecord.objects.filter(
+                device__in=devices, certificate_type="ERASE", certificate_file__isnull=False
+            )
+            if records.exists():
+                buf = io.BytesIO()
+                with zipfile.ZipFile(buf, "w") as zf:
+                    for r in records:
+                        pdf_path = Path(r.certificate_file.path)
+                        if pdf_path.exists():
+                            zf.write(pdf_path, f"{r.device.inventory_number}_erase_cert.pdf")
+                buf.seek(0)
+                response = HttpResponse(buf.read(), content_type="application/zip")
+                response["Content-Disposition"] = (
+                    f'attachment; filename="{pledge.reference_number}_wipe_certs.zip"'
+                )
+                return response
+
+    return render(request, "donor_certs.html", {
+        "pledge": pledge,
+        "devices": devices,
+        "error": error,
+    })

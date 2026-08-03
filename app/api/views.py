@@ -281,15 +281,15 @@ class StockOverviewView(APIView):
 
         # Available for sale: stage=READY, intent=UNDECIDED or SALE, no active RESERVED allocation
         available_for_sale = Device.objects.filter(
-            stage__code="READY",
-            allocation_intent__in=["UNDECIDED", "SALE"],
+            stage__code="AWAITING_DISPATCH",
+            allocation_intent__in=["UNDECIDED", "FOR_SALE"],
         ).exclude(
             allocations__status__in=["RESERVED", "DISPATCHED"]
         ).count()
 
         # Available for device bank: stage=READY, intent=DEVICE_BANK, no active RESERVED allocation
         available_for_device_bank = Device.objects.filter(
-            stage__code="READY",
+            stage__code="AWAITING_DISPATCH",
             allocation_intent="DEVICE_BANK",
         ).exclude(
             allocations__status__in=["RESERVED", "DISPATCHED"]
@@ -305,8 +305,8 @@ class StockOverviewView(APIView):
 
         # Valuation: sum of market_value_pounds
         available_ids = Device.objects.filter(
-            stage__code="READY",
-            allocation_intent__in=["UNDECIDED", "SALE"],
+            stage__code="AWAITING_DISPATCH",
+            allocation_intent__in=["UNDECIDED", "FOR_SALE"],
         ).exclude(
             allocations__status__in=["RESERVED", "DISPATCHED"]
         ).values_list("id", flat=True)
@@ -336,7 +336,7 @@ class StockOverviewView(APIView):
 
         serializer = StockOverviewSerializer(data)
         return Response(serializer.data)
-TERMINAL_STAGES = ['BER', 'DISPOSED', 'DISPATCHED', 'SOLD', 'DONATED', 'RAAS_COMPLETE']
+IN_STOCK_STAGES = ['CHECK_IN', 'REFURB_IN_PROGRESS', 'QA', 'AWAITING_DISPATCH']
 
 
 class StockAvailableView(APIView):
@@ -356,9 +356,9 @@ class StockAvailableView(APIView):
 
     def get(self, request):
         # Base: devices in non-terminal stages, no active reservation
-        base = Device.objects.exclude(
-            stage__code__in=TERMINAL_STAGES
-        )
+        base = Device.objects.filter(
+           stage__code__in=IN_STOCK_STAGES
+        )  
 
         # Apply optional filters
         type_filter = request.query_params.get("type")
@@ -398,10 +398,9 @@ class StockAvailableView(APIView):
 
         # Count by intent (no overlap)
         needs_classification = base.filter(allocation_intent="UNDECIDED").count()
-        available_for_sale = base.filter(allocation_intent="SALE").count()
+        available_for_sale = base.filter(allocation_intent="FOR_SALE").count()
         available_for_device_bank = base.filter(allocation_intent="DEVICE_BANK").count()
-        recycling = base.filter(allocation_intent="RECYCLING").count()
-        other = base.filter(allocation_intent="OTHER").count()
+        recycling = base.filter(allocation_intent="RECYCLE").count()
 
         # Reserved: devices tagged as RESERVED OR with active allocations
         reserved_ids = set(
@@ -412,8 +411,8 @@ class StockAvailableView(APIView):
         reserved = len(reserved_ids)
 
         # In pipeline: non-terminal, non-reserved
-        in_pipeline_total = Device.objects.exclude(
-            stage__code__in=TERMINAL_STAGES
+        in_pipeline_total = Device.objects.filter(
+            stage__code__in=IN_STOCK_STAGES
         ).exclude(
             allocations__status__in=["RESERVED", "DISPATCHED"]
         ).count()
@@ -430,7 +429,7 @@ class StockAvailableView(APIView):
         total_valuation_device_bank = 0
         for device in matching:
             if device.market_value_pounds:
-                if device.allocation_intent == "SALE":
+                if device.allocation_intent == "FOR_SALE":
                     total_valuation_sale += float(device.market_value_pounds)
                 elif device.allocation_intent == "DEVICE_BANK":
                     total_valuation_device_bank += float(device.market_value_pounds)
@@ -439,8 +438,7 @@ class StockAvailableView(APIView):
             "needs_classification": needs_classification,
             "available_for_sale": available_for_sale,
             "available_for_device_bank": available_for_device_bank,
-            "recycling": recycling,
-            "other": other,
+            "recycle": recycling,
             "reserved": reserved,
             "total_devices": base.count(),
             "matching_devices": matching,
@@ -618,7 +616,7 @@ class ReserveView(APIView):
                 recipient=recipient,
                 fulfilment_request=fulfilment_request,
                 status='RESERVED',
-                allocation_type='SALE',
+                allocation_type='FOR_SALE',
                 allocated_by=request.user if request.user.is_authenticated else None,
             )
             device.allocation_intent = 'RESERVED'
@@ -677,9 +675,8 @@ class FulfilmentRequestViewSet(viewsets.ModelViewSet):
             alloc.save(update_fields=['status', 'dispatched_at'])
             
             if alloc.device:
-                alloc.device.stage = Stage.objects.get(code='DISPATCHED')
+                alloc.device.stage = None
                 alloc.device.save(update_fields=['stage'])
-                devices.append(alloc.device)
 
         
         # Update FR status

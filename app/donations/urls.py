@@ -10,5 +10,5 @@ urlpatterns = [
     path("", include(router.urls)),
     path("donate/template/", donate_template, name="donate_template"),
     path("donate/", donate_page, name="donate"),
-    path("donate/thanks/<str:reference>/", donate_thanks, name="donate_thanks")
+    path("donate/thanks/<str:reference>/", donate_thanks, name="donate_thanks"),
 ]

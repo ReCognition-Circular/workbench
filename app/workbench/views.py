@@ -103,7 +103,7 @@ def device_list(request):
         "location_filter": location_filter,
         "manufacturers": manufacturers,
         "locations": locations,
-        "pending_pledges": DonationPledge.objects.filter(status="PENDING").count(),
+        "pending_pledges": DonationPledge.objects.filter(expected_devices__status="EXPECTED").distinct().count(),
     })
 
 @login_required
@@ -124,12 +124,15 @@ def device_detail(request, pk):
     allocations = device.allocations.select_related(
         "fulfilment_request", "fulfilment_request__recipient"
     ).all()        
+    from wipe.models import DataWipeRecord
+    wipe_records = DataWipeRecord.objects.filter(device=device).order_by("-uploaded_at")
 
     return render(request, "device_detail.html", {
         "device": device,
         "stages": stages,
         "default_next_stage": default_next_stage,
         "allocations": allocations,
+        "wipe_records": wipe_records,
     })
 
 
@@ -140,7 +143,6 @@ def device_edit(request, pk):
         Device.objects.select_related("stage", "location", "device_specification"),
         pk=pk,
     )
-    return render(request, "device_edit.html", {"device": device})
 
     
     if request.method == "POST":
@@ -447,4 +449,62 @@ def fulfilment_request_detail(request, pk):
         'allocated_count': allocated_count,
         'shortfall': shortfall,
     })    
+def pledge_list(request):
+    """List all donation pledges."""
+    from donations.models import DonationPledge
+    from devices.models import Device
+    from wipe.models import DataWipeRecord
 
+    pledges = DonationPledge.objects.all().order_by('-created_at')
+
+    pledge_data = []
+    for p in pledges:
+        devices = Device.objects.filter(donation_pledge=p)
+        total = devices.count()
+        wipe_pass = devices.filter(wipe_status='PASS').count()
+        erase_certs = DataWipeRecord.objects.filter(
+            device__in=devices, certificate_type='ERASE'
+        ).count()
+        pledge_data.append({
+            'pledge': p,
+            'device_count': total,
+            'wipe_pass': wipe_pass,
+            'ready': total > 0 and wipe_pass == total,
+        })
+
+    return render(request, 'pledge_list.html', {'pledge_data': pledge_data})        
+def pledge_detail(request, reference):
+    """Detail page for a donation pledge — shows devices and cert status."""
+    from donations.models import DonationPledge
+    from wipe.models import DataWipeRecord
+
+    pledge = get_object_or_404(DonationPledge, reference_number=reference)
+    devices = Device.objects.filter(donation_pledge=pledge).select_related(
+        'device_specification', 'stage'
+    ).order_by('inventory_number')
+
+    device_data = []
+    for d in devices:
+        records = DataWipeRecord.objects.filter(device=d)
+        erase_cert = records.filter(certificate_type='ERASE').first()
+        audit_certs = records.filter(certificate_type='AUDIT')
+        device_data.append({
+            'device': d,
+            'has_erase_cert': erase_cert is not None,
+            'erase_cert_file': erase_cert.certificate_file if erase_cert else None,
+            'audit_cert_count': audit_certs.count(),
+        })
+
+    summary = {
+        'total': len(devices),
+        'wipe_pass': devices.filter(wipe_status='PASS').count(),
+        'wipe_pending': devices.filter(wipe_status='PENDING').count(),
+        'audit_pass': devices.filter(initial_audit_status='PASS').count(),
+        'erase_certs': sum(1 for d in device_data if d['has_erase_cert']),
+    }
+
+    return render(request, 'pledge_detail.html', {
+        'pledge': pledge,
+        'device_data': device_data,
+        'summary': summary,
+    })

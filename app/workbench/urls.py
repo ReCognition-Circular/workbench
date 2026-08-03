@@ -8,6 +8,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
 from django.views.generic import RedirectView
+from donations.views import donor_certs
 
 from . import views
 from api.views import CoordinatorDashboardView
@@ -20,6 +21,8 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls')),
     path('devices/', views.device_list, name='device_list'),
     path('devices/<int:pk>/', views.device_detail, name='device_detail'),
+    path('pledges/', views.pledge_list, name='pledge_list'),
+    path('pledges/<str:reference>/', views.pledge_detail, name='pledge_detail'),
     path('devices/manual/create/', views.manual_device_create, name='manual_device_create'),
     path('devices/manual/create/', views.manual_device_create, name='manual_device_create'),
     path("devices/<int:pk>/edit/", views.device_edit, name="device_edit"),
@@ -34,6 +37,7 @@ urlpatterns = [
     path('recipients/<int:pk>/edit/', views.recipient_edit, name='recipient_edit'),
     path('fulfilment-requests/', views.fulfilment_request_list, name='fr_list'),
     path('fulfilment-requests/<int:pk>/', views.fulfilment_request_detail, name='fr_detail'),
+    path('donate/certs/', donor_certs, name='donor_certs'),
     path('api/integration/', include('integrations.urls')),
 ]
 

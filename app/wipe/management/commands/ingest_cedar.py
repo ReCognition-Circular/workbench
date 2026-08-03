@@ -6,8 +6,8 @@ Two modes:
   ingest_cedar process   — Scan incoming dirs once, process everything found
 
 Scans /cedar/incoming/ recursively for JSON files of type:
-  - erase:   filenames ending with _erasure.json (Cedar Drive Eraser)
-  - audit:   filenames ending with _asset_certificate.json (Cedar Audit)
+  - erase:   _erasure.json suffix OR Drive Eraser batch export array
+  - audit:   _asset_certificate.json suffix OR Cedar Audit batch export
 """
 import json
 import os
@@ -45,6 +45,9 @@ def detect_cert_type_from_json(data):
         return "audit"
     if data.get("erasures"):
         return "erase"
+    # New Drive Eraser export: has parent_serial_number but no tests
+    if data.get("parent_serial_number") and not data.get("tests"):
+        return "erase"
     return "audit"
 
 
@@ -76,13 +79,13 @@ class Command(BaseCommand):
         for json_path in sorted(INCOMING_BASE.rglob("*.json")):
             if json_path.name.startswith("."):
                 continue
+            if json_path.name == "manifest.json":
+                continue
             self.process_file(json_path)
 
     def process_file(self, json_path):
         """Process a single JSON file and its matching PDF."""
         self.stdout.write(f"  Processing: {json_path.name}")
-
-        pdf_path = json_path.with_suffix(".pdf")
 
         # 1. Parse JSON
         try:
@@ -90,14 +93,25 @@ class Command(BaseCommand):
                 data = json.load(f)
         except (json.JSONDecodeError, IOError) as e:
             self.stdout.write(self.style.ERROR(f"    Failed to parse JSON: {e}"))
-            self._move_to_unmatched(json_path, pdf_path)
+            self._move_to_unmatched(json_path, None)
             return
+
+        # 1a. Handle array format (new batch export from Drive Eraser / Cedar Audit)
+        if isinstance(data, list):
+            self.stdout.write(f"    Batch export with {len(data)} entries")
+            for item in data:
+                self._process_single_cert(item, json_path.name, json_path.parent)
+            # Archive the batch JSON — all entries processed
+            self._archive_batch_json(json_path)
+            return
+
+        pdf_path = json_path.with_suffix(".pdf")
 
         # 2. Determine certificate type
         cert_type = self._detect_cert_type(json_path.name, data)
         self.stdout.write(f"    Type: {cert_type}")
 
-        # 3. Extract serial from JSON system.serial_number
+        # 3. Extract serial from JSON
         serial = self._extract_serial(data, json_path.name)
         if not serial:
             self.stdout.write(self.style.WARNING(f"    Could not extract serial"))
@@ -118,6 +132,20 @@ class Command(BaseCommand):
 
         # 6. Create DataWipeRecord and update device
         with transaction.atomic():
+            # Check for duplicate — same device + cert_type + timestamp
+            if wiped_at:
+                existing = DataWipeRecord.objects.filter(
+                    device=device,
+                    certificate_type=cert_type.upper(),
+                    wiped_at=wiped_at,
+                ).exists()
+                if existing:
+                    self.stdout.write(self.style.WARNING(
+                        f"    Duplicate — already ingested for {device.serial_number} at {wiped_at}"
+                    ))
+                    self._archive_processed(json_path, pdf_path, device, cert_type)
+                    return
+
             record = DataWipeRecord.objects.create(
                 device=device,
                 certificate_type=cert_type.upper(),
@@ -131,8 +159,14 @@ class Command(BaseCommand):
                 device.wipe_status = WipeStatus.PASS if result == "PASS" else WipeStatus.FAIL
                 device.save(update_fields=["wipe_status"])
             elif cert_type == "audit":
-                device.initial_audit_status = "PASS" if result == "PASS" else "FAIL"
-                device.save(update_fields=["initial_audit_status"])
+                new_status = "PASS" if result == "PASS" else "FAIL"
+                if device.initial_audit_status in ("PASS", "FAIL"):
+                    # Initial audit already done — this is a final audit
+                    device.final_audit_status = new_status
+                    device.save(update_fields=["final_audit_status"])
+                else:
+                    device.initial_audit_status = new_status
+                    device.save(update_fields=["initial_audit_status"])
 
         self.stdout.write(self.style.SUCCESS(
             f"    ✅ {device.inventory_number} — {cert_type} = {result}"
@@ -140,6 +174,105 @@ class Command(BaseCommand):
 
         # 7. Archive
         self._archive_processed(json_path, pdf_path, device, cert_type)
+
+    def _process_single_cert(self, data, batch_filename, directory):
+        """Process a single certificate entry from a batch export array."""
+        # Determine certificate type from content
+        cert_type = detect_cert_type_from_json(data)
+        self.stdout.write(f"    Entry type: {cert_type}")
+
+        # Extract serial — parent_serial_number first (new erase format),
+        # then system.serial_number (audit format)
+        serial = data.get("parent_serial_number")
+        if not serial:
+            serial = self._extract_serial(data, batch_filename)
+        if not serial:
+            self.stdout.write(self.style.WARNING(f"    Could not extract serial for entry"))
+            return
+
+        self.stdout.write(f"    Serial: {serial}")
+
+        # Find device
+        try:
+            device = Device.objects.get(serial_number__iexact=serial)
+        except Device.DoesNotExist:
+            self.stdout.write(self.style.WARNING(f"    Device not found for serial: {serial}"))
+            return
+
+        # Find matching PDF in same directory
+        # Try drive serial match first, then asset number, then first PDF
+        drive_serial = data.get("serial_number", "")
+        asset_number = data.get("asset_number") or data.get("company", {}).get("asset_number", "")
+        pdf_path = None
+        for f in directory.glob("*.pdf"):
+            if drive_serial and drive_serial in f.name:
+                pdf_path = f
+                break
+            if asset_number and asset_number in f.name:
+                pdf_path = f
+                break
+        # Fallback: first PDF in dir (single-device batch)
+        if not pdf_path:
+            pdfs = sorted(directory.glob("*.pdf"))
+            if pdfs:
+                pdf_path = pdfs[0]
+
+        # Determine result
+        result = self._extract_result(data, batch_filename)
+        wiped_at = self._extract_timestamp(data)
+
+        # Create record
+        with transaction.atomic():
+            if wiped_at:
+                existing = DataWipeRecord.objects.filter(
+                    device=device,
+                    certificate_type=cert_type.upper(),
+                    wiped_at=wiped_at,
+                ).exists()
+                if existing:
+                    self.stdout.write(self.style.WARNING(
+                        f"    Duplicate — already ingested for {device.serial_number} at {wiped_at}"
+                    ))
+                    if pdf_path and pdf_path.exists():
+                        self._archive_processed(None, pdf_path, device, cert_type)
+                    return
+
+            record = DataWipeRecord.objects.create(
+                device=device,
+                certificate_type=cert_type.upper(),
+                result=result,
+                json_data=data,
+                certificate_file=self._store_certificate(pdf_path, device, cert_type),
+                wiped_at=wiped_at,
+            )
+
+            if cert_type == "erase":
+                if device.wipe_status != "PASS":
+                    device.wipe_status = WipeStatus.PASS if result == "PASS" else WipeStatus.FAIL
+                    device.save(update_fields=["wipe_status"])
+            elif cert_type == "audit":
+                new_status = "PASS" if result == "PASS" else "FAIL"
+                if device.initial_audit_status in ("PASS", "FAIL"):
+                    device.final_audit_status = new_status
+                    device.save(update_fields=["final_audit_status"])
+                else:
+                    device.initial_audit_status = new_status
+                    device.save(update_fields=["initial_audit_status"])
+
+        self.stdout.write(self.style.SUCCESS(
+            f"    ✅ {device.inventory_number} — {cert_type} = {result}"
+        ))
+
+        # Archive PDF
+        if pdf_path and pdf_path.exists():
+            self._archive_processed(None, pdf_path, device, cert_type)
+
+    def _archive_batch_json(self, json_path):
+        """Archive batch JSON export after all entries are processed."""
+        archive_dir = PROCESSED_BASE / "batch"
+        archive_dir.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(json_path), str(archive_dir / json_path.name))
+        self.stdout.write(f"    Archived batch JSON to: {archive_dir}")
 
     def _detect_cert_type(self, filename, data):
         """Determine certificate type from filename suffix or JSON content."""
@@ -151,16 +284,22 @@ class Command(BaseCommand):
     def _extract_serial(self, data, filename):
         """Extract device serial number from JSON body.
 
-        The serial is at data['system']['serial_number'] in all Cedar JSON formats.
-        Filename-based extraction is NOT reliable.
+        Checks system.serial_number (audit/old erase) first,
+        then parent_serial_number (new Drive Eraser export).
         """
+        # Audit / old erase format: system.serial_number
         system = data.get("system", {})
         if isinstance(system, dict):
             serial = system.get("serial_number")
             if serial and serial.strip() and serial.strip().lower() != "none":
                 return serial.strip()
 
-        # Fallback: try top-level serial_number
+        # New Drive Eraser export: parent_serial_number
+        parent_serial = data.get("parent_serial_number")
+        if parent_serial and parent_serial.strip() and parent_serial.strip().lower() != "none":
+            return parent_serial.strip()
+
+        # Fallback: top-level serial_number
         serial = data.get("serial_number")
         if serial and serial.strip() and serial.strip().lower() != "none":
             return serial.strip()
@@ -179,7 +318,7 @@ class Command(BaseCommand):
             if result and result.upper() in ("PASS", "FAIL"):
                 return result.upper()
 
-        # Try top-level result (asset/erase cert format)
+        # Try top-level result (new Drive Eraser format)
         result = data.get("result")
         if result and result.upper() in ("PASS", "FAIL"):
             return result.upper()
@@ -220,7 +359,7 @@ class Command(BaseCommand):
 
     def _store_certificate(self, pdf_path, device, cert_type):
         """Copy PDF to Django's media storage and return the path."""
-        if not pdf_path.exists():
+        if not pdf_path or not pdf_path.exists():
             return None
 
         dest_dir = Path("wipe_certificates") / cert_type
@@ -240,7 +379,6 @@ class Command(BaseCommand):
             if pledge:
                 ref = getattr(pledge, 'reference_number', None) or str(pledge.id)
                 donor_name = getattr(pledge, 'donor_name', '') or ''
-                # Sanitize donor name for directory use
                 donor_slug = re.sub(r'[^a-zA-Z0-9_-]', '', donor_name.replace(' ', '_')).upper()
                 dir_name = f"{ref}_{donor_slug}" if donor_slug else str(ref)
             else:
@@ -262,9 +400,9 @@ class Command(BaseCommand):
 
         archive_dir.mkdir(parents=True, exist_ok=True)
 
-        if json_path.exists():
+        if json_path and json_path.exists():
             shutil.move(str(json_path), str(archive_dir / json_path.name))
-        if pdf_path.exists():
+        if pdf_path and pdf_path.exists():
             shutil.move(str(pdf_path), str(archive_dir / pdf_path.name))
 
         self.stdout.write(f"    Archived to: {archive_dir}")
@@ -272,7 +410,7 @@ class Command(BaseCommand):
     def _move_to_unmatched(self, json_path, pdf_path):
         """Move unmatched files for manual review."""
         UNMATCHED_BASE.mkdir(parents=True, exist_ok=True)
-        if json_path.exists():
+        if json_path and json_path.exists():
             shutil.move(str(json_path), str(UNMATCHED_BASE / json_path.name))
         if pdf_path and pdf_path.exists():
             shutil.move(str(pdf_path), str(UNMATCHED_BASE / pdf_path.name))
@@ -295,6 +433,8 @@ class Command(BaseCommand):
                     return
                 path = Path(event.src_path)
                 if path.suffix != ".json":
+                    return
+                if path.name == "manifest.json":
                     return
 
                 if path.name in self.recent:
@@ -324,3 +464,4 @@ class Command(BaseCommand):
         except KeyboardInterrupt:
             observer.stop()
         observer.join()
+

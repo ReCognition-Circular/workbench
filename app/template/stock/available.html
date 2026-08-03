@@ -39,17 +39,17 @@
             <h3 class="text-sm text-gray-500">To be classified</h3>
             <p class="text-3xl font-bold text-purple-500" id="count-tbc">—</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm p-6 cursor-pointer" onclick="filterByIntent('SALE')">
+        <div class="bg-white rounded-lg shadow-sm p-6 cursor-pointer" onclick="filterByIntent('FOR_SALE')">
             <h3 class="text-sm text-gray-500">Available for Sale</h3>
-            <p class="text-3xl font-bold text-primary" id="count-sale">—</p>
+            <p class="text-3xl font-bold text-primary" id="count-for_sale">—</p>
         </div>
         <div class="bg-white rounded-lg shadow-sm p-6 cursor-pointer" onclick="filterByIntent('DEVICE_BANK')">
             <h3 class="text-sm text-gray-500">Device Bank</h3>
             <p class="text-3xl font-bold" id="count-db" style="color: #d4da4f;">—</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm p-6 cursor-pointer" onclick="filterByIntent('RECYCLING')">
+        <div class="bg-white rounded-lg shadow-sm p-6 cursor-pointer" onclick="filterByIntent('RECYCLE')">
             <h3 class="text-sm text-gray-500">Recycling</h3>
-            <p class="text-3xl font-bold text-red-500" id="count-recycling">—</p>
+            <p class="text-3xl font-bold text-red-500" id="count-recycle">—</p>
         </div>
         <div class="bg-white rounded-lg shadow-sm p-6 cursor-pointer" onclick="filterByIntent('RESERVED')">
             <h3 class="text-sm text-gray-500">Reserved</h3>
@@ -138,9 +138,9 @@
                 <select id="filter-intent" class="w-full rounded border-gray-300 text-sm">
                     <option value="">All</option>
                     <option value="UNDECIDED">TBC</option>
-                    <option value="SALE">Sale</option>
+                    <option value="FOR_SALE">Sale</option>
                     <option value="DEVICE_BANK">Device Bank</option>
-                    <option value="RECYCLING">Recycling</option>
+                    <option value="RECYCLE">Recycling</option>
 		    <option value="RESERVED">Reserved</option>
                     <option value="OTHER">Other</option>
                 </select>
@@ -251,9 +251,9 @@
             .then(r => r.json())
             .then(data => {
                 document.getElementById('count-tbc').textContent = data.needs_classification;
-                document.getElementById('count-sale').textContent = data.available_for_sale;
+                document.getElementById('count-for_sale').textContent = data.available_for_sale;
                 document.getElementById('count-db').textContent = data.available_for_device_bank;
-                document.getElementById('count-recycling').textContent = data.recycling;
+                document.getElementById('count-recycle').textContent = data.recycle;
                 document.getElementById('count-reserved').textContent = data.reserved;
                 document.getElementById('count-total').textContent = data.total_devices;
 
@@ -293,8 +293,8 @@
                     var intentBg = '';
                     var intentLabel = d.allocation_intent;
                     if (d.allocation_intent === 'DEVICE_BANK') { intentBg = 'background:#d4da4f;color:#333;'; intentLabel = 'Device Bank'; }
-                    else if (d.allocation_intent === 'SALE') { intentBg = 'background:#45af6c;color:white;'; intentLabel = 'Sale'; }
-                    else if (d.allocation_intent === 'RECYCLING') { intentBg = 'background:#ef4444;color:white;'; intentLabel = 'Recycling'; }
+                    else if (d.allocation_intent === 'FOR_SALE') { intentBg = 'background:#45af6c;color:white;'; intentLabel = 'Sale'; }
+                    else if (d.allocation_intent === 'RECYCLE') { intentBg = 'background:#ef4444;color:white;'; intentLabel = 'Recycling'; }
                     else if (d.allocation_intent === 'UNDECIDED') { intentBg = 'background:#a855f7;color:white;'; intentLabel = 'TBC'; }
                     else if (d.allocation_intent === 'OTHER') { intentBg = 'background:#6b7280;color:white;'; intentLabel = 'Other'; }
 

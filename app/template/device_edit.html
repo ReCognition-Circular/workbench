@@ -128,6 +128,16 @@
                     <option value="NO" {% if device.win11_compatible == "NO" %}selected{% endif %}>No</option>
                 </select>
             </div>
+	    <div class="form-group">
+                <label for="parts_status">Parts Status</label>
+                <select id="parts_status" name="parts_status">
+                    <option value="NOT_NEEDED" {% if device.parts_status == "NOT_NEEDED" %}selected{% endif %}>No parts required</option>
+                    <option value="REQUESTED" {% if device.parts_status == "REQUESTED" %}selected{% endif %}>Part requested</option>
+                    <option value="ORDERED" {% if device.parts_status == "ORDERED" %}selected{% endif %}>Ordered</option>
+                    <option value="RECEIVED" {% if device.parts_status == "RECEIVED" %}selected{% endif %}>Received</option>
+                    <option value="FITTED" {% if device.parts_status == "FITTED" %}selected{% endif %}>Fitted</option>
+                </select>
+            </div>
             <div class="form-group">
                 <label for="parts_notes">Parts Notes</label>
                 <textarea id="parts_notes" name="parts_notes" placeholder="Part numbers, order refs...">{{ device.parts_notes }}</textarea>
@@ -204,10 +214,10 @@
                 notes: document.getElementById('notes').value,
 		initial_grade: document.getElementById('initial_grade').value,
                 final_grade: document.getElementById('final_grade').value,    
-                parts_status: document.getElementById('parts_status').value,
                 parts_notes: document.getElementById('parts_notes').value,
                 parts_cost_pounds: document.getElementById('parts_cost_pounds').value,
                 wipe_status: document.getElementById('wipe_status').value,
+		parts_status: document.getElementById('parts_status').value,    
                 wipe_notes: document.getElementById('wipe_notes').value,
 		initial_audit_status: document.getElementById('initial_audit_status').value,
                 final_audit_status: document.getElementById('final_audit_status').value,    
