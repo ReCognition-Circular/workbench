@@ -15,8 +15,11 @@
             {% if device.stage %}
                 <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
                     {{ device.stage.name }}
+	        </span>   
+		{% if checklist_slug %}
+                <a href="{% url 'device_checklist' device.id checklist_slug %}" class="px-3 py-1 bg-purple-600 text-white rounded-full text-sm font-medium hover:bg-purple-700">Checklist</a>
+                {% endif %}
                 <a href="/devices/{{ device.id }}/edit/" class="px-3 py-1 bg-green-600 text-white rounded-full text-sm font-medium hover:bg-green-700">Edit</a>
-                </span>
             {% else %}
                 <span class="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm">
                     No Stage
@@ -25,9 +28,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Main Info -->
-        <div class="lg:col-span-2 space-y-6">
+    <div class="space-y-6">	    
             <!-- Specs Card -->
             <div class="bg-white rounded-lg shadow-sm p-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-4">Specifications</h2>
@@ -84,89 +85,97 @@
                 <p class="text-gray-400 text-sm">No specifications recorded.</p>
                 {% endif %}
             </div>
-
-            <!-- Status Card -->
+	    <!-- Status Card -->
             <div class="bg-white rounded-lg shadow-sm p-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-4">Status</h2>
-                <div class="space-y-3 text-sm">
-                    <div class="grid grid-cols-2 gap-4">
-			<div>
-                            <dt class="text-gray-500">Initial Grade</dt>
-                            <dd class="font-medium">{{ device.get_initial_grade_display }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-gray-500">Final Grade</dt>
-                            <dd class="font-medium">{{ device.get_final_grade_display }}</dd>
-                        </div>    
-                        </div>
-                        <div>
-                            <dt class="text-gray-500">Ownership</dt>
-                            <dd class="font-medium">{{ device.get_ownership_type_display }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-gray-500">Wipe Status</dt>
-                            <dd class="font-medium">{{ device.get_wipe_status_display }}</dd>
-                            {% if device.wipe_notes %}
-                            <dd class="text-xs text-gray-400">{{ device.wipe_notes }}</dd>
+                <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                    <!-- Initial Grade / Final Grade -->
+                    <div>
+                        <dt class="text-gray-500">Initial Grade</dt>
+                        <dd class="font-medium">{{ device.get_initial_grade_display }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500">Final Grade</dt>
+                        <dd class="font-medium">{{ device.get_final_grade_display }}</dd>
+                    </div>
+                    <!-- Ownership / Wipe Status -->
+                    <div>
+                        <dt class="text-gray-500">Ownership</dt>
+                        <dd class="font-medium">{{ device.get_ownership_type_display }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500">Wipe Status</dt>
+                        <dd class="font-medium">{{ device.get_wipe_status_display }}</dd>
+                        {% if device.wipe_notes %}
+                        <dd class="text-xs text-gray-400">{{ device.wipe_notes }}</dd>
+                        {% endif %}
+                        {% for r in wipe_records %}
+                            {% if r.certificate_type == "ERASE" and r.certificate_file %}
+                            <dd><a href="/media/{{ r.certificate_file }}" class="text-blue-600 underline text-xs">Download Wipe Cert</a></dd>
                             {% endif %}
-			    {% for r in wipe_records %}
-                                {% if r.certificate_type == "ERASE" and r.certificate_file %}
-                                <dd><a href="/media/{{ r.certificate_file }}" class="text-blue-600 underline text-xs">Download Wipe Cert</a></dd>
-                                {% endif %}
-                            {% endfor %}
-			</div>
-                        <div>
-                            <dt class="text-gray-500">Initial Audit</dt>
-                            <dd class="font-medium">{{ device.get_initial_audit_status_display }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-gray-500">Final Audit</dt>
-                            <dd class="font-medium">{{ device.get_final_audit_status_display }}</dd>
-			    {% for r in wipe_records %}
-                                {% if r.certificate_type == "AUDIT" and r.certificate_file %}
-                                <dd><a href="/media/{{ r.certificate_file }}" class="text-blue-600 underline text-xs">Download Audit Cert</a></dd>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-			<div>
-                            <dt class="text-gray-500">QA Status</dt>
-                            <dd class="font-medium">
-                                {% if device.qa_status %}
-                                <span class="px-2 py-0.5 text-xs rounded font-medium {% if device.qa_status == 'PASS' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">{{ device.get_qa_status_display }}</span>
-                                {% else %}
-                                <span class="text-gray-400">Not assessed</span>
-                                {% endif %}
-                            </dd>
-                        </div>
-			<div>
-                            <dt class="text-gray-500">Operating System</dt>
-                            <dd class="font-medium">{{ device.get_image_display|default:"None" }}</dd>
-                        </div>	
-			<div>
-                            <dt class="text-gray-500">Parts Status</dt>
-                            <dd class="font-medium">{{ device.get_parts_status_display }}</dd>    
-                            {% if device.parts_notes %}
-                            <dd class="text-xs text-gray-400">{{ device.parts_notes }}</dd>
+                        {% endfor %}
+                    </div>
+                    <!-- Initial Audit / Final Audit -->
+                    <div>
+                        <dt class="text-gray-500">Initial Audit</dt>
+                        <dd class="font-medium">{{ device.get_initial_audit_status_display }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500">Final Audit</dt>
+                        <dd class="font-medium">{{ device.get_final_audit_status_display }}</dd>
+                        {% for r in wipe_records %}
+                            {% if r.certificate_type == "AUDIT" and r.certificate_file %}
+                            <dd><a href="/media/{{ r.certificate_file }}" class="text-blue-600 underline text-xs">Download Audit Cert</a></dd>
                             {% endif %}
-                        <div>
-                            <dt class="text-gray-500">Windows 11</dt>
-                            <dd class="font-medium">
-                                {% if device.win11_compatible == "YES" %}
-                                    <span class="text-green-600">Compatible</span>
-                                {% elif device.win11_compatible == "NO" %}
-                                    <span class="text-red-600">Not Compatible</span>
-                                {% else %}
-                                    <span class="text-gray-400">Unknown</span>
-                                {% endif %}
-                            </dd>
-                        </div>
-			    <div>
+                        {% endfor %}
+                    </div>
+                    <!-- QA Status / Operating System -->
+                    <div>
+                        <dt class="text-gray-500">QA Status</dt>
+                        <dd>
+                            {% if device.qa_status %}
+                            <span class="px-2 py-0.5 text-xs rounded font-medium {% if device.qa_status == 'PASS' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">{{ device.get_qa_status_display }}</span>
+                            {% else %}
+                            <span class="text-gray-400 text-xs">Not assessed</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500">Operating System</dt>
+                        <dd class="font-medium">{{ device.get_image_display|default:"None" }}</dd>
+                    </div>
+                    <!-- Parts Status / Windows 11 -->
+                    <div>
+                        <dt class="text-gray-500">Parts Status</dt>
+                        <dd class="font-medium">{{ device.get_parts_status_display }}</dd>
+                        {% if device.parts_notes %}
+                        <dd class="text-xs text-gray-400">{{ device.parts_notes }}</dd>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <dt class="text-gray-500">Windows 11</dt>
+                        <dd class="font-medium">
+                            {% if device.win11_compatible == "YES" %}
+                                <span class="text-green-600">Compatible</span>
+                            {% elif device.win11_compatible == "NO" %}
+                                <span class="text-red-600">Not Compatible</span>
+                            {% else %}
+                                <span class="text-gray-400">Unknown</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                    <!-- Market Value / Allocation Intent -->
+                    <div>
+                        <dt class="text-gray-500">Market Value</dt>
+                        <dd class="font-medium">{% if device.market_value_pounds %}&pound;{{ device.market_value_pounds }}{% else %}-{% endif %}</dd>
+                    </div>
+                    <div>
                         <dt class="text-gray-500">Allocation Intent</dt>
                         <dd>
                             <span class="px-2 py-0.5 text-xs rounded font-medium
-			        {% if device.allocation_intent == 'UNDECIDED' %}bg-purple-100 text-purple-800
+                                {% if device.allocation_intent == 'UNDECIDED' %}bg-purple-100 text-purple-800
                                 {% elif device.allocation_intent == 'FOR_SALE' %}bg-green-100 text-green-800
-				{% elif device.allocation_intent == 'DEVICE_BANK' %}bg-blue-100 text-blue-800
+                                {% elif device.allocation_intent == 'DEVICE_BANK' %}bg-blue-100 text-blue-800
                                 {% elif device.allocation_intent == 'RECYCLE' %}bg-red-100 text-red-800
                                 {% elif device.allocation_intent == 'PARTS_HARVESTING' %}bg-yellow-100 text-yellow-800
                                 {% elif device.allocation_intent == 'RESERVED' %}bg-orange-100 text-orange-800
@@ -175,43 +184,22 @@
                             </span>
                         </dd>
                     </div>
-                            <div>
-                            <dt class="text-gray-500">Market Value</dt>
-                            <dd class="font-medium">{% if device.market_value_pounds %}&pound;{{ device.market_value_pounds }}{% else %}-{% endif %}</dd>
-                            </div>
-                        </div>
-                    </div>
-                    {% if device.parts_cost_pounds != '0.00' and device.parts_cost_pounds != '0' %}
-                    <div class="border-t pt-2">
-                        <span class="text-gray-500">Parts Cost:</span>
-                        <span class="font-medium">&pound;{{ device.parts_cost_pounds }}</span>
-                    </div>
-                    {% endif %}
+                </dl>
+                {% if device.parts_cost_pounds != '0.00' and device.parts_cost_pounds != '0' %}
+                <div class="border-t pt-2 mt-3 text-sm">
+                    <span class="text-gray-500">Parts Cost:</span>
+                    <span class="font-medium">&pound;{{ device.parts_cost_pounds }}</span>
                 </div>
-            </div>
-
-            <!-- Location Card -->
-            <div class="bg-white rounded-lg shadow-sm p-6">
-                <h2 class="text-lg font-semibold text-gray-800 mb-4">Location</h2>
-                {% if device.location %}
-                <p class="text-sm font-medium">{{ device.location.code }}</p>
-		{% if device.donor %}
-                <p class="text-xs text-gray-400 mt-1">Donor: {{ device.donor.name }}</p>
                 {% endif %}
-                {% else %}
-                <p class="text-gray-400 text-sm">No location set.</p>
+                {% if device.notes %}
+                <div class="border-t pt-2 mt-3 text-sm">
+                    <span class="text-gray-500">Notes:</span>
+                    <span class="text-gray-700">{{ device.notes }}</span>
+                </div>
                 {% endif %}
             </div>
 
-            <!-- Notes Card -->
-            <div class="bg-white rounded-lg shadow-sm p-6">
-                <h2 class="text-lg font-semibold text-gray-800 mb-4">Notes</h2>
-                <p class="text-sm text-gray-600">{{ device.notes|default:"No notes." }}</p>
-            </div>
-        </div>
 
-        <!-- Sidebar -->
-        <div class="space-y-6">
             <!-- Stage Transition Card -->
             <div class="bg-white rounded-lg shadow-sm p-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-4">Move to Next Stage</h2>
@@ -245,6 +233,22 @@
                 <h2 class="text-lg font-semibold text-gray-800 mb-4">Details</h2>
                 <dl class="space-y-2 text-sm">
                     <div class="flex justify-between">
+                        <dt class="text-gray-500">Location</dt>
+                        <dd class="font-medium">
+                            {% if device.location %}
+                                {{ device.location.code }}
+                            {% else %}
+                                <span class="text-gray-400">Not set</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                    {% if device.donor %}
+                    <div class="flex justify-between">
+                        <dt class="text-gray-500">Donor</dt>
+                        <dd class="font-medium">{{ device.donor.name }}</dd>
+                    </div>
+                    {% endif %}
+                    <div class="flex justify-between">
                         <dt class="text-gray-500">Created</dt>
                         <dd>{{ device.created_at|date:"d/m/Y" }}</dd>
                     </div>
@@ -252,56 +256,55 @@
                         <dt class="text-gray-500">Updated</dt>
                         <dd>{{ device.updated_at|date:"d/m/Y" }}</dd>
                     </div>
-	    </dl>
-        </div>
+		    </dl>
+	        </div>
 
-        <!-- Allocation Card -->
-        <div class="bg-white rounded-lg shadow-sm p-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-4">Allocation</h2>
-            {% if allocations %}
-                <div class="space-y-3">
-                    {% for alloc in allocations %}
-                    <div class="border rounded p-3 text-sm">
-                        <div class="flex justify-between items-start mb-1">
-                            <span class="font-medium">
-                                {{ alloc.get_status_display }}
-                            </span>
-                            <span class="text-xs px-1.5 py-0.5 rounded
-                                {% if alloc.status == 'RESERVED' %}bg-blue-100 text-blue-800
-                                {% elif alloc.status == 'DISPATCHED' %}bg-green-100 text-green-800
-                                {% elif alloc.status == 'RETURNED' %}bg-yellow-100 text-yellow-800
-                                {% elif alloc.status == 'CANCELLED' %}bg-red-100 text-red-800
-                                {% else %}bg-gray-100 text-gray-600{% endif %}">
-                                {{ alloc.get_status_display }}
-                            </span>
-                        </div>
-                        {% if alloc.fulfilment_request %}
-                        <div class="text-gray-500 text-xs">
-                            <a href="{% url 'fr_detail' alloc.fulfilment_request.pk %}" class="text-primary hover:underline">
-				{{ alloc.fulfilment_request.erpnext_order_id }}
-                            </a>
-                            {% if alloc.fulfilment_request.recipient %}
-                            &middot; {{ alloc.fulfilment_request.recipient.name }}
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                        <div class="text-gray-400 text-xs mt-1">
-                            {{ alloc.created_at|date:"d/m/Y H:i" }}
-                            {% if alloc.dispatched_at %}
-                            &middot; Dispatched {{ alloc.dispatched_at|date:"d/m/Y H:i" }}
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="text-gray-400 text-sm">No allocations for this device.</p>
-            {% endif %}
+	        <!-- Allocation Card -->
+	        <div class="bg-white rounded-lg shadow-sm p-6">
+	            <h2 class="text-lg font-semibold text-gray-800 mb-4">Allocation</h2>
+	            {% if allocations %}
+	                <div class="space-y-3">
+	                    {% for alloc in allocations %}
+	                    <div class="border rounded p-3 text-sm">
+	                        <div class="flex justify-between items-start mb-1">
+	                            <span class="font-medium">
+	                                {{ alloc.get_status_display }}
+	                            </span>
+	                            <span class="text-xs px-1.5 py-0.5 rounded
+	                                {% if alloc.status == 'RESERVED' %}bg-blue-100 text-blue-800
+	                                {% elif alloc.status == 'DISPATCHED' %}bg-green-100 text-green-800
+	                                {% elif alloc.status == 'RETURNED' %}bg-yellow-100 text-yellow-800
+	                                {% elif alloc.status == 'CANCELLED' %}bg-red-100 text-red-800
+	                                {% else %}bg-gray-100 text-gray-600{% endif %}">
+	                                {{ alloc.get_status_display }}
+	                            </span>
+	                        </div>
+	                        {% if alloc.fulfilment_request %}
+	                        <div class="text-gray-500 text-xs">
+	                            <a href="{% url 'fr_detail' alloc.fulfilment_request.pk %}" class="text-primary hover:underline">
+					{{ alloc.fulfilment_request.erpnext_order_id }}
+	                            </a>
+	                            {% if alloc.fulfilment_request.recipient %}
+	                            &middot; {{ alloc.fulfilment_request.recipient.name }}
+	                            {% endif %}
+	                        </div>
+	                        {% endif %}
+	                        <div class="text-gray-400 text-xs mt-1">
+	                            {{ alloc.created_at|date:"d/m/Y H:i" }}
+	                            {% if alloc.dispatched_at %}
+	                            &middot; Dispatched {{ alloc.dispatched_at|date:"d/m/Y H:i" }}
+	                            {% endif %}
+	                        </div>
+	                    </div>
+	                    {% endfor %}
+	                </div>
+	            {% else %}
+	                <p class="text-gray-400 text-sm">No allocations for this device.</p>
+	            {% endif %}
+	        </div>
+	    </div>
         </div>
     </div>
-        </div>
-    </div>
-</div>
 
 <!-- Transition Confirmation Modal -->
 <div id="transition-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
@@ -439,3 +442,4 @@ document.getElementById('transition-modal').addEventListener('click', function(e
 });
 </script>
 {% endblock %}
+

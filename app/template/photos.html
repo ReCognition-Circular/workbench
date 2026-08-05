@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Photo Capture{% endblock %}
+{% block extra_head %}
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+    [x-cloak] { display: none !important; }
+    #camera-view { width: 100%; max-height: 60vh; object-fit: cover; border-radius: 8px; background: #000; }
+    .photo-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; border: 2px solid #e5e7eb; }
+</style>
+{% endblock %}
+{% block content %}
+<div x-data="photoApp()" x-init="init()" class="max-w-lg mx-auto px-4 py-4">
+
+    <!-- Step 1: Device Selection -->
+    <div x-show="step === 'scan'" class="space-y-4">
+        <h1 class="text-xl font-bold">📸 Photo Capture</h1>
+        <p class="text-sm text-gray-500">Scan or type a device barcode to begin.</p>
+        <input type="text" x-ref="barcodeInput" @keydown.enter="resolveDevice($event.target.value); $event.target.value=''" placeholder="Scan or type barcode…" class="w-full border rounded-lg px-3 py-3 text-lg" autofocus>
+        <div id="quagga-container" class="w-full h-48 bg-black rounded-lg overflow-hidden relative">
+            <div id="quagga-viewport" class="w-full h-full"></div>
+        </div>
+        <p class="text-xs text-gray-400 text-center">Position barcode in view, or type above</p>
+    </div>
+
+    <!-- Step 2: Capture -->
+    <div x-show="step === 'capture'" x-cloak class="space-y-4">
+        <div class="flex items-center justify-between">
+            <button @click="step='scan'; device=null" class="text-sm text-blue-600">&larr; Different device</button>
+            <span class="text-xs text-gray-400" x-text="device ? device.inventory_number : ''"></span>
+        </div>
+        <div class="bg-white rounded-lg p-3 shadow-sm" x-show="device">
+            <p class="font-bold" x-text="device.inventory_number"></p>
+            <p class="text-sm text-gray-500" x-text="(device.manufacturer || '') + ' ' + (device.model_name || '')"></p>
+            <p class="text-xs text-gray-400" x-text="device.stage || ''"></p>
+        </div>
+
+        <!-- Camera -->
+        <div class="relative">
+            <video id="camera-view" x-ref="video" autoplay playsinline></video>
+            <canvas id="camera-canvas" class="hidden"></canvas>
+        </div>
+        <button @click="startCamera()" x-show="!cameraReady" class="w-full py-3 bg-blue-600 text-white rounded-lg text-lg">📷 Open Camera</button>
+        <button @click="capturePhoto()" x-show="cameraReady" class="w-full py-3 bg-green-600 text-white rounded-lg text-lg">📸 Capture</button>
+
+        <!-- Photo type selector -->
+        <div x-show="cameraReady">
+            <label class="text-sm text-gray-600 block mb-1">Photo type:</label>
+            <select x-model="photoType" class="w-full border rounded-lg px-3 py-2">
+                <option value="DAMAGE_DETAIL">Damage Detail</option>
+                <option value="EXIT_TOP">Exit Top</option>
+                <option value="EXIT_BOTTOM">Exit Bottom</option>
+                <option value="EXIT_SCREEN">Exit Screen</option>
+                <option value="EXIT_KEYBOARD">Exit Keyboard</option>
+                <option value="BOOT">Boot Screen</option>
+                <option value="BEFORE">Before Repair</option>
+                <option value="AFTER">After Repair</option>
+            </select>
+        </div>
+
+        <!-- Uploaded photos -->
+        <div x-show="photos.length > 0" class="border-t pt-3">
+            <h3 class="text-sm font-semibold mb-2">Uploaded (<span x-text="photos.length"></span>)</h3>
+            <div class="flex flex-wrap gap-2">
+                <template x-for="p in photos" :key="p.id">
+                    <img :src="'/media/' + p.image" class="photo-thumb" :title="p.photo_type">
+                </template>
+            </div>
+        </div>
+
+        <!-- Note field -->
+        <input type="text" x-model="note" placeholder="Optional note…" class="w-full border rounded-lg px-3 py-2 text-sm">
+    </div>
+
+    <!-- Toast -->
+    <div x-show="toast" x-text="toast" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm shadow-lg" x-transition></div>
+</div>
+
+<script src="https://unpkg.com/@ericblade/quagga2@1.8.1/dist/quagga.min.js"></script>
+<script>
+function photoApp() {
+    return {
+        step: 'scan',
+        device: null,
+        cameraReady: false,
+        photoType: 'DAMAGE_DETAIL',
+        photos: [],
+        note: '',
+        toast: '',
+        stream: null,
+
+        init() {
+            const params = new URLSearchParams(window.location.search);
+            const deviceId = params.get('device');
+            if (deviceId) {
+                this.loadDeviceById(deviceId);
+            } else {
+                this.initQuagga();
+            }
+    },
+
+        async loadDeviceById(id) {
+            try {
+                const resp = await fetch('/api/devices/' + id + '/');
+                if (!resp.ok) throw new Error('Not found');
+                const data = await resp.json();
+                this.device = {
+                    id: data.id,
+                    inventory_number: data.inventory_number,
+                    manufacturer: data.manufacturer || '',
+                    model_name: data.model_name || data.model || '',
+                    stage: data.stage || '',
+            };
+            this.step = 'capture';
+            this.startCamera();
+        } catch (e) {
+            this.showToast('Device not found');
+        }
+    }, 	    
+
+        initQuagga() {
+            if (typeof Quagga === 'undefined') {
+                // Retry after delay for script load
+                setTimeout(() => this.initQuagga(), 500);
+                return;
+            }
+            Quagga.init({
+                inputStream: {
+                    name: 'Live',
+                    type: 'LiveStream',
+                    target: document.getElementById('quagga-viewport'),
+                    constraints: { facingMode: 'environment' }
+                },
+                decoder: { readers: ['code_128_reader', 'ean_reader', 'ean_8_reader', 'code_39_reader', 'upc_reader'] }
+            }, (err) => {
+                if (err) { console.warn('Quagga init error:', err); return; }
+                Quagga.start();
+            });
+            Quagga.onDetected((result) => {
+                const code = result.codeResult.code;
+                this.resolveDevice(code);
+                Quagga.stop();
+            });
+        },
+
+        async resolveDevice(code) {
+            try {
+                const resp = await fetch('/api/resolve-barcode/?code=' + encodeURIComponent(code.trim()));
+                if (!resp.ok) throw new Error('Not found');
+                const data = await resp.json();
+                if (data.type === 'device') {
+                    this.device = {
+                        id: data.id,
+                        inventory_number: data.inventory_number,
+                        manufacturer: data.manufacturer || '',
+                        model_name: data.model_name || data.model || '',
+                        stage: data.stage || '',
+                    };
+                    this.step = 'capture';
+                    this.startCamera();
+                } else {
+                    this.showToast('Not a device barcode. Try again.');
+                }
+            } catch (e) {
+                this.showToast('Device not found: ' + code);
+            }
+        },
+
+        async startCamera() {
+            try {
+                this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                this.$refs.video.srcObject = this.stream;
+                this.cameraReady = true;
+            } catch (e) {
+                this.showToast('Camera access denied. Use the barcode scanner above.');
+            }
+        },
+
+        capturePhoto() {
+            const video = this.$refs.video;
+            const canvas = document.getElementById('camera-canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            canvas.toBlob((blob) => {
+                this.uploadPhoto(blob);
+            }, 'image/jpeg', 0.85);
+        },
+
+        async uploadPhoto(blob) {
+            const formData = new FormData();
+            formData.append('image', blob, 'photo.jpg');
+            formData.append('device', this.device.id);
+            formData.append('photo_type', this.photoType);
+            if (this.note) formData.append('notes', this.note);
+
+            try {
+                const resp = await fetch('/api/checklists/photos/upload/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': this.getCSRF() },
+                    body: formData
+                });
+                if (!resp.ok) throw new Error('Upload failed');
+                const data = await resp.json();
+                this.photos.unshift(data);
+                this.note = '';
+                this.showToast('✅ Photo uploaded');
+            } catch (e) {
+                this.showToast('❌ Upload failed: ' + e.message);
+            }
+        },
+
+        getCSRF() {
+            const m = document.cookie.match(/csrftoken=([^;]+)/);
+            return m ? m[1] : '';
+        },
+
+        showToast(msg) {
+            this.toast = msg;
+            setTimeout(() => this.toast = '', 2500);
+        }
+    };
+}
+</script>
+{% endblock %}

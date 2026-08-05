@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+{% block title %}{{ device.inventory_number }} — {{ checklist_template.name }}{% endblock %}
+{% block extra_head %}
+<style>[x-cloak] { display: none !important; }</style>
+{% endblock %}
+{% block content %}
+<div x-data="checklistApp()" x-init="init" data-device-id="{{ device.pk }}" data-stage-slug="{{ stage_slug }}" class="max-w-4xl mx-auto">
+
+    <!-- Device Header -->
+    <div class="bg-white rounded-lg shadow p-4 mb-4 flex items-center justify-between">
+        <div>
+            <h1 class="text-xl font-bold">{{ device.inventory_number }}</h1>
+            <p class="text-sm text-gray-500">{{ device.serial_number }} · {{ device.get_device_type_display }}</p>
+            {% if device.stage %}<span class="inline-block mt-1 px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-800">{{ device.stage.name }}</span>{% endif %}
+        </div>
+        <a href="{% url 'device_detail' device.pk %}" class="text-sm text-blue-600 hover:underline">← Back to device</a>
+    </div>
+
+    <!-- Loading -->
+    <div x-show="loading" class="text-center py-12 text-gray-500">Loading checklist…</div>
+
+    <!-- Checklist Container -->
+    <div x-show="!loading" x-cloak>
+
+        <!-- Check-In: Grade Widget -->
+        <template x-if="stageSlug === 'check-in' && gradeResult.auto_grade">
+        <div class="bg-white rounded-lg shadow p-4 mb-4">
+            <h2 class="font-semibold mb-2">Auto-Grade</h2>
+            <div class="flex gap-4 items-center">
+                <span class="text-2xl font-bold" :class="gradeBadgeClass(gradeResult.auto_grade)"
+                      x-text="gradeResult.auto_grade"></span>
+                <div class="text-sm text-gray-500">
+                    <span x-text="'Physical: ' + gradeResult.physical_severity"></span> ·
+                    <span x-text="'Cedar score: ' + gradeResult.cedar_weighted_score + ' pts'"></span>
+                </div>
+            </div>
+            <div class="mt-2 flex gap-2 items-center">
+                <label class="text-sm">Override:</label>
+                <select x-model="overrideGrade" class="border rounded px-2 py-1 text-sm">
+                    <option value="">No override</option>
+                    <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                    <option value="D">D</option><option value="BER">BER</option>
+                </select>
+                <input x-model="overrideReason" type="text" placeholder="Reason" class="border rounded px-2 py-1 text-sm flex-1">
+            </div>
+        </div>
+        </template>
+
+        <!-- QA: Status Badge -->
+        <template x-if="stageSlug === 'qa' && qaResult.status">
+        <div class="bg-white rounded-lg shadow p-4 mb-4">
+            <span class="text-lg font-bold px-3 py-1 rounded" :class="qaResult.status === 'qa_pass' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                  x-text="qaResult.status === 'qa_pass' ? '✓ PASS' : '✗ FAIL'"></span>
+        </div>
+        </template>
+
+        <!-- Sections Loop -->
+        <template x-for="section in sections" :key="section.label">
+            <div class="bg-white rounded-lg shadow mb-4 overflow-hidden">
+                <div class="bg-gray-50 px-4 py-2 font-semibold text-gray-700 border-b" x-text="section.label"></div>
+
+                <template x-for="item in section.items" :key="item.response.id">
+                    <div class="px-4 py-3 border-b last:border-b-0 flex items-center justify-between"
+                         :class="item.template_item.is_auto_populated ? 'bg-gray-50' : ''">
+
+                        <!-- Label -->
+                        <div class="flex-1">
+                            <span x-text="item.template_item.label" class="text-sm"></span>
+                            <span x-show="item.template_item.is_auto_populated" class="text-xs text-gray-400 ml-1">(auto)</span>
+                            <span x-show="item.template_item.weight_tier !== null" class="text-xs text-amber-600 ml-1"
+                                  x-text="'Tier ' + item.template_item.weight_tier"></span>
+                        </div>
+
+                        <!-- PASS/FAIL Toggle -->
+                        <div x-show="item.template_item.item_type === 'PASS_FAIL'" class="flex gap-1">
+                            <button @click="toggleResponse(item, true)"
+                                    :class="item.response.value === true ? 'bg-green-500 text-white' : 'bg-gray-200'"
+                                    class="px-3 py-1 rounded-l text-sm transition">Pass</button>
+                            <button @click="toggleResponse(item, false)"
+                                    :class="item.response.value === false ? 'bg-red-500 text-white' : 'bg-gray-200'"
+                                    class="px-3 py-1 rounded-r text-sm transition">Fail</button>
+                        </div>
+                        <div x-show="item.response.value === false && item.template_item.item_type === 'PASS_FAIL'" class="mt-1">
+                            <input type="text" x-model="item.response.notes" @blur="saveNotes(item)" placeholder="Fail reason…" class="border border-red-300 rounded px-2 py-1 text-sm w-full">
+                        </div>
+
+                        <!-- YES/NO Toggle -->
+                        <div x-show="item.template_item.item_type === 'YES_NO'" class="flex gap-1">
+                            <button @click="toggleResponse(item, true)"
+                                    :class="item.response.value === true ? 'bg-green-500 text-white' : 'bg-gray-200'"
+                                    class="px-3 py-1 rounded-l text-sm transition">Yes</button>
+                            <button @click="toggleResponse(item, false)"
+                                    :class="item.response.value === false ? 'bg-red-500 text-white' : 'bg-gray-200'"
+                                    class="px-3 py-1 rounded-r text-sm transition">No</button>
+                        </div>
+                        <div x-show="item.response.value === false && item.template_item.item_type === 'YES_NO'" class="mt-1">
+                            <input type="text" x-model="item.response.notes" @blur="saveNotes(item)" placeholder="Reason…" class="border border-red-300 rounded px-2 py-1 text-sm w-full">
+                        </div>
+
+                        <!-- DONE/NOT DONE Toggle -->
+                        <div x-show="item.template_item.item_type === 'DONE_NOT_DONE'" class="flex gap-1">
+                            <button @click="toggleResponse(item, true)"
+                                    :class="item.response.value === true ? 'bg-green-500 text-white' : 'bg-gray-200'"
+                                    class="px-3 py-1 rounded-l text-sm transition">Done</button>
+                            <button @click="toggleResponse(item, false)"
+                                    :class="item.response.value === false ? 'bg-gray-400 text-white' : 'bg-gray-200'"
+                                    class="px-3 py-1 rounded-r text-sm transition">Not Done</button>
+                        </div>
+                        <div x-show="item.response.value === false && item.template_item.item_type === 'DONE_NOT_DONE'" class="mt-1">
+                            <input type="text" x-model="item.response.notes" @blur="saveNotes(item)" placeholder="Reason…" class="border border-red-300 rounded px-2 py-1 text-sm w-full">
+                        </div>
+
+                        <!-- SELECT Dropdown -->
+                        <select x-show="item.template_item.item_type === 'SELECT'"
+                                @change="toggleResponse(item, $event.target.value)"
+                                class="border rounded px-2 py-1 text-sm">
+                            <option value="">—</option>
+                            <template x-for="opt in (item.template_item.options || [])" :key="opt">
+                                <option :value="opt" :selected="item.response.value === opt" x-text="opt"></option>
+                            </template>
+                        </select>
+
+                        <!-- Photo button (if photo_required) -->
+                        <button x-show="item.template_item.photo_required" @click="capturePhoto(item)" class="ml-2 text-blue-500 text-sm hover:underline">📷</button>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <!-- Complete Button -->
+        <div class="bg-white rounded-lg shadow p-4 mb-4 text-center">
+            <button @click="completeChecklist()" :disabled="completing" class="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50">
+                <span x-show="!completing">✓ Complete {{ checklist_template.name }}</span>
+                <span x-show="completing">Submitting…</span>
+            </button>
+            <p x-show="stageSlug === 'check-in' && !allRequiredDone()" class="text-sm text-amber-600 mt-2">
+                Some required items are not yet answered.
+            </p>
+        </div>
+
+    </div><!-- end checklist container -->
+
+    <!-- Device Photos (Check-In, Refurb, QA) -->
+    <div x-show="!loading" x-cloak>
+    <div class="bg-white rounded-lg shadow p-4 mb-4">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="font-semibold">Device Photos (<span x-text="devicePhotos.length"></span>)</h3>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-400">Add via mobile:</span>
+                <div class="w-24 h-24 bg-white border rounded p-1" id="qr-container">
+                    <img :src="qrUrl" class="w-full h-full" alt="QR code for photo upload" />
+                </div>
+            </div>
+        </div>
+        <div class="grid grid-cols-4 gap-2">
+            <template x-for="p in devicePhotos" :key="p.id">
+                <a :href="p.image" target="_blank" class="relative group">
+                    <img :src="p.image" class="w-full h-24 object-cover rounded border" :title="p.photo_type">
+                    <span class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs px-1 py-0.5 truncate" x-text="p.photo_type"></span>
+                </a>
+            </template>
+            <template x-if="devicePhotos.length === 0">
+                <div class="col-span-4 border-2 border-dashed rounded h-24 flex items-center justify-center text-gray-400 text-sm">
+                    No photos yet — scan QR code on your phone
+                </div>
+            </template>
+        </div>
+    </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function checklistApp() {
+    return {
+        deviceId: null,
+        stageSlug: null,
+        instanceId: null,
+        sections: [],
+        devicePhotos: [],
+        loading: true,
+        completing: false,
+        gradeResult: {},
+        qaResult: {},
+        overrideGrade: '',
+        overrideReason: '',
+        pendingPhoto: { type: null, item: null },
+
+        init() {
+            this.deviceId = parseInt(this.$el.dataset.deviceId);
+            this.stageSlug = this.$el.dataset.stageSlug;
+            this.loadChecklist();
+            this.loadDevicePhotos();
+            // QR served server-side via getter qrUrl
+        },
+
+        async loadChecklist() {
+            try {
+                const res = await fetch(`/api/checklists/devices/${this.deviceId}/checklists/${this.stageSlug}/`);
+                const data = await res.json();
+                this.instanceId = data.id;
+                const groups = {};
+                for (const r of data.responses) {
+                    const section = r.template_item.section_label || 'Other';
+                    if (!groups[section]) groups[section] = [];
+                    groups[section].push({ template_item: r.template_item, response: r });
+                }
+                this.sections = Object.entries(groups).map(([label, items]) => ({
+                    label,
+                    items: items.sort((a, b) => a.template_item.order_number - b.template_item.order_number)
+                }));
+            } catch (e) {
+                console.error('Failed to load checklist:', e);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async loadDevicePhotos() {
+            try {
+                const res = await fetch(`/api/checklists/devices/${this.deviceId}/photos/`);
+                this.devicePhotos = await res.json();
+            } catch (e) {
+                console.error('Failed to load photos:', e);
+            }
+        },
+
+        get qrUrl() {
+            if (!this.deviceId) return "";
+            const url = `https://work.recognition-circular.org/photos/?device=${this.deviceId}`;
+            return `/api/checklists/qr/?data=${encodeURIComponent(url)}`;
+        },
+
+        async toggleResponse(item, value) {
+            item.response.value = value;
+            try {
+                await fetch(`/api/checklists/responses/${item.response.id}/`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCSRF() },
+                    body: JSON.stringify({ value }),
+                });
+            } catch (e) {
+                console.error('Auto-save failed:', e);
+            }
+        },
+
+        async saveNotes(item) {
+            try {
+                await fetch(`/api/checklists/responses/${item.response.id}/`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCSRF() },
+                    body: JSON.stringify({ notes: item.response.notes }),
+                });
+            } catch (e) {
+                console.error('Notes save failed:', e);
+            }
+        },
+
+        async completeChecklist() {
+            this.completing = true;
+            try {
+                const body = {};
+                if (this.stageSlug === 'check-in' && this.overrideGrade) {
+                    body.override_grade = this.overrideGrade;
+                    body.override_reason = this.overrideReason;
+                }
+                const res = await fetch(`/api/checklists/devices/${this.deviceId}/checklists/${this.stageSlug}/complete/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCSRF() },
+                    body: JSON.stringify(body),
+                });
+                const data = await res.json();
+                if (this.stageSlug === 'check-in') {
+                    this.gradeResult = data;
+                } else if (this.stageSlug === 'qa') {
+                    this.qaResult = data;
+                }
+                if (data.new_stage) {
+                    window.location.href = `/devices/${this.deviceId}/`;
+                }
+            } catch (e) {
+                console.error('Complete failed:', e);
+            } finally {
+                this.completing = false;
+            }
+        },
+
+        gradeBadgeClass(grade) {
+            const map = { A: 'text-green-700', B: 'text-green-500', C: 'text-amber-500', D: 'text-orange-600', BER: 'text-red-700' };
+            return map[grade] || 'text-gray-600';
+        },
+
+        allRequiredDone() {
+            for (const section of this.sections) {
+                for (const item of section.items) {
+                    if (item.template_item.required && (item.response.value === null || item.response.value === undefined)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        },
+
+        capturePhoto(item) {
+            window.open(`/photos/?device=${this.deviceId}`, '_blank');
+        },
+
+        getCSRF() {
+            const m = document.cookie.match(/csrftoken=([^;]+)/);
+            return m ? m[1] : '';
+        },
+    };
+}
+</script>
+{% endblock %}

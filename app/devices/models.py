@@ -424,3 +424,46 @@ class InventorySequence(models.Model):
     
     def __str__(self):
         return f"{self.date_prefix}: {self.current_number:04d}"
+class RepairOutcome(models.TextChoices):
+    SUCCESS = "SUCCESS", "Success"
+    PARTIAL = "PARTIAL", "Partial"
+    FAILED = "FAILED", "Failed"
+    PARTS_REQUIRED = "PARTS_REQUIRED", "Parts Required"
+    BER = "BER", "Beyond Economic Repair"
+
+
+class RepairTaskType(models.TextChoices):
+    SCREEN_REPLACEMENT = "SCREEN_REPLACEMENT", "Screen Replacement"
+    BATTERY_REPLACEMENT = "BATTERY_REPLACEMENT", "Battery Replacement"
+    KEYBOARD_REPLACEMENT = "KEYBOARD_REPLACEMENT", "Keyboard Replacement"
+    RAM_UPGRADE = "RAM_UPGRADE", "RAM Upgrade"
+    RAM_REPLACEMENT = "RAM_REPLACEMENT", "RAM Replacement"
+    STORAGE_UPGRADE = "STORAGE_UPGRADE", "Storage Upgrade"
+    STORAGE_REPLACEMENT = "STORAGE_REPLACEMENT", "Storage Replacement"
+    FAN_CLEANING = "FAN_CLEANING", "Fan Cleaning"
+    THERMAL_PASTE = "THERMAL_PASTE", "Thermal Paste"
+    HINGE_REPAIR = "HINGE_REPAIR", "Hinge Repair"
+    PORT_REPAIR = "PORT_REPAIR", "Port Repair"
+    MOTHERBOARD_REPAIR = "MOTHERBOARD_REPAIR", "Motherboard Repair"
+    SOFTWARE_ISSUE = "SOFTWARE_ISSUE", "Software Issue"
+    OTHER = "OTHER", "Other"
+
+
+class RepairTask(models.Model):
+    device = models.ForeignKey(
+        Device, on_delete=models.CASCADE, related_name="repair_tasks"
+    )
+    task_type = models.CharField(max_length=30, choices=RepairTaskType.choices)
+    outcome = models.CharField(
+        max_length=20, choices=RepairOutcome.choices, null=True, blank=True
+    )
+    description = models.TextField(blank=True)
+    technician_notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_task_type_display()} — {self.device.inventory_number}"    

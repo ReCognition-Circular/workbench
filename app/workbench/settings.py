@@ -48,7 +48,8 @@ INSTALLED_APPS =[
     'donations',
     'wipe',
     'api',
-    'integrations'
+    'integrations',
+    'checklists',
 ]
 # LDAP Authentication
 AUTHENTICATION_BACKENDS = [

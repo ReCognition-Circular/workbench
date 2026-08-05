@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from django.db import models
 from devices.models import Device
@@ -127,14 +128,46 @@ def device_detail(request, pk):
     from wipe.models import DataWipeRecord
     wipe_records = DataWipeRecord.objects.filter(device=device).order_by("-uploaded_at")
 
+    checklist_slug = None
+    if device.stage:
+        slug_map = {"CHECK_IN": "check-in", "REFURB_IN_PROGRESS": "refurb", "QA": "qa"}
+        checklist_slug = slug_map.get(device.stage.code)
+
     return render(request, "device_detail.html", {
         "device": device,
         "stages": stages,
         "default_next_stage": default_next_stage,
         "allocations": allocations,
         "wipe_records": wipe_records,
+        "checklist_slug": checklist_slug,
     })
 
+@login_required
+def device_checklist(request, pk, stage):
+    """Full-page checklist view for a device at a given stage."""
+    device = get_object_or_404(
+        Device.objects.select_related("stage", "device_specification"),
+        pk=pk,
+    )
+
+    # Map URL stage slug to template code
+    stage_map = {
+        "check-in": "check-in",
+        "refurb": "refurb",
+        "qa": "qa",
+    }
+    template_code = stage_map.get(stage)
+    if not template_code:
+        raise Http404(f"No checklist for stage '{stage}'")
+
+    from checklists.models import ChecklistTemplate
+    template = get_object_or_404(ChecklistTemplate, code=template_code, is_active=True)
+
+    return render(request, "checklist.html", {
+        "device": device,
+        "checklist_template": template,
+        "stage_slug": stage,
+    })
 
 @login_required
 def device_edit(request, pk):
@@ -508,3 +541,7 @@ def pledge_detail(request, reference):
         'device_data': device_data,
         'summary': summary,
     })
+@login_required
+def photo_capture(request):
+    """Mobile-first photo capture page for technicians."""
+    return render(request, "photos.html")    
