@@ -64,6 +64,10 @@ class DeviceSpecificationWriteSerializer(serializers.ModelSerializer):
             'memory_gb_upgraded',
             'storage_size_gb_upgraded',
             'processor_upgraded',
+            'serial_number',
+            'drive_serial',
+            'hdmodel_raw',
+            'mac_address',
         ]
 
 

@@ -199,3 +199,7 @@ ERPNEXT_COMPANY = os.getenv("ERPNEXT_COMPANY", "ReCognition Circular CIC")
 ERPNEXT_URL = os.getenv("ERPNEXT_URL", "https://erp.recognition-circular.org")
 ERPNEXT_API_KEY = os.getenv("ERPNEXT_API_KEY", "")
 ERPNEXT_API_SECRET = os.getenv("ERPNEXT_API_SECRET", "")
+# Cedar Enterprise Integration
+CEDAR_CLOUD_CODE = os.environ.get('CEDAR_CLOUD_CODE', '')
+CEDAR_CLOUD_PASS = os.environ.get('CEDAR_CLOUD_PASS', '')
+CEDAR_API_BASE = 'https://portal.cedar-enterprise.com/api/v1'

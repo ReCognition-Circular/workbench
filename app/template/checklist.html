@@ -154,10 +154,15 @@
         </div>
         <div class="grid grid-cols-4 gap-2">
             <template x-for="p in devicePhotos" :key="p.id">
-                <a :href="p.image" target="_blank" class="relative group">
-                    <img :src="p.image" class="w-full h-24 object-cover rounded border" :title="p.photo_type">
-                    <span class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs px-1 py-0.5 truncate" x-text="p.photo_type"></span>
-                </a>
+                <div class="relative group">
+                    <a :href="p.image" target="_blank">
+                        <img :src="p.image" class="w-full h-24 object-cover rounded border" :title="p.photo_type">
+                        <span class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs px-1 py-0.5 truncate" x-text="p.photo_type"></span>
+                    </a>
+                    <button @click="deletePhoto(p.id)"
+                            class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                            title="Delete photo">&times;</button>
+                </div>
             </template>
             <template x-if="devicePhotos.length === 0">
                 <div class="col-span-4 border-2 border-dashed rounded h-24 flex items-center justify-center text-gray-400 text-sm">
@@ -225,6 +230,18 @@ function checklistApp() {
                 this.devicePhotos = await res.json();
             } catch (e) {
                 console.error('Failed to load photos:', e);
+            }
+        },
+
+        async deletePhoto(photoId) {
+            try {
+                await fetch('/api/checklists/photos/' + photoId + '/delete/', {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': this.getCSRF() },
+                });
+                this.devicePhotos = this.devicePhotos.filter(p => p.id !== photoId);
+            } catch (e) {
+                console.error('Delete failed:', e);
             }
         },
 

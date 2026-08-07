@@ -160,11 +160,13 @@ class DeviceSpecificationAdmin(admin.ModelAdmin):
         "memory_gb",
         "storage_type",
         "source",
+        "drive_serial",
     ]
     search_fields = [
         "manufacturer",
         "model_name",
         "serial_number",
+        "drive_serial",
     ]
     list_filter = [
         "source",

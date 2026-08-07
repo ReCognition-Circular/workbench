@@ -48,3 +48,28 @@ class CachedProduct(models.Model):
 
     def __str__(self):
         return f"{self.item_code} — {self.item_name}"    
+class CedarAuthToken(models.Model):
+    """Singleton — stores the active Cedar Enterprise bearer token."""
+
+    token = models.CharField(max_length=255)
+    refreshed_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        verbose_name = "Cedar Auth Token"
+        verbose_name_plural = "Cedar Auth Token"
+
+    def __str__(self):
+        return f"Token expires {self.expires_at.strftime('%Y-%m-%d %H:%M')}"
+
+    @classmethod
+    def get_token(cls):
+        """Return the current valid token or None."""
+        from django.utils import timezone
+        try:
+            obj = cls.objects.latest('refreshed_at')
+            if obj.expires_at > timezone.now():
+                return obj.token
+        except cls.DoesNotExist:
+            pass
+        return None    

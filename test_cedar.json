@@ -1,0 +1,774 @@
+{
+    "software_product": "Drive Eraser",
+    "software_version": "1.2.1",
+    "software_revision": "2",
+    "operative_name": "David Abosch",
+    "reference_number": "KOCHO",
+    "lot_number": null,
+    "asset_number": null,
+    "custom_fields": {},
+    "timestamps": {
+        "started": "2026-07-24T12:27:16+01:00",
+        "ended": "2026-07-24T12:27:16+01:00",
+        "duration": "0:07:19.950242"
+    },
+    "system": {
+        "uuid": "4c4c4544-0047-3110-804a-c7c04f4b4c33",
+        "type": "Notebook",
+        "vendor": "Dell Inc.",
+        "family": "Latitude",
+        "model_number": "Latitude 5520",
+        "serial_number": "GG1JKL3",
+        "stock_keeping_unit": "0A21",
+        "batteries": [
+            {
+                "id": "BAT0",
+                "present": "yes",
+                "rechargeable": "yes",
+                "warning_level": "none",
+                "vendor": "SMP",
+                "model": "DELL 75X1621",
+                "serial": "750",
+                "technology": "lithium-polymer",
+                "state": "charging",
+                "health": "100%",
+                "charge": "95%",
+                "plugged": "Yes",
+                "cycles": "N/A",
+                "energy": "59.3864 Wh",
+                "energy_empty": "0 Wh",
+                "energy_full": "62.3048 Wh",
+                "energy_full_design": "62.2896 Wh",
+                "voltage": "17.674 V"
+            }
+        ],
+        "bios": {
+            "vendor": "Dell Inc.",
+            "version": "1.30.0",
+            "date": "07/12/2023",
+            "size": 1048576,
+            "capacity": 33554432,
+            "units": "bytes"
+        },
+        "motherboard": {
+            "vendor": "Dell Inc.",
+            "model_number": "0G60M3",
+            "serial_number": "/GG1JKL3/CNWSC0024A0BVP/",
+            "version": "A00"
+        },
+        "processors": {
+            "vendor": "Intel Corp.",
+            "model_number": "11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz",
+            "serial_number": null,
+            "slot": "U3E1",
+            "total_cpus": 1,
+            "total_cores": 4,
+            "total_threads": 8,
+            "processors": [
+                {
+                    "vendor": "Intel Corp.",
+                    "model_number": "11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz",
+                    "serial_number": null,
+                    "slot": "U3E1",
+                    "bus": "cpu@0",
+                    "cores": 4,
+                    "threads": 8,
+                    "microcode": "188",
+                    "speeds": {
+                        "base_hz": 1800000000,
+                        "base_ghz": 1.8,
+                        "max_hz": 4800000000,
+                        "max_ghz": 4.8,
+                        "min_hz": 400000000,
+                        "min_ghz": 0.4
+                    }
+                }
+            ]
+        },
+        "memory": {
+            "total": 17179869184,
+            "slots_total": 2,
+            "slots_free": 1,
+            "slots_used": 1,
+            "type": "DDR4",
+            "type_detail": "Synchronous",
+            "form_factor": "SODIMM",
+            "modules": [
+                {
+                    "id": "bank:0",
+                    "physical_id": "0",
+                    "vendor": "Fujitsu",
+                    "model_number": "AO1P32NCSV1-BEWS",
+                    "serial_number": "A5010200",
+                    "description": "SODIMM DDR4 Synchronous 3200 MHz (0.3 ns)",
+                    "slot": "DIMM 1",
+                    "size": 17179869184,
+                    "clock": 3200000000,
+                    "type": "DDR4",
+                    "type_detail": "Synchronous",
+                    "form_factor": "SODIMM"
+                }
+            ]
+        },
+        "network": {
+            "ethernet": [
+                {
+                    "vendor": "Intel Corporation",
+                    "model_number": "Ethernet Connection (13) I219-LM",
+                    "serial_number": "00:be:43:5b:d3:37",
+                    "description": "Ethernet interface",
+                    "version": "20",
+                    "firmware": "0.8-4",
+                    "driver": "e1000e",
+                    "driver_version": "6.1.0-42-amd64",
+                    "ip_address": "172.16.0.41"
+                }
+            ],
+            "wireless": [
+                {
+                    "vendor": "Intel Corporation",
+                    "model_number": "Wi-Fi 6 AX201",
+                    "serial_number": "9a:30:42:d7:73:61",
+                    "description": "Wireless interface",
+                    "version": "20",
+                    "firmware": "72.daa05125.0 QuZ-a0-hr-b0-72.u",
+                    "driver": "iwlwifi",
+                    "driver_version": "6.1.0-42-amd64",
+                    "ip_address": "Not Reported"
+                }
+            ]
+        },
+        "storage": {
+            "fc": [],
+            "sata": [],
+            "sas": [],
+            "scsi": [],
+            "nvme": [
+                {
+                    "vendor": "Samsung Electronics Co Ltd",
+                    "model_number": "PM991a NVMe Samsung 512GB",
+                    "description": "NVMe device",
+                    "version": "26304039",
+                    "type": "NVMe controller",
+                    "driver": "nvme"
+                }
+            ],
+            "raid": []
+        },
+        "graphics": [
+            {
+                "vendor": "Intel Corporation",
+                "model_number": "TigerLake-LP GT2 [Iris Xe Graphics]",
+                "description": "VGA compatible controller",
+                "version": "01",
+                "driver": "i915",
+                "bus": "pci@0000:00:02.0",
+                "configuration": {
+                    "depth": "32",
+                    "driver": "i915",
+                    "latency": "0",
+                    "mode": "1920x1080",
+                    "resolution": "1920,1080",
+                    "visual": "truecolor",
+                    "xres": "1920",
+                    "yres": "1080"
+                }
+            }
+        ],
+        "display": [
+            {
+                "vendor": "BOE \"1DW1M NV15N4V\"",
+                "model_number": "1DW1M NV15N4V LCD Monitor",
+                "serial_number": "0",
+                "description": "LCD Monitor",
+                "manufacture": {
+                    "year": 2021,
+                    "week": 25
+                },
+                "resolutions": [
+                    "1920x1080@60Hz",
+                    "1920x1080",
+                    "1920x1080"
+                ],
+                "raw": {
+                    "index": 25,
+                    "bus": "00.0",
+                    "class": "LCD Monitor",
+                    "unique_id": "rdCR.5hlcwTpyaeF",
+                    "parent_id": "_Znp.KtGnhpUjVmE",
+                    "hardware_class": "monitor",
+                    "vendor": "BOE \"1DW1M NV15N4V\"",
+                    "model": "1DW1M NV15N4V LCD Monitor",
+                    "device": "eisa 0x0a86",
+                    "serial": "0",
+                    "resolutions": [
+                        "1920x1080@60Hz",
+                        "1920x1080",
+                        "1920x1080"
+                    ],
+                    "size_mm": "344x194 mm",
+                    "manufacture": {
+                        "year": 2021,
+                        "week": 25
+                    },
+                    "detailed_timings": [
+                        {
+                            "resolution": null,
+                            "horizontal": "1920 1968 2000 2316 (+48 +80 +396) -hsync",
+                            "vertical": "1080 1083 1089 1210 (+3 +9 +130) +vsync",
+                            "frequencies": "134.51 MHz, 58.08 kHz, 48.00 Hz"
+                        },
+                        {
+                            "resolution": null,
+                            "horizontal": "1920 1968 2000 2316 (+48 +80 +396) -hsync",
+                            "vertical": "1080 1083 1089 1210 (+3 +9 +130) +vsync",
+                            "frequencies": "168.14 MHz, 72.60 kHz, 60.00 Hz"
+                        }
+                    ],
+                    "driver_info": {},
+                    "config_status": {
+                        "cfg": "new",
+                        "avail": "yes",
+                        "need": "no",
+                        "active": "unknown"
+                    },
+                    "attached_to": "#21 (VGA compatible controller)",
+                    "primary_resolution": "1920x1080",
+                    "refresh_rate": "60.00",
+                    "dpi": "141.58",
+                    "screen_width_pixels": 1920,
+                    "screen_height_pixels": 1080,
+                    "screen_width_inches": "13.56",
+                    "screen_height_inches": "7.63",
+                    "diagonal_pixels": "2202.91",
+                    "diagonal_inches": "15.56",
+                    "calculation_details": {
+                        "screen_width_inches": "1920 px / 141.58475185806762 DPI",
+                        "screen_height_inches": "1080 px / 141.58475185806762 DPI",
+                        "diagonal_inches": "sqrt(13.56^2 + 7.63^2)",
+                        "diagonal_pixels": "sqrt(1920^2 + 1080^2)"
+                    }
+                }
+            }
+        ],
+        "sound": [
+            {
+                "vendor": "Intel Corporation",
+                "model_number": "Tiger Lake-LP Smart Sound Technology Audio Controller",
+                "description": "Audio device",
+                "driver": "snd_hda_intel",
+                "bus": "pci@0000:00:1f.3",
+                "configuration": {
+                    "driver": "snd_hda_intel",
+                    "latency": "64"
+                }
+            }
+        ],
+        "video": [
+            {
+                "vendor": "CN00XMGG8LG0021EEYTWA04",
+                "model_number": "Integrated_Webcam_HD: Integrate",
+                "description": "Video",
+                "driver": "uvcvideo",
+                "bus": "usb@3:6",
+                "configuration": {
+                    "driver": "uvcvideo",
+                    "maxpower": "500mA",
+                    "speed": "480Mbit/s"
+                }
+            }
+        ],
+        "multimedia": [],
+        "tpm": {},
+        "disks": [
+            {
+                "vendor": "UNKNOWN",
+                "model_number": "PM991A NVME 512GB",
+                "serial_number": "S65ZNX0T328618",
+                "firmware_version": "26304039",
+                "media": "SSD",
+                "interface": "NVMe",
+                "bytes": 512110190592,
+                "sectors": 1000215216,
+                "logical_sector_size": 512,
+                "physical_sector_size": 512
+            }
+        ]
+    },
+    "audit": {
+        "motherboard": {
+            "name": "Motherboard",
+            "result": "Pass",
+            "comments": "Motherboard Test passed"
+        },
+        "bios": {
+            "name": "BIOS Logo",
+            "result": "Pass",
+            "comments": "BIOS Logo Test passed"
+        },
+        "battery": {
+            "name": "Battery",
+            "result": "Pass",
+            "comments": "Battery Test passed – Health = 100% ",
+            "batteries": [
+                {
+                    "id": "BAT0",
+                    "model": "DELL 75X1621",
+                    "vendor": "SMP",
+                    "serial": "750",
+                    "health": "100%",
+                    "charge": "95%",
+                    "energy": "59.6752 Wh",
+                    "energy_design": "62.2896 Wh",
+                    "energy_full": "62.3048 Wh",
+                    "voltage": "17.681 V",
+                    "cycles": "N/A",
+                    "state": "charging",
+                    "plugged": "Yes",
+                    "status": "Pass",
+                    "comments": "Skipped – health above threshold (100%)."
+                }
+            ],
+            "ended": "2026-07-24 12:27:43"
+        },
+        "processor": {
+            "name": "Processor",
+            "result": "Pass",
+            "comments": [
+                "Processor Test passed"
+            ]
+        },
+        "memory": {
+            "name": "Memory",
+            "result": "Pass",
+            "comments": "Memory Test pass",
+            "passes": [
+                {
+                    "pass": 1,
+                    "started": "24/07/2026 12:28:01",
+                    "ended": "24/07/2026 12:28:11",
+                    "result": "Pass",
+                    "errors": false
+                },
+                {
+                    "pass": 2,
+                    "started": "24/07/2026 12:28:11",
+                    "ended": "24/07/2026 12:28:21",
+                    "result": "Pass",
+                    "errors": false
+                }
+            ]
+        },
+        "display": {
+            "name": "Display",
+            "dead_pixels": [],
+            "issues": {},
+            "screenshots": {},
+            "result": "Pass",
+            "comments": "Display Test passed"
+        },
+        "touchscreen": {
+            "name": "Touchscreen",
+            "result": "Skipped",
+            "comments": "Component is missing or not detected"
+        },
+        "ethernet": {
+            "name": "Ethernet",
+            "tests": {
+                "enp0s31f6": {
+                    "interface": "enp0s31f6",
+                    "ping_latency": "6.88 ms",
+                    "speed": "100Mbit/s",
+                    "status": "connected"
+                }
+            },
+            "result": "Pass",
+            "comments": "Ethernet Test passed",
+            "started": "24/07/2026 12:34:08"
+        },
+        "wifi": {
+            "name": "WiFi",
+            "tests": {
+                "wlp0s20f3": {
+                    "interface": "wlp0s20f3",
+                    "networks": [
+                        {
+                            "security": "WPA2",
+                            "signal": "77",
+                            "ssid": "TP-Link_7B75_5G"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "70",
+                            "ssid": "TP-Link_7B75"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "69",
+                            "ssid": "Voltempo"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "60",
+                            "ssid": "Voltempo"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "59",
+                            "ssid": "WHLB-WiFi"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "52",
+                            "ssid": "WHLB-WiFi"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "50",
+                            "ssid": "OG7"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "50",
+                            "ssid": "UoB"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "50",
+                            "ssid": "Voltempo Office"
+                        },
+                        {
+                            "security": "",
+                            "signal": "49",
+                            "ssid": "Voltempo Office Guest"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "47",
+                            "ssid": "OG6"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "47",
+                            "ssid": "Unit R"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "44",
+                            "ssid": "VoltempoMSR"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "42",
+                            "ssid": "TEPGuest_EXT"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "42",
+                            "ssid": "Works_Test"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "40",
+                            "ssid": "WHLB-WiFi"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "40",
+                            "ssid": "TyseleyEnergyParkHotdesk"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "40",
+                            "ssid": "omm"
+                        },
+                        {
+                            "security": "",
+                            "signal": "40",
+                            "ssid": "Voltempo Office Guest"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "40",
+                            "ssid": "Voltempo Office"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "39",
+                            "ssid": "Voltempo 2"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "35",
+                            "ssid": "WHLB-WiFi"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "35",
+                            "ssid": "OF6"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "35",
+                            "ssid": "WHLB-WiFi"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "35",
+                            "ssid": "WHLB-WiFi"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "35",
+                            "ssid": "The Works Guest"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "35",
+                            "ssid": "Works_Test"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "34",
+                            "ssid": "TEPGuest"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "34",
+                            "ssid": "W&H Tenants Secure"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "34",
+                            "ssid": "Mercia-DFBB"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "34",
+                            "ssid": "Unit R"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "34",
+                            "ssid": "TyseleyEnergyParkHotdesk"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "34",
+                            "ssid": "TEPGuest"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "34",
+                            "ssid": "WHLB-WiFi"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "32",
+                            "ssid": "Voltempo_Guest"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "30",
+                            "ssid": "TEPGuest"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "30",
+                            "ssid": "omm"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "30",
+                            "ssid": "VoltempoMSR_5GHz"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "29",
+                            "ssid": "The Works Guest"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "29",
+                            "ssid": "TyseleyEnergyParkHotdesk"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "29",
+                            "ssid": "WHLB-WiFi"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "29",
+                            "ssid": "TEPGuest_EXT"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "27",
+                            "ssid": "Works_Test"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "27",
+                            "ssid": "WHLB-WiFi"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "27",
+                            "ssid": "UoB"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "25",
+                            "ssid": "Unit R"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "25",
+                            "ssid": "OG6"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "25",
+                            "ssid": "OG7"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "22",
+                            "ssid": "TEPGuest"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "20",
+                            "ssid": "WHLB-WiFi"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "17",
+                            "ssid": "OF6"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "17",
+                            "ssid": "Mercia-DFBB"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "17",
+                            "ssid": "Voltempo 2"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "17",
+                            "ssid": "UoB"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "17",
+                            "ssid": "TEPGuest"
+                        },
+                        {
+                            "security": "WPA2",
+                            "signal": "15",
+                            "ssid": "OG7"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "15",
+                            "ssid": "TEPGuest"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "15",
+                            "ssid": "Unit R"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "15",
+                            "ssid": "TyseleyEnergyParkHotdesk"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "14",
+                            "ssid": "WHLB-WiFi"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "12",
+                            "ssid": "TEPGuest"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "10",
+                            "ssid": "The Works Guest"
+                        },
+                        {
+                            "security": "WPA2 WPA3",
+                            "signal": "10",
+                            "ssid": "Works_Test"
+                        }
+                    ]
+                }
+            },
+            "result": "Pass",
+            "comments": "Wi-Fi Scan successful",
+            "started": "24/07/2026 12:34:30"
+        },
+        "keyboard": {
+            "name": "Keyboard",
+            "result": "Pass",
+            "comments": "Unpressed Keys: 3",
+            "keys": {
+                "total": null,
+                "unpressed": null,
+                "pressed": null,
+                "issues": null,
+                "unpressed_keys": {},
+                "issue_keys": {}
+            }
+        },
+        "pointer": {
+            "name": "Pointer",
+            "description": "Pointer device diagnostic test",
+            "left_button": true,
+            "middle_button": "Skipped",
+            "right_button": true,
+            "scroll_wheel": true,
+            "target_clicks": [],
+            "result": "Pass",
+            "comments": "Buttons Not Clicked: 1",
+            "started": "24/07/2026 12:29:35"
+        },
+        "speaker": {
+            "name": "Speaker",
+            "description": "Speaker Diagnostic Test",
+            "frequency_hz": 440,
+            "left_speaker": "Pass",
+            "right_speaker": "Pass",
+            "both_speakers": "Pass",
+            "result": "Pass",
+            "comments": "Speaker Test passed"
+        },
+        "microphone": {
+            "name": "Microphone",
+            "result": "Pass",
+            "comments": "Microphone Test passed"
+        },
+        "webcam": {
+            "name": "Webcam",
+            "result": "Pass",
+            "comments": "Webcam Test passed"
+        }
+    },
+    "erasures": [],
+    "tested": true,
+    "erased": false,
+    "verified": false,
+    "standard": "IEEE 2883-2022",
+    "result": "Pass",
+    "comments": [
+        "All hardware diagnostics completed successfully; no storage devices detected"
+    ],
+    "summary": "",
+    "erasure_applicable": false
+}

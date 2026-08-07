@@ -1,5 +1,6 @@
 from django.http import HttpResponse
 import io
+from PIL import Image
 from datetime import timezone
 
 from django.contrib.contenttypes.models import ContentType
@@ -171,8 +172,11 @@ class DeviceChecklistView(APIView):
             instance.save(update_fields=["stage"])
 
         # Ensure all template items have corresponding responses
-        if created or not instance.responses.exists():
-            for item in template.items.all():
+        existing_item_ids = set(
+            instance.responses.values_list('template_item_id', flat=True)
+        )
+        for item in template.items.all():
+            if item.id not in existing_item_ids:
                 ChecklistItemResponse.objects.get_or_create(
                     instance=instance,
                     template_item=item,
@@ -374,9 +378,33 @@ class PhotoUploadView(APIView):
             "object_id": object_id,
         })
         if serializer.is_valid():
-            serializer.save(captured_by=request.user)
+            photo = serializer.save(captured_by=request.user)
+            # Server-side compression: resize + strip EXIF
+            try:
+                img = Image.open(photo.image.path)
+                w, h = img.size
+                if max(w, h) > 1200:
+                    ratio = 1200.0 / max(w, h)
+                    new_size = (int(w * ratio), int(h * ratio))
+                    img = img.resize(new_size, Image.LANCZOS)
+                if img.mode in ('RGBA', 'P'):
+                    img = img.convert('RGB')
+                img.save(photo.image.path, 'JPEG', quality=80)
+            except Exception:
+                pass  # Non-fatal: keep original on failure
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class PhotoDeleteView(APIView):
+    """DELETE /api/photos/{id}/ — soft-delete a photo."""
+
+    def delete(self, request, pk):
+        photo = get_object_or_404(DevicePhoto, pk=pk)
+        # Soft-delete: keep file, mark as inactive (or hard-delete if preferred)
+        photo.image.delete(save=False)  # delete file from storage
+        photo.delete()  # delete DB record
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class DevicePhotoListView(APIView):
     """GET /api/checklists/devices/{id}/photos/ — list photos for a device."""
 

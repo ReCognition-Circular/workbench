@@ -277,6 +277,14 @@ class DeviceSpecification(models.Model):
     source = models.CharField(
         max_length=20, choices=SpecSource.choices, default=SpecSource.FOG
     )
+    drive_serial = models.CharField(
+    max_length=500,
+    blank=True,
+    default='',
+    help_text="Drive serial(s) from FOG hdserial. Multi-drive: comma-separated string."
+)
+    hdmodel_raw = models.CharField(max_length=200, blank=True, default='')
+    mac_address = models.CharField(max_length=50, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -320,6 +328,20 @@ class Device(models.Model):
     )
     final_audit_status = models.CharField(
         max_length=20, choices=AuditStatus.choices, default=AuditStatus.NOT_STARTED
+    )
+    initial_audit = models.ForeignKey(
+        "wipe.AuditRecord",
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="device_initial_audit",
+        help_text="Cedar audit certificate designated as initial (check-in)",
+    )
+    final_audit = models.ForeignKey(
+        "wipe.AuditRecord",
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="device_final_audit",
+        help_text="Cedar audit certificate designated as final (QA)",
     )
 
     # Parts tracking

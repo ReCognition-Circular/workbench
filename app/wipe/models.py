@@ -59,3 +59,38 @@ class DataWipeRecord(models.Model):
 
     def __str__(self):
         return f"{self.device.inventory_number} - {self.result} ({self.get_certificate_type_display()})"
+class AuditRecord(models.Model):
+    """Stores Cedar Enterprise asset (hardware diagnostic) certificates."""
+
+    device = models.ForeignKey(
+        "devices.Device",
+        on_delete=models.CASCADE,
+        related_name="audit_records",
+    )
+    result = models.CharField(
+        max_length=20,
+        choices=[
+            ("PASS", "Pass"),
+            ("FAIL", "Fail"),
+            ("NOT_TESTED", "Not Tested"),
+            ("NOT_APPLICABLE", "Not Applicable"),
+        ],
+        default="PASS",
+    )
+    test_results = models.JSONField(
+        null=True, blank=True,
+        help_text="Full Cedar asset certificate JSON",
+    )
+    certificate_file = models.FileField(
+        upload_to="audit_certificates/",
+        null=True, blank=True,
+    )
+    auditor = models.CharField(max_length=100, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Audit {self.device.inventory_number} — {self.result}"

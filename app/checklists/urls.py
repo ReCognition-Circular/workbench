@@ -1,6 +1,7 @@
 from django.urls import path
 
 from checklists.views import (
+    PhotoDeleteView,
     QRCodeView,
     TemplateListView,
     TemplateDetailView,
@@ -28,5 +29,6 @@ urlpatterns = [
     # Photos
     path("photos/upload/", PhotoUploadView.as_view(), name="photo-upload"),
     path("devices/<int:pk>/photos/", DevicePhotoListView.as_view(), name="device-photos"),
+    path("photos/<int:pk>/delete/", PhotoDeleteView.as_view(), name="photo-delete"),
     path("qr/", QRCodeView.as_view(), name="qr-code"),
 ]

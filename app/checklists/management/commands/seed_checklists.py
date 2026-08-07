@@ -12,21 +12,21 @@ from checklists.models import (
 
 # Maps Cedar component names → RepairTaskType for auto-creating defects
 CEDAR_REPAIR_LOOKUP = {
-    "Motherboard": "MOTHERBOARD_REPAIR",
-    "Processor": "MOTHERBOARD_REPAIR",
-    "Memory": "RAM_REPLACEMENT",
-    "Display": "SCREEN_REPLACEMENT",
+    "motherboard": "MOTHERBOARD_REPAIR",
+    "processor": "MOTHERBOARD_REPAIR",
+    "memory": "RAM_REPLACEMENT",
+    "display": "SCREEN_REPLACEMENT",
     "Storage": "STORAGE_REPLACEMENT",
     "BIOS Logo": "SOFTWARE_ISSUE",
-    "Battery": "BATTERY_REPLACEMENT",
-    "Keyboard": "KEYBOARD_REPLACEMENT",
+    "battery": "BATTERY_REPLACEMENT",
+    "keyboard": "KEYBOARD_REPLACEMENT",
     "WiFi": "MOTHERBOARD_REPAIR",
-    "Touchscreen": "SCREEN_REPLACEMENT",
-    "Ethernet": "MOTHERBOARD_REPAIR",
-    "Speaker": "OTHER",
-    "Microphone": "OTHER",
-    "Webcam": "OTHER",
-    "Pointer": "OTHER",
+    "touchscreen": "SCREEN_REPLACEMENT",
+    "ethernet": "MOTHERBOARD_REPAIR",
+    "speaker": "OTHER",
+    "microphone": "OTHER",
+    "webcam": "OTHER",
+    "pointer": "OTHER",
 }
 
 # Standard weight tier points used in auto-grade calculation
@@ -48,24 +48,24 @@ CHECKIN_PHYSICAL = [
 
 CHECKIN_CEDAR = [
     # Tier 0 — Critical (10 pts)
-    ("Cedar Track", "Motherboard — diagnostic result", "PASS_FAIL", 10, True, "CEDAR_TEST", "Motherboard", 0),
-    ("Cedar Track", "Processor — diagnostic result", "PASS_FAIL", 11, True, "CEDAR_TEST", "Processor", 0),
+    ("Cedar Track", "Motherboard — diagnostic result", "PASS_FAIL", 10, True, "CEDAR_TEST", "motherboard", 0),
+    ("Cedar Track", "Processor — diagnostic result", "PASS_FAIL", 11, True, "CEDAR_TEST", "processor", 0),
     # Tier 1 — Major (5 pts)
-    ("Cedar Track", "Memory — diagnostic result", "PASS_FAIL", 12, True, "CEDAR_TEST", "Memory", 1),
-    ("Cedar Track", "Display — diagnostic result", "PASS_FAIL", 13, True, "CEDAR_TEST", "Display", 1),
-    ("Cedar Track", "Storage — diagnostic result", "PASS_FAIL", 14, True, "CEDAR_TEST", "Storage", 1),
-    ("Cedar Track", "BIOS Logo — diagnostic result", "PASS_FAIL", 15, True, "CEDAR_TEST", "BIOS Logo", 1),
-    ("Cedar Track", "Battery — diagnostic result", "PASS_FAIL", 16, True, "CEDAR_TEST", "Battery", 1),
+    ("Cedar Track", "Memory — diagnostic result", "PASS_FAIL", 12, True, "CEDAR_TEST", "memory", 1),
+    ("Cedar Track", "Display — diagnostic result", "PASS_FAIL", 13, True, "CEDAR_TEST", "display", 1),
+    # Storage removed — not in Cedar audit JSON. ("Cedar Track", "Storage — diagnostic result", "PASS_FAIL", 14, True, "CEDAR_TEST", None, 1),
+    ("Cedar Track", "BIOS Logo — diagnostic result", "PASS_FAIL", 15, True, "CEDAR_TEST", "bios", 1),
+    ("Cedar Track", "Battery — diagnostic result", "PASS_FAIL", 16, True, "CEDAR_TEST", "battery", 1),
     # Tier 2 — Moderate (3 pts)
-    ("Cedar Track", "Keyboard — diagnostic result", "PASS_FAIL", 17, True, "CEDAR_TEST", "Keyboard", 2),
-    ("Cedar Track", "WiFi — diagnostic result", "PASS_FAIL", 18, True, "CEDAR_TEST", "WiFi", 2),
-    ("Cedar Track", "Touchscreen — diagnostic result", "PASS_FAIL", 19, True, "CEDAR_TEST", "Touchscreen", 2),
-    ("Cedar Track", "Ethernet — diagnostic result", "PASS_FAIL", 20, True, "CEDAR_TEST", "Ethernet", 2),
+    ("Cedar Track", "Keyboard — diagnostic result", "PASS_FAIL", 17, True, "CEDAR_TEST", "keyboard", 2),
+    ("Cedar Track", "WiFi — diagnostic result", "PASS_FAIL", 18, True, "CEDAR_TEST", "wifi", 2),
+    ("Cedar Track", "Touchscreen — diagnostic result", "PASS_FAIL", 19, True, "CEDAR_TEST", "touchscreen", 2),
+    ("Cedar Track", "Ethernet — diagnostic result", "PASS_FAIL", 20, True, "CEDAR_TEST", "ethernet", 2),
     # Tier 3 — Low (1 pt)
-    ("Cedar Track", "Speaker — diagnostic result", "PASS_FAIL", 21, True, "CEDAR_TEST", "Speaker", 3),
-    ("Cedar Track", "Microphone — diagnostic result", "PASS_FAIL", 22, True, "CEDAR_TEST", "Microphone", 3),
-    ("Cedar Track", "Webcam — diagnostic result", "PASS_FAIL", 23, True, "CEDAR_TEST", "Webcam", 3),
-    ("Cedar Track", "Pointer / touchpad — diagnostic result", "PASS_FAIL", 24, True, "CEDAR_TEST", "Pointer", 3),
+    ("Cedar Track", "Speaker — diagnostic result", "PASS_FAIL", 21, True, "CEDAR_TEST", "speaker", 3),
+    ("Cedar Track", "Microphone — diagnostic result", "PASS_FAIL", 22, True, "CEDAR_TEST", "microphone", 3),
+    ("Cedar Track", "Webcam — diagnostic result", "PASS_FAIL", 23, True, "CEDAR_TEST", "webcam", 3),
+    ("Cedar Track", "Pointer / touchpad — diagnostic result", "PASS_FAIL", 24, True, "CEDAR_TEST", "pointer", 3),
 ]
 
 # ── Refurb template items ────────────────────────────────────────────────

@@ -200,6 +200,31 @@
             </div>
 
 
+            <!-- Photos Card -->
+            <div x-data="devicePhotosCard({ deviceId: {{ device.id }} })" x-init="load()" class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-lg font-semibold text-gray-800">Photos (<span x-text="photos.length"></span>)</h2>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-400">Add via mobile:</span>
+                        <img :src="qrUrl" class="w-16 h-16 border rounded" alt="QR" />
+                    </div>
+                </div>
+                <div class="grid grid-cols-4 gap-2">
+                    <template x-for="p in photos" :key="p.id">
+                        <div class="relative group">
+                            <a :href="p.image" target="_blank">
+                                <img :src="p.image" class="w-full h-20 object-cover rounded border" :title="p.photo_type">
+                            </a>
+                            <button @click="remove(p.id)"
+                                class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 hover:bg-red-700">&times;</button>
+                        </div>
+                    </template>
+                    <div x-show="photos.length === 0" class="col-span-4 text-gray-400 text-sm text-center py-4">
+                        No photos — scan QR code on your phone
+                    </div>
+                </div>
+            </div>
+
             <!-- Stage Transition Card -->
             <div class="bg-white rounded-lg shadow-sm p-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-4">Move to Next Stage</h2>
@@ -440,6 +465,25 @@ document.addEventListener('keydown', function(e) {
 document.getElementById('transition-modal').addEventListener('click', function(e) {
     if (e.target === this) closeTransitionModal();
 });
+
+function devicePhotosCard(config) {
+    return {
+        deviceId: config.deviceId,
+        photos: [],
+        get qrUrl() { return '/api/checklists/qr/?data=' + encodeURIComponent('https://work.recognition-circular.org/photos/?device=' + this.deviceId); },
+        async load() {
+            try {
+                const r = await fetch('/api/checklists/devices/' + this.deviceId + '/photos/');
+                this.photos = await r.json();
+            } catch(e) { console.error(e); }
+        },
+        async remove(id) {
+            await fetch('/api/checklists/photos/' + id + '/delete/', { method: 'DELETE', headers: { 'X-CSRFToken': this.getCSRF() } });
+            this.photos = this.photos.filter(p => p.id !== id);
+        },
+        getCSRF() { const m = document.cookie.match(/csrftoken=([^;]+)/); return m ? m[1] : ''; },
+    };
+}
 </script>
 {% endblock %}
 

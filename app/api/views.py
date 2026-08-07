@@ -25,6 +25,8 @@ from django.conf import settings
 from integrations.erpnext_client import ERPNextClient, ERPNextClientError
 from integrations.models import IntegrationLog
 from integrations.services import create_stock_entry
+from integrations.cedar_api import search_erasure_certificates, search_asset_certificates, CedarAPIError
+from wipe.models import DataWipeRecord, AuditRecord
 from .serializers import (
     CustomerSerializer,    
     DeviceSerializer,
@@ -146,6 +148,12 @@ class DeviceViewSet(
                     device.wipe_status = "DONOR_WIPED"
                     device.save(update_fields=["wipe_status"])
 
+        # Auto-transition: RECEIVED → CHECK_IN (FOG/n8n devices land at RECEIVED)
+        if device.stage and device.stage.code == 'RECEIVED':
+            from workflow.models import Stage
+            check_in = Stage.objects.get(code='CHECK_IN')
+            device.stage = check_in
+            device.save(update_fields=['stage'])
         # Push Stock Entry to ERPNext (non-blocking — device created regardless)
         try:
             create_stock_entry(device)
@@ -231,7 +239,142 @@ class DeviceViewSet(
 
         serializer = self.get_serializer(device)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    @action(detail=True, methods=["post"], url_path="sync-cedar")
+    def sync_cedar(self, request, pk=None):
+        """
+        Pull Cedar Enterprise certificates for this device.
+        Queries both erasure and asset endpoints using drive serial(s).
+        Creates/updates DataWipeRecord and AuditRecord(s).
+        """
+        device = self.get_object()
 
+        spec = getattr(device, 'device_specification', None)
+        if not spec or not spec.drive_serial:
+            return Response(
+                {"error": "No drive serial recorded — re-import from FOG"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        drive_serials = [s.strip() for s in spec.drive_serial.split(",") if s.strip()]
+        if not drive_serials:
+            return Response(
+                {"error": "No drive serials found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        results = {
+            "erasure": {"found": 0, "pass": 0, "fail": 0, "drives": []},
+            "asset": {"found": 0, "pass": 0, "fail": 0, "audits": []},
+        }
+        all_erasure_data = []
+
+        # --- Query Cedar for each drive serial ---
+        for drive_sn in drive_serials:
+            # Erasure certificates
+            try:
+                erasure_resp = search_erasure_certificates(drive_sn)
+                certs = erasure_resp.get("certificates", {}).get("data", [])
+                if certs:
+                    results["erasure"]["found"] += len(certs)
+                    all_erasure_data.extend(certs)
+                    for cert in certs:
+                        status_val = (cert.get("data", {}) or {}).get("status", "failed")
+                        if status_val and status_val.lower() == "passed":
+                            results["erasure"]["pass"] += 1
+                        else:
+                            results["erasure"]["fail"] += 1
+                    results["erasure"]["drives"].append({
+                        "serial": drive_sn,
+                        "certs": certs,
+                    })
+            except CedarAPIError as e:
+                results["erasure"]["drives"].append({"serial": drive_sn, "error": str(e)})
+
+            # Asset certificates
+            try:
+                asset_resp = search_asset_certificates(drive_sn)
+                certs = asset_resp.get("certificates", {}).get("data", [])
+                if certs:
+                    results["asset"]["found"] += len(certs)
+                    for cert in certs:
+                        test_data = cert.get("data", {}) or {}
+                        overall = test_data.get("overall_result", "FAIL")
+                        if overall and overall.upper() == "PASS":
+                            results["asset"]["pass"] += 1
+                        else:
+                            results["asset"]["fail"] += 1
+                    results["asset"]["audits"].append({
+                        "serial": drive_sn,
+                        "certs": certs,
+                    })
+            except CedarAPIError as e:
+                results["asset"]["audits"].append({"serial": drive_sn, "error": str(e)})
+
+        # --- Create/update DataWipeRecord from erasure results ---
+        wipe_record = None
+        if all_erasure_data:
+            worst = "PASS"
+            for cert in all_erasure_data:
+                cert_data = cert.get("data", {}) or {}
+                if (cert_data.get("status") or "").lower() != "passed":
+                    worst = "FAIL"
+                    break
+
+            # Aggregate: standard/method from first cert
+            first_cert = all_erasure_data[0].get("data", {}) or {}
+            wipe_standard = first_cert.get("standard", "NIST 800-88")
+            wipe_method = first_cert.get("method", "")
+
+            wipe_record, _ = DataWipeRecord.objects.update_or_create(
+                device=device,
+                certificate_type="ERASE",
+                defaults={
+                    "result": worst,
+                    "wipe_standard": wipe_standard,
+                    "wipe_method": wipe_method,
+                    "json_data": {"erasure_results": all_erasure_data},
+                    "notes": f"Synced from Cedar: {len(all_erasure_data)} drive(s)",
+                },
+            )
+            device.wipe_status = worst
+            device.save(update_fields=["wipe_status"])
+
+        # --- Create AuditRecords from asset results ---
+        audit_records_created = []
+        for audit_group in results["asset"]["audits"]:
+            for cert in audit_group.get("certs", []):
+                test_data = cert.get("data", {}) or {}
+                overall = test_data.get("overall_result", "PASS")
+
+                audit_record = AuditRecord.objects.create(
+                    device=device,
+                    result="PASS" if (overall or "").upper() == "PASS" else "FAIL",
+                    test_results=cert,
+                    auditor="Cedar Enterprise",
+                    notes=f"Drive: {audit_group['serial']}",
+                )
+                audit_records_created.append(audit_record)
+
+        # --- Response ---
+        return Response({
+            "device_id": device.id,
+            "inventory_number": device.inventory_number,
+            "drive_serials_queried": drive_serials,
+            "erasure": {
+                "found": results["erasure"]["found"],
+                "pass": results["erasure"]["pass"],
+                "fail": results["erasure"]["fail"],
+                "wipe_record_id": wipe_record.id if wipe_record else None,
+                "wipe_status": device.wipe_status,
+            },
+            "asset": {
+                "found": results["asset"]["found"],
+                "pass": results["asset"]["pass"],
+                "fail": results["asset"]["fail"],
+                "audit_record_ids": [a.id for a in audit_records_created],
+                "audit_count": len(audit_records_created),
+            },
+        })
 
 class LocationViewSet(viewsets.ModelViewSet):
     queryset = Location.objects.select_related("site").all()
