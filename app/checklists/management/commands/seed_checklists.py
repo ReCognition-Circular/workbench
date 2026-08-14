@@ -44,6 +44,7 @@ CHECKIN_PHYSICAL = [
     ("Physical Track", "BIOS password present", "YES_NO", 7, True, None, None),
     ("Physical Track", "Serial number / label present", "YES_NO", 8, False, None, None),
     ("Physical Track", "Charger / adapter included", "YES_NO", 9, False, None, None),
+    ("Physical Track", "Data Wipe — erasure certificate result", "PASS_FAIL", 10, True, "DATAWIPE_RECORD", None),
 ]
 
 CHECKIN_CEDAR = [

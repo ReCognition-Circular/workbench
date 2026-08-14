@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Asset Audit Certificate</title>
+  <style>
+    @page { size: A4; margin: 2cm; }
+    body { font-family: "Helvetica Neue", Arial, sans-serif; color: #222; font-size: 11pt; }
+    .logo { height: 60px; display: block; margin: 0 auto 10pt auto; }
+    h1 { font-size: 20pt; text-align: center; margin: 0 0 2pt 0; }
+    .subtitle { text-align: center; color: #555; margin: 0 0 18pt 0; font-size: 11pt; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 14pt; }
+    th, td { border: 1px solid #bbb; padding: 6pt 8pt; text-align: left; vertical-align: top; }
+    th { background: #f0f0f0; width: 30%; font-weight: 600; }
+    .section { margin-top: 14pt; }
+    .section h2 { font-size: 12pt; border-bottom: 1px solid #bbb; padding-bottom: 2pt; margin: 0 0 8pt 0; }
+    .tests { width: 100%; border-collapse: collapse; }
+    .tests th, .tests td { border: 1px solid #bbb; padding: 6pt; text-align: left; }
+    .tests th { background: #eef; }
+    .pass { color: #0a7a0a; font-weight: 600; }
+    .fail { color: #b00000; font-weight: 600; }
+    .skip { color: #a07000; font-weight: 600; }
+    .hash { font-family: "Courier New", monospace; font-size: 9pt; word-break: break-all; }
+    .hint { color: #777; font-size: 9pt; font-weight: normal; }
+    ul { margin: 4pt 0 0 16pt; padding: 0; }
+    .footer { margin-top: 24pt; font-size: 10pt; color: #444; text-align: center; }
+    .footer a { color: #1a5d8a; text-decoration: none; }
+  </style>
+</head>
+<body>
+  {% if logo_url %}<img src="{{ logo_url }}" class="logo" alt="ReCognition Circular">{% endif %}
+  <h1>Asset Audit Certificate</h1>
+  <p class="subtitle">Hardware diagnostics</p>
+
+  <table>
+    <tr><th>Device Serial Number</th><td>{{ identity.serial_number }}</td></tr>
+    <tr><th>Device Type</th><td>{{ identity.device_type }}</td></tr>
+    <tr><th>Manufacturer</th><td>{{ identity.manufacturer }}</td></tr>
+    <tr><th>Model</th><td>{% if identity.model_name %}{{ identity.model_name }}{% if identity.model_number %} ({{ identity.model_number }}){% endif %}{% elif identity.model_number %}{{ identity.model_number }}{% endif %}</td></tr>
+    <tr><th>Result</th><td>{{ result }}</td></tr>
+    <tr><th>Operative</th><td>{{ operative|default:"&mdash;" }}</td></tr>
+    <tr><th>Reference Number</th><td>{{ reference_number|default:"&mdash;" }}</td></tr>
+    <tr><th>Asset Number</th><td>{{ asset_number|default:"&mdash;" }}</td></tr>
+    <tr><th>Started</th><td>{{ started_at|default:"&mdash;" }}</td></tr>
+    <tr><th>Ended</th><td>{{ ended_at|default:"&mdash;" }}</td></tr>
+    <tr><th>Integrity Hash (SHA-256)</th><td class="hash">{{ hash|default:"&mdash;" }}<br><span class="hint">Cryptographic checksum of the audit report — verifies this certificate has not been altered.</span></td></tr>
+  </table>
+
+  {% if processor or memory_total or storage_total or display_size or battery_health %}
+  <div class="section">
+    <h2>System Summary</h2>
+    <table>
+      <tr><th>Processor</th><td>{{ processor|default:"&mdash;" }}</td></tr>
+      <tr><th>Memory</th><td>{{ memory_total|default:"&mdash;" }}</td></tr>
+      <tr><th>Storage</th><td>{% if storage_total %}{{ storage_total }} GB{% else %}&mdash;{% endif %}</td></tr>
+      <tr><th>Display</th><td>{% if display_size %}{{ display_size }}"{% else %}&mdash;{% endif %}</td></tr>
+      <tr><th>Battery Health</th><td>{% if battery_health %}{{ battery_health }}%{% else %}&mdash;{% endif %}</td></tr>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="section">
+    <h2>Hardware Tests</h2>
+    <table class="tests">
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Result</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for test in tests %}
+        <tr>
+          <td>{{ test.name|default:"&mdash;" }}</td>
+          <td class="{% if test.result == 'PASS' %}pass{% elif test.result == 'FAIL' %}fail{% elif test.result == 'SKIPPED' or test.result == 'SKIP' %}skip{% endif %}">{{ test.result|default:"&mdash;" }}</td>
+          <td>{{ test.details|default:"&mdash;" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3">No test records.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if notes %}
+  <div class="section">
+    <h2>Notes</h2>
+    <p>{{ notes }}</p>
+  </div>
+  {% endif %}
+
+  <p class="footer">Hardware tested using <a href="https://cedar.interactdc.com/drive-eraser">Cedar Drive Eraser</a></p>
+</body>
+</html>
+

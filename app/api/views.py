@@ -27,6 +27,7 @@ from integrations.models import IntegrationLog
 from integrations.services import create_stock_entry
 from integrations.cedar_api import search_erasure_certificates, search_asset_certificates, CedarAPIError
 from wipe.models import DataWipeRecord, AuditRecord
+from wipe.pdf_generator import generate_wipe_certificate, generate_audit_certificate
 from .serializers import (
     CustomerSerializer,    
     DeviceSerializer,
@@ -338,6 +339,37 @@ class DeviceViewSet(
             )
             device.wipe_status = worst
             device.save(update_fields=["wipe_status"])
+            # Generate wipe certificate PDF
+            generate_wipe_certificate(device, wipe_record)
+        # Auto-fill "Data Wipe" checklist item if device is in CHECK_IN
+            if device.stage and device.stage.code == 'CHECK_IN':
+                from checklists.models import (
+                    ChecklistTemplate, ChecklistInstance, 
+                    ChecklistItemResponse, ChecklistTemplateItem,
+                )
+                try:
+                    ct_checkin = ChecklistTemplate.objects.get(code='check-in')
+                    instance, _ = ChecklistInstance.objects.get_or_create(
+                        device=device,
+                        template=ct_checkin,
+                        defaults={'stage': device.stage, 'status': 'IN_PROGRESS'},
+                    )
+                    # Auto-fill DATAWIPE_RECORD items
+                    wipe_items = ChecklistTemplateItem.objects.filter(
+                        template=ct_checkin,
+                        auto_source='DATAWIPE_RECORD',
+                    )
+                    for wipe_item in wipe_items:
+                        ChecklistItemResponse.objects.update_or_create(
+                            instance=instance,
+                            template_item=wipe_item,
+                            defaults={
+                                'value': (worst == 'PASS'),
+                                'notes': f'Auto-filled from Cedar sync — {len(all_erasure_data)} drive(s)',
+                            },
+                        )
+                except Exception as e:
+                    logger.warning(f'Checklist auto-fill skipped: {e}')    
 
         # --- Create AuditRecords from asset results ---
         audit_records_created = []
@@ -354,6 +386,8 @@ class DeviceViewSet(
                     notes=f"Drive: {audit_group['serial']}",
                 )
                 audit_records_created.append(audit_record)
+                # Generate wipe certificate PDF
+            generate_wipe_certificate(device, wipe_record)
 
         # --- Response ---
         return Response({

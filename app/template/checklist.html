@@ -4,7 +4,7 @@
 <style>[x-cloak] { display: none !important; }</style>
 {% endblock %}
 {% block content %}
-<div x-data="checklistApp()" x-init="init" data-device-id="{{ device.pk }}" data-stage-slug="{{ stage_slug }}" class="max-w-4xl mx-auto">
+<div x-data="checklistApp()" x-init="init" data-device-id="{{ device.pk }}" data-stage-slug="{{ stage_slug }}" data-drive-serial="{{ device.device_specification.drive_serial|default:'' }}" class="max-w-4xl mx-auto">
 
     <!-- Device Header -->
     <div class="bg-white rounded-lg shadow p-4 mb-4 flex items-center justify-between">
@@ -13,9 +13,19 @@
             <p class="text-sm text-gray-500">{{ device.serial_number }} · {{ device.get_device_type_display }}</p>
             {% if device.stage %}<span class="inline-block mt-1 px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-800">{{ device.stage.name }}</span>{% endif %}
         </div>
-        <a href="{% url 'device_detail' device.pk %}" class="text-sm text-blue-600 hover:underline">← Back to device</a>
-    </div>
-
+        <div class="flex items-center gap-3">
+            <!-- Sync Cedar button (check-in only) -->
+            <button x-show="stageSlug === 'check-in'"
+                    @click="syncCedar()"
+                    :disabled="!driveSerial || cedarSyncing"
+                    class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    :title="!driveSerial ? 'No drive serial available for this device' : 'Pull erasure & audit certificates from Cedar'">
+                <span x-show="!cedarSyncing">🔄 Sync Cedar</span>
+                <span x-show="cedarSyncing">Syncing…</span>
+            </button>
+            <a href="{% url 'device_detail' device.pk %}" class="text-sm text-blue-600 hover:underline">← Back to device</a>
+        </div>
+    </div>	
     <!-- Loading -->
     <div x-show="loading" class="text-center py-12 text-gray-500">Loading checklist…</div>
 
@@ -184,10 +194,12 @@ function checklistApp() {
         deviceId: null,
         stageSlug: null,
         instanceId: null,
+	driveSerial: '',    
         sections: [],
         devicePhotos: [],
         loading: true,
         completing: false,
+	cedarSyncing: false,	
         gradeResult: {},
         qaResult: {},
         overrideGrade: '',
@@ -197,11 +209,32 @@ function checklistApp() {
         init() {
             this.deviceId = parseInt(this.$el.dataset.deviceId);
             this.stageSlug = this.$el.dataset.stageSlug;
+	    this.driveSerial = this.$el.dataset.driveSerial || '';	
             this.loadChecklist();
             this.loadDevicePhotos();
             // QR served server-side via getter qrUrl
         },
 
+	async syncCedar() {
+	    if (!this.driveSerial) return;
+	    this.cedarSyncing = true;
+	    try {
+		const res = await fetch(`/api/devices/${this.deviceId}/sync-cedar/`, {
+		    method: 'POST',
+		    headers: { 'X-CSRFToken': this.getCSRF() },
+		});
+		const data = await res.json();
+		if (!res.ok) throw new Error(data.error || 'Sync failed');
+		alert(`Cedar sync complete:\n• Erasure certs found: ${data.erasure.found} (${data.erasure.pass} pass / ${data.erasure.fail} fail)\n• Asset audits created: ${data.asset.audit_count} (${data.asset.pass} pass / ${data.asset.fail} fail)`);
+		// Reload checklist to show auto-filled values
+		this.loadChecklist();
+	    } catch (e) {
+		alert('Cedar sync failed: ' + e.message);
+		console.error('Cedar sync error:', e);
+	    } finally {
+		this.cedarSyncing = false;
+	    }
+	},    
         async loadChecklist() {
             try {
                 const res = await fetch(`/api/checklists/devices/${this.deviceId}/checklists/${this.stageSlug}/`);

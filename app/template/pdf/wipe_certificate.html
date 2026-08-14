@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Data Erasure Certificate</title>
+  <style>
+    @page { size: A4; margin: 2cm; }
+    body { font-family: "Helvetica Neue", Arial, sans-serif; color: #222; font-size: 11pt; }
+    .logo { height: 60px; display: block; margin: 0 auto 10pt auto; }
+    h1 { font-size: 20pt; text-align: center; margin: 0 0 2pt 0; }
+    .subtitle { text-align: center; color: #555; margin: 0 0 18pt 0; font-size: 11pt; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 14pt; }
+    th, td { border: 1px solid #bbb; padding: 6pt 8pt; text-align: left; vertical-align: top; }
+    th { background: #f0f0f0; width: 30%; font-weight: 600; }
+    .section { margin-top: 14pt; }
+    .section h2 { font-size: 12pt; border-bottom: 1px solid #bbb; padding-bottom: 2pt; margin: 0 0 8pt 0; }
+    .note { font-size: 9.5pt; color: #555; margin: 6pt 0 0 0; }
+    .drives { width: 100%; border-collapse: collapse; }
+    .drives th, .drives td { border: 1px solid #bbb; padding: 6pt; text-align: left; }
+    .drives th { background: #eef; }
+    .status-pass { color: #0a7a0a; font-weight: 600; }
+    .status-fail { color: #b00000; font-weight: 600; }
+    .hash { font-family: "Courier New", monospace; font-size: 9pt; word-break: break-all; }
+    .hint { color: #777; font-size: 9pt; font-weight: normal; }
+    ul { margin: 4pt 0 0 16pt; padding: 0; }
+    .footer { margin-top: 24pt; font-size: 10pt; color: #444; text-align: center; }
+    .footer a { color: #1a5d8a; text-decoration: none; }
+  </style>
+</head>
+<body>
+  {% if logo_url %}<img src="{{ logo_url }}" class="logo" alt="ReCognition Circular">{% endif %}
+  <h1>Data Erasure Certificate</h1>
+  <p class="subtitle">{{ wipe_standard|default:"Data sanitisation" }}{% if wipe_level %} — {{ wipe_level }}{% endif %}</p>
+
+  <table>
+    <tr><th>Device Serial Number</th><td>{{ identity.serial_number }}</td></tr>
+    <tr><th>Device Type</th><td>{{ identity.device_type }}</td></tr>
+    <tr><th>Manufacturer</th><td>{{ identity.manufacturer }}</td></tr>
+    <tr><th>Model</th><td>{% if identity.model_name %}{{ identity.model_name }}{% if identity.model_number %} ({{ identity.model_number }}){% endif %}{% elif identity.model_number %}{{ identity.model_number }}{% endif %}</td></tr>
+    <tr><th>Result</th><td>{{ result }}</td></tr>
+    <tr><th>Software</th><td>{{ wipe_software|default:"&mdash;" }}</td></tr>
+    <tr><th>Standard</th><td>{{ wipe_standard|default:"&mdash;" }}</td></tr>
+    <tr><th>Level</th><td>{{ wipe_level|default:"&mdash;" }}</td></tr>
+    <tr><th>Operative</th><td>{{ operative|default:"&mdash;" }}</td></tr>
+    <tr><th>Reference Number</th><td>{{ reference_number|default:"&mdash;" }}</td></tr>
+    <tr><th>Asset Number</th><td>{{ asset_number|default:"&mdash;" }}</td></tr>
+    <tr><th>Started</th><td>{{ started_at|default:"&mdash;" }}</td></tr>
+    <tr><th>Ended</th><td>{{ ended_at|default:"&mdash;" }}</td></tr>
+    <tr><th>Integrity Hash (SHA-256)</th><td class="hash">{{ hash|default:"&mdash;" }}<br><span class="hint">Cryptographic checksum of the erasure report — verifies this certificate has not been altered.</span></td></tr>
+  </table>
+
+  <div class="section">
+    <h2>Erasure Process</h2>
+    <table>
+      <tr><th>Erasure Method</th><td>{{ erasure_technique|default:"&mdash;" }}</td></tr>
+      <tr><th>Verification</th><td>{{ verification_technique|default:"&mdash;" }}{% if verification_mode %} ({{ verification_mode }}){% endif %}</td></tr>
+      <tr><th>Firmware Passes</th><td>{{ rounds.firmware }}</td></tr>
+      <tr><th>Verification Passes</th><td>{{ rounds.verification }}</td></tr>
+      <tr><th>Total Passes</th><td>{{ rounds.total }}</td></tr>
+    </table>
+    <p class="note">Solid-state drives (NVMe/SATA) are erased using a single firmware sanitise command followed by a full verification read &mdash; the industry-standard Purge method. A "0" overwrite-round count is normal for SSDs and does not mean the drive was skipped; multi-pass overwrite rounds apply to spinning hard drives. Verification always reads the entire drive back to confirm no data remains.</p>
+  </div>
+
+  <div class="section">
+    <h2>Erased Drives ({{ drive_count }})</h2>
+    <table class="drives">
+      <thead>
+        <tr>
+          <th>Model</th>
+          <th>Serial Number</th>
+          <th>Capacity</th>
+          <th>Status</th>
+          <th>Standard</th>
+          <th>Duration</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for drive in drives %}
+        <tr>
+          <td>{{ drive.model|default:"&mdash;" }}</td>
+          <td>{{ drive.serial_number|default:"&mdash;" }}</td>
+          <td>{{ drive.capacity|default:"&mdash;" }}</td>
+          <td class="{% if drive.status == 'PASSED' or drive.status == 'PASS' %}status-pass{% elif drive.status == 'FAILED' or drive.status == 'FAIL' %}status-fail{% endif %}">{{ drive.status|default:"&mdash;" }}</td>
+          <td>{{ drive.standard|default:"&mdash;" }}</td>
+          <td>{{ drive.duration|default:"&mdash;" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6">No drive records.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if comments %}
+  <div class="section">
+    <h2>Process Comments</h2>
+    <ul>
+      {% for c in comments %}<li>{{ c }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if notes %}
+  <div class="section">
+    <h2>Notes</h2>
+    <p>{{ notes }}</p>
+  </div>
+  {% endif %}
+
+  <p class="footer">Drive(s) erased using <a href="https://cedar.interactdc.com/drive-eraser">{{ wipe_software }}</a></p>
+</body>
+</html>
+

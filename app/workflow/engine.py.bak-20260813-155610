@@ -44,8 +44,8 @@ def process_location_scan(device, location, user):
                 device=device,
                 from_stage=previous_stage,
                 to_stage=target_stage,
-                transitioned_by=user,
-                notes='LOCATION_SCAN',
+                triggered_by=user,
+                trigger_type='LOCATION_SCAN',
             )
 
             result['stage_changed'] = True

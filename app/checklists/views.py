@@ -1,7 +1,7 @@
 from django.http import HttpResponse
 import io
 from PIL import Image
-from datetime import timezone
+from django.utils import timezone
 
 from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404
@@ -170,6 +170,12 @@ class DeviceChecklistView(APIView):
         if not created and instance.stage is None:
             instance.stage = device.stage
             instance.save(update_fields=["stage"])
+        # Re-open completed instances so they can be amended
+        if not created and instance.status == ChecklistInstance.Status.COMPLETE:
+            instance.status = ChecklistInstance.Status.IN_PROGRESS
+            instance.completed_at = None
+            instance.completed_by = None
+            instance.save(update_fields=["status", "completed_at", "completed_by"])    
 
         # Ensure all template items have corresponding responses
         existing_item_ids = set(
@@ -183,8 +189,33 @@ class DeviceChecklistView(APIView):
                 )
 
         serializer = ChecklistInstanceSerializer(instance)
-        return Response(serializer.data)
+        data = serializer.data
 
+        # ── Refurb: inject defect section ─────────────────────────────────
+        if template_code == "refurb":
+            from checklists.models import Defect
+            open_defects = Defect.objects.filter(
+                device=device,
+                generates_refurb_item=True,
+                resolution_status__in=["OPEN", "IN_PROGRESS"],
+            ).order_by("-created_at")
+
+            defect_items = []
+            for d in open_defects:
+                defect_items.append({
+                    "id": d.id,
+                    "description": d.description or str(d.source_item.label) if d.source_item else f"Defect #{d.id}",
+                    "source_type": d.source_type,
+                    "resolution_status": d.resolution_status,
+                    "resolved": False,
+                })
+
+            data["defect_section"] = {
+                "label": "Defect Repairs",
+                "items": defect_items,
+            } if defect_items else None
+
+        return Response(data)
 
 class ChecklistCompleteView(APIView):
     """POST /api/devices/{id}/checklists/{stage_code}/complete/
@@ -225,11 +256,11 @@ class ChecklistCompleteView(APIView):
             override_reason = request.data.get("override_reason", "")
 
             if override_grade in ["A", "B", "C", "D", "BER"]:
-                device.grade = override_grade
+                device.initial_grade = override_grade
             else:
-                device.grade = grade_result["auto_grade"]
+                device.initial_grade = grade_result["auto_grade"]
 
-            device.save(update_fields=["grade"])
+            device.save(update_fields=["initial_grade"])
 
             # Auto-create Defect records from FAIL items
             _create_defects_from_checkin(instance)

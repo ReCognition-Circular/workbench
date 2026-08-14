@@ -213,6 +213,10 @@ class Defect(models.Model):
         default=ResolutionStatus.OPEN,
     )
     description = models.TextField(blank=True)
+    resolution_notes = models.TextField(
+        blank=True,
+        help_text="Reason for Won't Fix or Deferred resolution"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
 

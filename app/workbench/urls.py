@@ -12,6 +12,7 @@ from donations.views import donor_certs
 
 from . import views
 from api.views import CoordinatorDashboardView
+from environmental.views import order_report, donation_report
 
 urlpatterns = [
     path('', RedirectView.as_view(url='/devices/', permanent=False)),
@@ -40,6 +41,8 @@ urlpatterns = [
     path('recipients/<int:pk>/edit/', views.recipient_edit, name='recipient_edit'),
     path('fulfilment-requests/', views.fulfilment_request_list, name='fr_list'),
     path('fulfilment-requests/<int:pk>/', views.fulfilment_request_detail, name='fr_detail'),
+    path('fulfilment-requests/<int:pk>/environmental-report/', order_report, name='fr_environmental_report'),
+    path('pledges/<str:reference>/environmental-report/', donation_report, name='pledge_environmental_report'),
     path('donate/certs/', donor_certs, name='donor_certs'),
     path('api/integration/', include('integrations.urls')),
 ]

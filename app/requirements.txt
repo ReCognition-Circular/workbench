@@ -10,3 +10,5 @@ django-filter==23.5
 django-auth-ldap==4.8.0
 requests==2.31.0
 qrcode
+weasyprint==62.3
+pydyf==0.11.0
