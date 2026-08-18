@@ -25,7 +25,7 @@ from django.conf import settings
 from integrations.erpnext_client import ERPNextClient, ERPNextClientError
 from integrations.models import IntegrationLog
 from integrations.services import create_stock_entry
-from integrations.cedar_api import search_erasure_certificates, search_asset_certificates, CedarAPIError
+from integrations.cedar_api import search_erasure_certificates, search_asset_certificates, search_asset_certificates_by_serials, CedarAPIError
 from wipe.models import DataWipeRecord, AuditRecord
 from wipe.pdf_generator import generate_wipe_certificate, generate_audit_certificate
 from .serializers import (
@@ -53,6 +53,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from locations.models import Location
 from devices.models import Device
+from checklists.views import fill_cedar_track
 
 class DeviceFilter(django_filters.FilterSet):
     """Custom filter set for DeviceViewSet supporting related model fields."""
@@ -240,28 +241,21 @@ class DeviceViewSet(
 
         serializer = self.get_serializer(device)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=["post"], url_path="sync-cedar")
     def sync_cedar(self, request, pk=None):
         """
         Pull Cedar Enterprise certificates for this device.
-        Queries both erasure and asset endpoints using drive serial(s).
-        Creates/updates DataWipeRecord and AuditRecord(s).
+        Erasure certs match by drive serial; asset certs match by
+        device serial (normalised variants), so audit sync works even
+        when the device has no drive.
         """
         device = self.get_object()
 
+        drive_serials = []
         spec = getattr(device, 'device_specification', None)
-        if not spec or not spec.drive_serial:
-            return Response(
-                {"error": "No drive serial recorded — re-import from FOG"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        drive_serials = [s.strip() for s in spec.drive_serial.split(",") if s.strip()]
-        if not drive_serials:
-            return Response(
-                {"error": "No drive serials found"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        if spec and spec.drive_serial:
+            drive_serials = [s.strip() for s in spec.drive_serial.split(",") if s.strip()]
 
         results = {
             "erasure": {"found": 0, "pass": 0, "fail": 0, "drives": []},
@@ -269,9 +263,8 @@ class DeviceViewSet(
         }
         all_erasure_data = []
 
-        # --- Query Cedar for each drive serial ---
+        # --- Erasure certificates (drive serial scope) ---
         for drive_sn in drive_serials:
-            # Erasure certificates
             try:
                 erasure_resp = search_erasure_certificates(drive_sn)
                 certs = erasure_resp.get("certificates", {}).get("data", [])
@@ -279,52 +272,50 @@ class DeviceViewSet(
                     results["erasure"]["found"] += len(certs)
                     all_erasure_data.extend(certs)
                     for cert in certs:
-                        status_val = (cert.get("data", {}) or {}).get("status", "failed")
-                        if status_val and status_val.lower() == "passed":
-                            results["erasure"]["pass"] += 1
-                        else:
+                        if _result_is_fail(_cert_field(cert, "result")):
                             results["erasure"]["fail"] += 1
-                    results["erasure"]["drives"].append({
-                        "serial": drive_sn,
-                        "certs": certs,
-                    })
+                        else:
+                            results["erasure"]["pass"] += 1
+                results["erasure"]["drives"].append({
+                    "serial": drive_sn,
+                    "found": len(certs),
+                })
             except CedarAPIError as e:
                 results["erasure"]["drives"].append({"serial": drive_sn, "error": str(e)})
 
-            # Asset certificates
-            try:
-                asset_resp = search_asset_certificates(drive_sn)
-                certs = asset_resp.get("certificates", {}).get("data", [])
-                if certs:
-                    results["asset"]["found"] += len(certs)
-                    for cert in certs:
-                        test_data = cert.get("data", {}) or {}
-                        overall = test_data.get("overall_result", "FAIL")
-                        if overall and overall.upper() == "PASS":
-                            results["asset"]["pass"] += 1
-                        else:
-                            results["asset"]["fail"] += 1
-                    results["asset"]["audits"].append({
-                        "serial": drive_sn,
-                        "certs": certs,
-                    })
-            except CedarAPIError as e:
-                results["asset"]["audits"].append({"serial": drive_sn, "error": str(e)})
+        # --- Asset certificates (device serial scope, normalised) ---
+        try:
+            asset_resp = search_asset_certificates_by_serials(
+                _serial_variants(device.serial_number)
+            )
+            asset_certs = asset_resp.get("certificates", {}).get("data", [])
+        except CedarAPIError as e:
+            asset_certs = []
+            results["asset"]["audits"].append({"error": str(e)})
+
+        if asset_certs:
+            results["asset"]["found"] = len(asset_certs)
+            for cert in asset_certs:
+                if _tests_have_fail(cert.get("tests")):
+                    results["asset"]["fail"] += 1
+                else:
+                    results["asset"]["pass"] += 1
 
         # --- Create/update DataWipeRecord from erasure results ---
         wipe_record = None
         if all_erasure_data:
-            worst = "PASS"
-            for cert in all_erasure_data:
-                cert_data = cert.get("data", {}) or {}
-                if (cert_data.get("status") or "").lower() != "passed":
-                    worst = "FAIL"
-                    break
+            if any(_result_is_fail(_cert_field(c, "result", "Pass"))
+                   for c in all_erasure_data):
+                worst = "FAIL"
+            else:
+                worst = "PASS"
 
-            # Aggregate: standard/method from first cert
-            first_cert = all_erasure_data[0].get("data", {}) or {}
-            wipe_standard = first_cert.get("standard", "NIST 800-88")
-            wipe_method = first_cert.get("method", "")
+            first_cert = all_erasure_data[0]
+            wipe_standard = _cert_field(first_cert, "standard", "")
+            wipe_level = _cert_field(first_cert, "level", "")
+            wipe_method = (
+                f"{wipe_standard} {wipe_level}".strip() if wipe_level else wipe_standard
+            )
 
             wipe_record, _ = DataWipeRecord.objects.update_or_create(
                 device=device,
@@ -339,12 +330,11 @@ class DeviceViewSet(
             )
             device.wipe_status = worst
             device.save(update_fields=["wipe_status"])
-            # Generate wipe certificate PDF
             generate_wipe_certificate(device, wipe_record)
-        # Auto-fill "Data Wipe" checklist item if device is in CHECK_IN
+
             if device.stage and device.stage.code == 'CHECK_IN':
                 from checklists.models import (
-                    ChecklistTemplate, ChecklistInstance, 
+                    ChecklistTemplate, ChecklistInstance,
                     ChecklistItemResponse, ChecklistTemplateItem,
                 )
                 try:
@@ -354,7 +344,6 @@ class DeviceViewSet(
                         template=ct_checkin,
                         defaults={'stage': device.stage, 'status': 'IN_PROGRESS'},
                     )
-                    # Auto-fill DATAWIPE_RECORD items
                     wipe_items = ChecklistTemplateItem.objects.filter(
                         template=ct_checkin,
                         auto_source='DATAWIPE_RECORD',
@@ -369,27 +358,53 @@ class DeviceViewSet(
                             },
                         )
                 except Exception as e:
-                    logger.warning(f'Checklist auto-fill skipped: {e}')    
+                    logger.warning(f'Checklist auto-fill skipped: {e}')
 
-        # --- Create AuditRecords from asset results ---
+        # --- Create/update AuditRecords from asset results ---
+        asset_certs.sort(
+            key=lambda item: (
+                item.get("created_at")
+                or item.get("id")
+                or item.get("uuid")
+                or ""
+            )
+        )
+
         audit_records_created = []
-        for audit_group in results["asset"]["audits"]:
-            for cert in audit_group.get("certs", []):
-                test_data = cert.get("data", {}) or {}
-                overall = test_data.get("overall_result", "PASS")
+        initial_audit_record = None
+        latest_audit_record = None
 
-                audit_record = AuditRecord.objects.create(
-                    device=device,
-                    result="PASS" if (overall or "").upper() == "PASS" else "FAIL",
-                    test_results=cert,
-                    auditor="Cedar Enterprise",
-                    notes=f"Drive: {audit_group['serial']}",
-                )
-                audit_records_created.append(audit_record)
-                # Generate wipe certificate PDF
-            generate_wipe_certificate(device, wipe_record)
+        for cert in asset_certs:
+            cert_id = cert.get("id") or cert.get("uuid")
+            result = "FAIL" if _tests_have_fail(cert.get("tests")) else "PASS"
 
-        # --- Response ---
+            audit_record, _created = AuditRecord.objects.update_or_create(
+                device=device,
+                cedar_certificate_id=cert_id,
+                defaults={
+                    "result": result,
+                    "test_results": cert,
+                    "auditor": "Cedar Enterprise",
+                    "notes": f"Device serial: {device.serial_number}",
+                },
+            )
+            audit_records_created.append(audit_record)
+
+            if initial_audit_record is None:
+                initial_audit_record = audit_record
+            latest_audit_record = audit_record
+
+        if initial_audit_record:
+            device.initial_audit = initial_audit_record
+            device.latest_audit = latest_audit_record
+            device.save(update_fields=["initial_audit", "latest_audit"])
+
+            if device.stage and device.stage.code == "CHECK_IN":
+                try:
+                    fill_cedar_track(device, initial_audit_record.test_results or {})
+                except Exception as e:
+                    logger.warning(f"Cedar track auto-fill skipped: {e}")
+
         return Response({
             "device_id": device.id,
             "inventory_number": device.inventory_number,
@@ -407,8 +422,59 @@ class DeviceViewSet(
                 "fail": results["asset"]["fail"],
                 "audit_record_ids": [a.id for a in audit_records_created],
                 "audit_count": len(audit_records_created),
+                "initial_audit_id": initial_audit_record.id if initial_audit_record else None,
+                "latest_audit_id": latest_audit_record.id if latest_audit_record else None,
             },
         })
+
+
+
+_FAIL_VALUES = {"fail", "failed", "false", "no", "not_passed", "error"}
+
+
+def _result_is_fail(value):
+    return str(value or "").strip().lower() in _FAIL_VALUES
+
+def _serial_variants(serial):
+    """Return uppercase serial variants with 0/O and 1/I ambiguity swapped."""
+    s = str(serial or "").strip().upper()
+    if not s:
+        return []
+    variants = {
+        s,
+        s.replace("0", "O"),
+        s.replace("O", "0"),
+        s.replace("1", "I"),
+        s.replace("I", "1"),
+        s.replace("0", "O").replace("1", "I"),
+        s.replace("O", "0").replace("I", "1"),
+    }
+    return sorted(variants)
+
+def _cert_field(cert, field, default=None):
+    """Read a Cedar field from metadata.report.process, falling back to top-level."""
+    proc = ((cert or {}).get("metadata") or {}).get("report", {}).get("process", {}) or {}
+    val = proc.get(field)
+    if val not in (None, ""):
+        return val
+    return (cert or {}).get(field, default)
+
+
+def _tests_have_fail(tests):
+    """True if any flat or nested `result` in Cedar's `tests` payload is failing."""
+    def scan(node):
+        if isinstance(node, dict):
+            if "result" in node and _result_is_fail(node.get("result")):
+                return True
+            for v in node.values():
+                if scan(v):
+                    return True
+        elif isinstance(node, list):
+            for v in node:
+                if scan(v):
+                    return True
+        return False
+    return scan(tests or {})
 
 class LocationViewSet(viewsets.ModelViewSet):
     queryset = Location.objects.select_related("site").all()

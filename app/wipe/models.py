@@ -77,6 +77,10 @@ class AuditRecord(models.Model):
         ],
         default="PASS",
     )
+    cedar_certificate_id = models.CharField(
+        max_length=100, null=True, blank=True, db_index=True,
+        help_text="Cedar's internal certificate ID (idempotency key)",
+    )
     test_results = models.JSONField(
         null=True, blank=True,
         help_text="Full Cedar asset certificate JSON",

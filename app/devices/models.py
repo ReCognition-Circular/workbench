@@ -322,6 +322,21 @@ class Device(models.Model):
         max_length=20, choices=WipeStatus.choices, default=WipeStatus.PENDING
     )
     wipe_notes = models.TextField(blank=True)
+    # Cedar asset audit pointers
+    initial_audit = models.ForeignKey(
+        "wipe.AuditRecord",
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text="Earliest Cedar asset audit for this device",
+    )
+    latest_audit = models.ForeignKey(
+        "wipe.AuditRecord",
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text="Most recent Cedar asset audit for this device",
+    )
 
     # Audit statuses — initial (at intake) and final (before dispatch)
     initial_audit_status = models.CharField(

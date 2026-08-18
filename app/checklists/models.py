@@ -71,6 +71,14 @@ class ChecklistTemplateItem(models.Model):
     max_photos = models.IntegerField(default=0, help_text="Max photos for this item (0-3 for defects)")
     generates_defect = models.BooleanField(default=False, help_text="Auto-create Defect record on FAIL response")
 
+    defect_trigger_value = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        choices=[("FAIL", "Fail"), ("YES", "Yes"), ("NO", "No")],
+        help_text="Response value that creates a Defect. Blank = never creates a defect.",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

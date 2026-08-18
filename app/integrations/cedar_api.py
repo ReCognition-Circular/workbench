@@ -97,3 +97,16 @@ def search_asset_certificates(drive_serial):
         'serial_number': drive_serial,
         'metadata': 'true',
     })
+def search_asset_certificates_by_serials(serials):
+    """
+    Search Cedar for asset (audit) certificates matching any of the given
+    serial variants. Uses the comma-separated `serial_numbers` filter so
+    raw + normalised serials are covered in a single request.
+    """
+    cleaned = [s.strip() for s in serials if s and str(s).strip()]
+    if not cleaned:
+        return {"certificates": {"data": []}}
+    return _cedar_get('/search-asset-certificates', {
+        'serial_numbers': ','.join(cleaned),
+        'metadata': 'true',
+    })    

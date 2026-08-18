@@ -318,38 +318,149 @@ class ChecklistCompleteView(APIView):
 
 
 def _create_defects_from_checkin(instance):
-    """Create Defect records for all FAIL items in a check-in instance."""
+    """Create Defect records for Physical Track items at check-in completion.
+
+    Cedar Track defects are created separately by fill_cedar_track() during
+    Cedar sync, so they are skipped here. Uses per-item defect_trigger_value.
+    """
     for resp in instance.responses.all():
         item = resp.template_item
-        if not item.generates_defect:
+
+        # Cedar track handled by fill_cedar_track()
+        if item.section_label == "Cedar Track":
             continue
 
-        is_fail = False
-        if item.item_type in ("PASS_FAIL", "DONE_NOT_DONE") and resp.value is False:
-            is_fail = True
-        elif item.item_type == "YES_NO" and resp.value is True:
-            # YES_NO where YES = problem (BIOS password present = bad)
-            is_fail = True
-
-        if not is_fail:
+        if resp.value is None:
             continue
 
-        source_type = (
-            Defect.SourceType.CEDAR_TEST
-            if item.section_label == "Cedar Track"
-            else Defect.SourceType.CHECKIN_PHYSICAL
-        )
+        if not _should_defect(item, resp.value):
+            continue
 
-        Defect.objects.create(
+        Defect.objects.get_or_create(
             device=instance.device,
-            source_type=source_type,
+            source_type=Defect.SourceType.CHECKIN_PHYSICAL,
             source_item=item,
-            checklist_response=resp,
-            generates_refurb_item=True,
-            resolution_status=Defect.ResolutionStatus.OPEN,
-            description=item.label,
+            defaults={
+                "checklist_response": resp,
+                "generates_refurb_item": True,
+                "resolution_status": Defect.ResolutionStatus.OPEN,
+                "description": item.label,
+            },
         )
+# ── Cedar Track Auto-Fill ────────────────────────────────────────────────
 
+_PASS_VALUES = {"pass", "passed", "true", "yes", "ok", "success", "successful"}
+_FAIL_VALUES = {"fail", "failed", "false", "no", "error"}
+
+
+def _is_pass_value(value):
+    v = str(value or "").strip().lower()
+    if v in _FAIL_VALUES:
+        return False
+    if v in _PASS_VALUES:
+        return True
+    return True  # unknown → neutral/pass
+
+
+def _collect_results(node, out):
+    if isinstance(node, dict):
+        if "result" in node:
+            out.append(node["result"])
+        for v in node.values():
+            _collect_results(v, out)
+    elif isinstance(node, list):
+        for v in node:
+            _collect_results(v, out)
+
+
+def _cedar_component_passed(component):
+    """Any fail value (flat or nested) → False; otherwise True."""
+    outcomes = []
+    _collect_results(component or {}, outcomes)
+    if not outcomes:
+        return True  # no result anywhere → neutral pass
+    return all(_is_pass_value(v) for v in outcomes)
+
+
+def _should_defect(item, value_is_true):
+    """Map defect_trigger_value to a decision for a boolean response.
+
+    FAIL → defect when the item failed (value False)
+    YES  → defect when value True
+    NO   → defect when value False
+    ""   → never
+    """
+    trigger = (item.defect_trigger_value or "").strip().upper()
+    if trigger == "FAIL":
+        return value_is_true is False
+    if trigger == "YES":
+        return value_is_true is True
+    if trigger == "NO":
+        return value_is_true is False
+    return False
+
+
+def fill_cedar_track(device, asset_cert):
+    """Auto-fill Cedar Track responses + defects from a Cedar asset certificate.
+
+    Idempotent: existing responses/defects are never overwritten.
+    asset_cert: full Cedar asset certificate JSON (contains a `tests` dict).
+    """
+    tests = (asset_cert or {}).get("tests") or {}
+    if not isinstance(tests, dict):
+        return
+
+    template = ChecklistTemplate.objects.filter(code="check-in", is_active=True).first()
+    if not template:
+        return
+
+    instance, _ = ChecklistInstance.objects.get_or_create(
+        device=device,
+        template=template,
+        defaults={"stage": device.stage, "status": ChecklistInstance.Status.IN_PROGRESS},
+    )
+
+    cedar_items = ChecklistTemplateItem.objects.filter(
+        template=template,
+        section_label="Cedar Track",
+    )
+
+    for item in cedar_items:
+        key = item.cedar_component_key
+        if not key:
+            continue
+
+        component = tests.get(key)
+        if component is None:
+            continue
+
+        passed = _cedar_component_passed(component)
+
+        response, created = ChecklistItemResponse.objects.get_or_create(
+            instance=instance,
+            template_item=item,
+            defaults={
+                "value": passed,
+                "notes": "Auto-filled from Cedar asset certificate",
+            },
+        )
+        if not created:
+            continue  # already filled — do not overwrite, do not re-create defect
+
+        if not _should_defect(item, passed):
+            continue
+
+        Defect.objects.get_or_create(
+            device=device,
+            source_type=Defect.SourceType.CEDAR_TEST,
+            source_item=item,
+            defaults={
+                "checklist_response": response,
+                "generates_refurb_item": True,
+                "resolution_status": Defect.ResolutionStatus.OPEN,
+                "description": item.label,
+            },
+        )
 
 # ── Responses (auto-save) ────────────────────────────────────────────────
 
