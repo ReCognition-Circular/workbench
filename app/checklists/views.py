@@ -61,13 +61,6 @@ def _calc_grade(instance):
     ):
         if resp.value is False:
             physical_fails.append(resp.template_item)
-    # For YES_NO items (BIOS password, serial label, charger) — YES = fail
-    for resp in instance.responses.filter(
-        template_item__section_label="Physical Track",
-        template_item__item_type="YES_NO",
-    ):
-        if resp.value is True:  # BIOS password PRESENT = problem
-            physical_fails.append(resp.template_item)
 
     # Derive physical severity from the items (simplified for MVP)
     # Items 1-6 are damage types (display, hinge, missing parts, case, keyboard, ports)
