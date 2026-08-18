@@ -69,6 +69,16 @@
                 <div class="label">Inventory Number (auto-generated)</div>
                 <div class="number">{{ inventory_number }}</div>
             </div>
+	    <!-- Device type -->
+            <div class="form-group">
+                <label for="device_type">Device Type *</label>
+                <select id="device_type" name="device_type" required>
+                    <option value="">-- Select device type --</option>
+                    {% for value, label in device_types %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
             <!-- Manufacturer dropdown -->
             <div class="form-group">

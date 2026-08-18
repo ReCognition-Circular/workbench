@@ -9,7 +9,7 @@
         <div>
             <a href="{% url 'device_list' %}" class="text-sm text-primary hover:underline">&larr; Back to Devices</a>
             <h1 class="text-2xl font-bold text-gray-800">{{ device.inventory_number }}</h1>
-            <p class="text-sm text-gray-500">{{ device.device_type }} &middot; {{ device.serial_number }}</p>
+	    <p class="text-sm text-gray-500">{{ device.get_device_type_display }} &middot; {{ device.serial_number }}</p>
         </div>
         <div class="flex items-center space-x-2">
             {% if device.stage %}

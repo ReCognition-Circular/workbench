@@ -55,6 +55,15 @@
         </div>
     </nav>
     <main class="max-w-7xl mx-auto px-4 py-6">
+        {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+            <div class="px-4 py-2 rounded mb-2 text-sm {% if message.tags == 'error' %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% block content %}{% endblock %}
     </main>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>

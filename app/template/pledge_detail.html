@@ -8,26 +8,92 @@
     <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
         <h1 class="text-2xl font-bold text-gray-900">{{ pledge.donor_name }}</h1>
         <p class="text-sm text-gray-500 mt-1">Pledge: {{ pledge.reference_number }}</p>
-        <dl class="mt-4 grid grid-cols-4 gap-4 text-sm">
+	<dl class="mt-4 grid grid-cols-4 gap-4 text-sm">
             <div class="bg-gray-50 rounded p-3 text-center">
-                <dt class="text-gray-500">Total Devices</dt>
-                <dd class="text-2xl font-semibold text-gray-900">{{ summary.total }}</dd>
+                <dt class="text-gray-500">Devices Listed</dt>
+                <dd class="text-2xl font-semibold text-gray-900">{{ summary.expected }}</dd>
+            </div>
+            <div class="bg-indigo-50 rounded p-3 text-center">
+                <dt class="text-indigo-600">Devices Received</dt>
+                <dd class="text-2xl font-semibold text-indigo-700">{{ summary.received }}</dd>
             </div>
             <div class="bg-green-50 rounded p-3 text-center">
                 <dt class="text-green-600">Wipe Complete</dt>
-                <dd class="text-2xl font-semibold text-green-700">{{ summary.wipe_pass }}</dd>
-            </div>
-            <div class="bg-yellow-50 rounded p-3 text-center">
-                <dt class="text-yellow-600">Wipe Pending</dt>
-                <dd class="text-2xl font-semibold text-yellow-700">{{ summary.wipe_pending }}</dd>
+                <dd class="text-2xl font-semibold text-green-700">{% if summary.total > 0 %}{{ summary.wipe_pass }}{% else %}n/a{% endif %}</dd>
             </div>
             <div class="bg-blue-50 rounded p-3 text-center">
                 <dt class="text-blue-600">Erase Certs</dt>
-                <dd class="text-2xl font-semibold text-blue-700">{{ summary.erase_certs }}</dd>
+                <dd class="text-2xl font-semibold text-blue-700">{% if summary.total > 0 %}{{ summary.erase_certs }}{% else %}n/a{% endif %}</dd>
             </div>
         </dl>
     </div>
 
+    <div class="mt-4 flex items-center gap-3">
+            <span class="px-2 py-0.5 text-xs rounded {% if pledge.status == 'COMPLETE' %}bg-green-100 text-green-800{% elif pledge.status == 'CANCELLED' %}bg-gray-100 text-gray-600{% else %}bg-amber-100 text-amber-700{% endif %}">
+                {{ pledge.get_status_display }}
+            </span>
+            {% if pledge.status != 'COMPLETE' and pledge.status != 'CANCELLED' %}
+            <form method="post" action="{% url 'pledge_mark_complete' reference=pledge.reference_number %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700">
+                    Mark Complete
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+        <div class="px-4 py-3 border-b border-gray-200">
+            <h2 class="text-sm font-semibold text-gray-700">Devices the donor listed ({{ expected_devices|length }})</h2>
+        </div>
+        {% if expected_devices %}
+	<div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-gray-700">Devices received ({{ device_data|length }})</h2>
+            <form method="post" action="{% url 'pledge_link_device' reference=pledge.reference_number %}" class="flex items-center gap-2">
+                {% csrf_token %}
+                <input type="text" name="inventory_number" placeholder="Inventory number" class="px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary">
+                <button type="submit" class="px-3 py-1.5 bg-primary text-white text-sm rounded hover:bg-primary-dark">Link Device</button>
+            </form>
+        </div>
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Make / Model</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Matched Device</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for ed in expected_devices %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm text-gray-800">{{ ed.make }} {{ ed.model }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">{{ ed.get_device_type_display }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">{{ ed.serial_number|default:"—" }}</td>
+                    <td class="px-4 py-3">
+                        {% if ed.status == 'RECEIVED' %}
+                            <span class="px-2 py-0.5 text-xs rounded bg-green-100 text-green-800">{{ ed.get_status_display }}</span>
+                        {% elif ed.status == 'MISSING' %}
+                            <span class="px-2 py-0.5 text-xs rounded bg-red-100 text-red-800">{{ ed.get_status_display }}</span>
+                        {% else %}
+                            <span class="px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-700">{{ ed.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-600">
+                        {% if ed.matched_device %}
+                            <a href="/devices/{{ ed.matched_device.id }}/" class="text-primary hover:underline">{{ ed.matched_device.inventory_number }}</a>
+                        {% else %}
+                            <span class="text-gray-400">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="px-4 py-8 text-center text-gray-400">No devices were listed by the donor.</div>
+        {% endif %}
+    </div>
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">

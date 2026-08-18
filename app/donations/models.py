@@ -45,7 +45,23 @@ class DonationPledge(models.Model):
 
     def __str__(self):
         return f"{self.reference_number} - {self.donor_name}"
-
+    def recompute_status(self):
+        """Set status from received-device counts (PENDING/PARTIAL/COMPLETE)."""
+        if self.status == "CANCELLED":
+            return
+        total = self.expected_devices.count()
+        if total == 0:
+            return
+        received = self.expected_devices.filter(status="RECEIVED").count()
+        if received >= total:
+            new_status = "COMPLETE"
+        elif received > 0:
+            new_status = "PARTIAL"
+        else:
+            new_status = "PENDING"
+        if self.status != new_status:
+            self.status = new_status
+            self.save(update_fields=["status"])
 
 class ExpectedDevice(models.Model):
     donation_pledge = models.ForeignKey(
@@ -55,7 +71,7 @@ class ExpectedDevice(models.Model):
     )
     make = models.CharField(max_length=100)
     model = models.CharField(max_length=200)
-    serial_number = models.CharField(max_length=200)
+    serial_number = models.CharField(max_length=200, blank=True)
     device_type = models.CharField(
         max_length=20,
         choices=[
@@ -96,3 +112,6 @@ class ExpectedDevice(models.Model):
 
     def __str__(self):
         return f"{self.serial_number} ({self.make} {self.model})"
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.donation_pledge.recompute_status()

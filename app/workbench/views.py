@@ -5,12 +5,13 @@ from django.db import models
 from devices.models import Device
 from workflow.models import Stage
 from donations.models import DonationPledge
-from devices.models import DeviceSpecification, Manufacturer, Recipient, FulfilmentRequest
+from devices.models import DeviceSpecification, Manufacturer, Recipient, DeviceType,  FulfilmentRequest
 from devices.utils import generate_manual_inventory_number
 from locations.models import Location
 
 @login_required
 def device_list(request):
+    type_filter = request.GET.get("type", "")
     """Device list page with filters."""
     devices_qs = Device.objects.select_related("stage", "location", "donor", "device_specification").all()
 
@@ -23,6 +24,9 @@ def device_list(request):
     manufacturer_filter = request.GET.get("manufacturer", "")
     model_number_filter = request.GET.get("model_number", "")
     location_filter = request.GET.get("location", "")
+    if type_filter:
+        devices_qs = devices_qs.filter(device_type=type_filter)
+    type_filter = request.GET.get("type", "")
     
     if search:
         devices_qs = devices_qs.filter(
@@ -73,6 +77,7 @@ def device_list(request):
             "inventory_number": d.inventory_number,
             "serial_number": d.serial_number,
             "device_type": d.device_type,
+            "device_type_display": d.get_device_type_display(),
             "initial_grade": d.initial_grade,
             "final_grade": d.final_grade,
             "wipe_status": d.wipe_status,
@@ -102,9 +107,11 @@ def device_list(request):
         "manufacturer_filter": manufacturer_filter,
         "model_number_filter": model_number_filter,
         "location_filter": location_filter,
+        "type_filter": type_filter,
+        "device_types": DeviceType.choices,
         "manufacturers": manufacturers,
         "locations": locations,
-        "pending_pledges": DonationPledge.objects.filter(expected_devices__status="EXPECTED").distinct().count(),
+        "pending_pledges": DonationPledge.objects.filter(expected_devices__status="EXPECTED").exclude(status__in=["COMPLETE", "CANCELLED"]).distinct().count(),
     })
 
 @login_required
@@ -180,6 +187,7 @@ def device_edit(request, pk):
     
     if request.method == "POST":
         # Capture form fields from POST data
+        device_type = request.POST.get("device_type", "").strip()
         device.initial_grade = request.POST.get("initial_grade", device.initial_grade)
         device.final_grade = request.POST.get("final_grade", device.final_grade)
         device.initial_audit_status = request.POST.get("initial_audit_status", device.initial_audit_status)
@@ -249,6 +257,10 @@ def manual_device_create(request):
             error = "Model name is required."
         elif not serial_number:
             error = "Serial number is required."
+        elif not device_type:
+            error = "Device type is required."
+        elif device_type not in DeviceType.values:
+            error = "Invalid device type selected."
         elif not reason:
             error = "Please explain why this device cannot PXE boot."
         else:
@@ -282,6 +294,7 @@ def manual_device_create(request):
                         device = Device.objects.create(
                             inventory_number=inventory_number,
                             serial_number=serial_number,
+                            device_type=device_type,
                             device_specification=spec,
                             stage=received_stage,
                         )
@@ -294,6 +307,7 @@ def manual_device_create(request):
     return render(request, "manual/create.html", {
         "manufacturers": manufacturers,
         "inventory_number": inventory_number,
+        "device_types": DeviceType.choices,
         "error": error,
     })
 def dashboard(request):
@@ -512,6 +526,7 @@ def pledge_detail(request, reference):
     from wipe.models import DataWipeRecord
 
     pledge = get_object_or_404(DonationPledge, reference_number=reference)
+    expected_devices = pledge.expected_devices.select_related("matched_device").all()
     devices = Device.objects.filter(donation_pledge=pledge).select_related(
         'device_specification', 'stage'
     ).order_by('inventory_number')
@@ -529,6 +544,8 @@ def pledge_detail(request, reference):
         })
 
     summary = {
+        'expected': expected_devices.count(),
+        'received': expected_devices.filter(status="RECEIVED").count(),
         'total': len(devices),
         'wipe_pass': devices.filter(wipe_status='PASS').count(),
         'wipe_pending': devices.filter(wipe_status='PENDING').count(),
@@ -538,9 +555,52 @@ def pledge_detail(request, reference):
 
     return render(request, 'pledge_detail.html', {
         'pledge': pledge,
+        'expected_devices': expected_devices,
         'device_data': device_data,
         'summary': summary,
     })
+@login_required
+def pledge_mark_complete(request, reference):
+    """Manually mark a donation pledge as complete — clears the pending alert."""
+    pledge = get_object_or_404(DonationPledge, reference_number=reference)
+    if request.method == "POST":
+        pledge.status = "COMPLETE"
+        pledge.save()
+        pledge.expected_devices.filter(status="EXPECTED").update(status="RECEIVED")
+    return redirect("pledge_detail", reference=reference)
+@login_required
+def pledge_link_device(request, reference):
+    """Manually associate a received device with a pledge by inventory number."""
+    from django.contrib import messages
+    from donations.models import ExpectedDevice
+
+    pledge = get_object_or_404(DonationPledge, reference_number=reference)
+
+    if request.method == "POST":
+        inventory_number = request.POST.get("inventory_number", "").strip()
+        device = Device.objects.filter(inventory_number=inventory_number).first()
+
+        if not device:
+            messages.error(request, f"No device found with inventory number '{inventory_number}'.")
+        else:
+            device.donation_pledge = pledge
+            device.save(update_fields=["donation_pledge"])
+
+            # Try to reconcile an open expected device by serial number
+            if device.serial_number:
+                match = ExpectedDevice.objects.filter(
+                    donation_pledge=pledge,
+                    serial_number=device.serial_number,
+                    status="EXPECTED",
+                ).first()
+                if match:
+                    match.matched_device = device
+                    match.status = "RECEIVED"
+                    match.save(update_fields=["matched_device", "status"])
+
+            messages.success(request, f"{device.inventory_number} linked to {pledge.reference_number}.")
+
+    return redirect("pledge_detail", reference=reference)
 @login_required
 def photo_capture(request):
     """Mobile-first photo capture page for technicians."""

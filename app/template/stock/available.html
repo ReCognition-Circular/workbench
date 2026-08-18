@@ -84,13 +84,15 @@
         <div class="grid grid-cols-1 md:grid-cols-7 gap-3">
             <div>
                 <label class="block text-xs text-gray-500 mb-1">Device Type</label>
-                <select id="filter-type" class="w-full rounded border-gray-300 text-sm">
+		<select id="filter-type" class="w-full rounded border-gray-300 text-sm">
                     <option value="">All</option>
                     <option value="LAPTOP">Laptop</option>
                     <option value="DESKTOP">Desktop</option>
+                    <option value="ALL_IN_ONE">All-in-One</option>
                     <option value="TABLET">Tablet</option>
                     <option value="PHONE">Phone</option>
                     <option value="MONITOR">Monitor</option>
+                    <option value="SERVER">Server</option>
                     <option value="OTHER">Other</option>
                 </select>
             </div>
@@ -277,6 +279,7 @@
 
                 let html = '<div class="text-sm text-gray-500 mb-2">' + devices.length + ' device' + (devices.length !== 1 ? 's' : '') + '</div>';
                 html += '<div class="space-y-2">';
+		var deviceTypeLabels = { LAPTOP: 'Laptop', DESKTOP: 'Desktop', ALL_IN_ONE: 'All-in-One', TABLET: 'Tablet', PHONE: 'Phone', MONITOR: 'Monitor', SERVER: 'Server', OTHER: 'Other' };    
                 devices.forEach(function(d) {
                     var gradeColor = 'bg-gray-100 text-gray-700';
                     if (d.final_grade === 'UNGRADED') gradeColor = 'bg-gray-100 text-gray-400';

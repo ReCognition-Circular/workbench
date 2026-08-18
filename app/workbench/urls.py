@@ -9,6 +9,7 @@ from django.conf.urls.static import static
 from django.views.generic import TemplateView
 from django.views.generic import RedirectView
 from donations.views import donor_certs
+from donations.erasure_summary import donor_erasure_summary
 
 from . import views
 from api.views import CoordinatorDashboardView
@@ -25,6 +26,8 @@ urlpatterns = [
     path('devices/<int:pk>/', views.device_detail, name='device_detail'),
     path('pledges/', views.pledge_list, name='pledge_list'),
     path('pledges/<str:reference>/', views.pledge_detail, name='pledge_detail'),
+    path('pledges/<str:reference>/complete/', views.pledge_mark_complete, name='pledge_mark_complete'),
+    path('pledges/<str:reference>/link-device/', views.pledge_link_device, name='pledge_link_device'),
     path('devices/manual/create/', views.manual_device_create, name='manual_device_create'),
     path('devices/manual/create/', views.manual_device_create, name='manual_device_create'),
     path("devices/<int:pk>/edit/", views.device_edit, name="device_edit"),
@@ -44,6 +47,7 @@ urlpatterns = [
     path('fulfilment-requests/<int:pk>/environmental-report/', order_report, name='fr_environmental_report'),
     path('pledges/<str:reference>/environmental-report/', donation_report, name='pledge_environmental_report'),
     path('donate/certs/', donor_certs, name='donor_certs'),
+    path('donate/certs/summary/', donor_erasure_summary, name='donor_certs_summary'),
     path('api/integration/', include('integrations.urls')),
 ]
 

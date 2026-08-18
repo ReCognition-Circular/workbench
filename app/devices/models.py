@@ -27,6 +27,7 @@ class DeviceType(models.TextChoices):
     DESKTOP = "DESKTOP", "Desktop"
     ALL_IN_ONE = "ALL_IN_ONE", "All-in-One"
     TABLET = "TABLET", "Tablet"
+    MONITOR = "MONITOR", "Monitor" 
     SERVER = "SERVER", "Server"
     OTHER = "OTHER", "Other"
 
