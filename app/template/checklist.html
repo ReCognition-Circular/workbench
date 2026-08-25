@@ -14,18 +14,92 @@
             {% if device.stage %}<span class="inline-block mt-1 px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-800">{{ device.stage.name }}</span>{% endif %}
         </div>
         <div class="flex items-center gap-3">
-            <!-- Sync Cedar button (check-in only) -->
-            <button x-show="stageSlug === 'check-in'"
+	    <!-- Sync Cedar button (check-in or QA) -->
+            <button x-show="stageSlug === 'check-in' || stageSlug === 'qa'"
                     @click="syncCedar()"
-                    :disabled="!driveSerial || cedarSyncing"
+                    :disabled="(stageSlug === 'check-in' && !driveSerial) || cedarSyncing"
                     class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    :title="!driveSerial ? 'No drive serial available for this device' : 'Pull erasure & audit certificates from Cedar'">
+                    :title="(stageSlug === 'check-in' && !driveSerial) ? 'No drive serial available for this device' : 'Pull erasure & audit certificates from Cedar'">	
                 <span x-show="!cedarSyncing">🔄 Sync Cedar</span>
                 <span x-show="cedarSyncing">Syncing…</span>
             </button>
             <a href="{% url 'device_detail' device.pk %}" class="text-sm text-blue-600 hover:underline">← Back to device</a>
         </div>
     </div>	
+    <!-- Open Defects Warning (QA only) -->
+    {% if stage_slug == "qa" and open_defects %}
+    <div class="bg-amber-50 border border-amber-300 rounded-lg shadow p-4 mb-4">
+        <div class="flex items-start">
+            <div class="flex-shrink-0 text-amber-500 text-xl">⚠️</div>
+            <div class="ml-3">
+                <h2 class="text-sm font-semibold text-amber-800">Unresolved refurb defects ({{ open_defects|length }})</h2>
+                <p class="text-sm text-amber-700 mt-1">This device cannot pass QA until these defects are resolved.</p>
+                <ul class="mt-2 text-sm text-amber-700 list-disc list-inside">
+                    {% for d in open_defects %}
+                    <li>#{{ d.id }} — {{ d.get_resolution_status_display }}: {{ d.description|default:"(no description)" }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    <!-- Recorded Spec Panel (QA only) -->
+    {% if stage_slug == "qa" %}
+    <div class="bg-white rounded-lg shadow-sm p-6 mb-4">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Recorded Specification</h2>
+        {% if device.device_specification %}
+        <dl class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <dt class="text-gray-500">Manufacturer</dt>
+                <dd class="font-medium">{{ device.device_specification.manufacturer }}</dd>
+            </div>
+            <div>
+                <dt class="text-gray-500">Model</dt>
+                <dd class="font-medium">{{ device.device_specification.model_name }}</dd>
+            </div>
+            <div>
+                <dt class="text-gray-500">Processor</dt>
+                <dd class="font-medium">{{ device.device_specification.processor }}</dd>
+            </div>
+            <div>
+                <dt class="text-gray-500">Memory</dt>
+                <dd class="font-medium">{{ device.device_specification.memory_gb }} GB</dd>
+            </div>
+            <div>
+                <dt class="text-gray-500">Storage</dt>
+                <dd class="font-medium">{{ device.device_specification.storage_size_gb }} GB {{ device.device_specification.storage_type }}</dd>
+            </div>
+            {% if device.device_specification.memory_gb_upgraded or device.device_specification.storage_size_gb_upgraded or device.device_specification.processor_upgraded %}
+            <div class="col-span-2 border-t pt-4 mt-2">
+                <h3 class="text-sm font-semibold text-gray-700 mb-2">Upgrades Fitted</h3>
+                <dl class="grid grid-cols-2 gap-4 text-sm">
+                    {% if device.device_specification.processor_upgraded %}
+                    <div>
+                        <dt class="text-gray-500">Upgraded Processor</dt>
+                        <dd class="font-medium">{{ device.device_specification.processor_upgraded }}</dd>
+                    </div>
+                    {% endif %}
+                    {% if device.device_specification.memory_gb_upgraded %}
+                    <div>
+                        <dt class="text-gray-500">Upgraded Memory</dt>
+                        <dd class="font-medium">{{ device.device_specification.memory_gb }} GB → {{ device.device_specification.memory_gb_upgraded }} GB</dd>
+                    </div>
+                    {% endif %}
+                    {% if device.device_specification.storage_size_gb_upgraded %}
+                    <div>
+                        <dt class="text-gray-500">Upgraded Storage</dt>
+                        <dd class="font-medium">{{ device.device_specification.storage_size_gb }} GB → {{ device.device_specification.storage_size_gb_upgraded }} GB</dd>
+                    </div>
+                    {% endif %}
+                </dl>
+            </div>
+            {% endif %}
+        </dl>
+        {% else %}
+        <p class="text-gray-400 text-sm">No specifications recorded.</p>
+        {% endif %}
+    </div>
+    {% endif %}
     <!-- Loading -->
     <div x-show="loading" class="text-center py-12 text-gray-500">Loading checklist…</div>
 
@@ -64,6 +138,67 @@
         </div>
         </template>
 
+	<!-- Cedar read-only panel (QA) -->
+        <template x-if="stageSlug === 'qa' && cedarPanel.length">
+            <div class="bg-white rounded-lg shadow mb-4 overflow-hidden">
+                <div class="bg-gray-50 px-4 py-2 font-semibold text-gray-700 border-b flex items-center justify-between cursor-pointer"
+                     @click="cedarPanelOpen = !cedarPanelOpen">
+                    <span>Cedar audit results</span>
+                    <span x-text="cedarPanelOpen ? '−' : '+'"></span>
+                </div>
+                <div x-show="cedarPanelOpen" x-cloak>
+                    <template x-for="row in cedarPanel" :key="row.label">
+                        <div class="px-4 py-2 border-b last:border-b-0 flex items-center justify-between">
+                            <div class="flex-1">
+                                <span x-text="row.label" class="text-sm"></span>
+                                <span x-show="row.tier !== null" class="text-xs text-amber-600 ml-1" x-text="'Tier ' + row.tier"></span>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold"
+                                  :class="row.passed === true ? 'bg-green-100 text-green-800' : (row.passed === false ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-500')"
+                                  x-text="row.passed === true ? 'PASS' : (row.passed === false ? 'FAIL' : 'Not tested')"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+	<!-- PAT block (QA) -->
+	<template x-if="stageSlug === 'qa'">
+	    <div class="bg-white rounded-lg shadow mb-4 overflow-hidden">
+		<div class="bg-gray-50 px-4 py-2 font-semibold text-gray-700 border-b">PAT Test</div>
+
+		<!-- Warning banner: blank or FAIL -->
+		<div x-show="!pat.pat_status || pat.pat_status === 'FAIL'"
+		     class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">
+		    ⚠️ <span x-text="!pat.pat_status ? 'PAT test not recorded.' : 'PAT test failed.'"></span>
+		    <span class="text-amber-700">Record a justification below. (Non-blocking — device can still pass QA.)</span>
+		</div>
+
+		<div class="px-4 py-3">
+		    <div class="flex items-center gap-4 mb-3">
+			<span class="text-sm text-gray-500">Result:</span>
+			<label class="text-sm"><input type="radio" value="PASS" x-model="pat.pat_status" @change="savePat()"> Pass</label>
+			<label class="text-sm"><input type="radio" value="FAIL" x-model="pat.pat_status" @change="savePat()"> Fail</label>
+			<label class="text-sm"><input type="radio" value="N/A" x-model="pat.pat_status" @change="savePat()"> N/A</label>
+		    </div>
+
+		    <div class="mb-3" x-show="pat.pat_status === 'PASS'">
+			<label class="block text-sm text-gray-500 mb-1">Pass certificate / reference ID</label>
+			<input type="text" x-model="pat.pat_pass_id" @blur="savePat()" placeholder="e.g. PAT-123456"
+			       class="border rounded px-2 py-1 text-sm w-full max-w-xs">
+		    </div>
+
+		    <div x-show="!pat.pat_status || pat.pat_status === 'FAIL'">
+			<label class="block text-sm text-gray-500 mb-1">Justification (why no PAT / why failed)</label>
+			<textarea x-model="pat.pat_justification" @blur="savePat()" rows="2" placeholder="Reason…"
+                          class="border rounded px-2 py-1 text-sm w-full"></textarea>
+		    </div>
+
+		    <div class="mt-2 text-xs text-gray-400">
+			<span x-show="patSaving">Saving…</span>
+		    </div>
+		</div>
+	    </div>
+	</template>
         <!-- Sections Loop -->
         <template x-for="section in sections" :key="section.label">
             <div class="bg-white rounded-lg shadow mb-4 overflow-hidden">
@@ -79,19 +214,28 @@
                             <span x-show="item.template_item.is_auto_populated" class="text-xs text-gray-400 ml-1">(auto)</span>
                             <span x-show="item.template_item.weight_tier !== null" class="text-xs text-amber-600 ml-1"
                                   x-text="'Tier ' + item.template_item.weight_tier"></span>
+			    <p x-show="item.template_item.label === 'Device spec matches record'" class="text-xs text-gray-500 mt-1">
+                                Compare the physical device against the “Recorded Specification” panel above. If it differs, mark Fail and record the mismatch.
+                            </p>
                         </div>
-
-                        <!-- PASS/FAIL Toggle -->
+			<!-- PASS/FAIL Toggle -->
                         <div x-show="item.template_item.item_type === 'PASS_FAIL'" class="flex gap-1">
                             <button @click="toggleResponse(item, true)"
                                     :class="item.response.value === true ? 'bg-green-500 text-white' : 'bg-gray-200'"
                                     class="px-3 py-1 rounded-l text-sm transition">Pass</button>
+                            <button x-show="item.template_item.is_auto_populated"
+                                    @click="toggleResponse(item, null)"
+                                    :class="item.response.value === null ? 'bg-amber-500 text-white' : 'bg-gray-200'"
+                                    class="px-3 py-1 text-sm transition">N/A</button>
                             <button @click="toggleResponse(item, false)"
                                     :class="item.response.value === false ? 'bg-red-500 text-white' : 'bg-gray-200'"
                                     class="px-3 py-1 rounded-r text-sm transition">Fail</button>
                         </div>
                         <div x-show="item.response.value === false && item.template_item.item_type === 'PASS_FAIL'" class="mt-1">
                             <input type="text" x-model="item.response.notes" @blur="saveNotes(item)" placeholder="Fail reason…" class="border border-red-300 rounded px-2 py-1 text-sm w-full">
+                        </div>
+                        <div x-show="item.response.value === null && item.template_item.item_type === 'PASS_FAIL' && item.template_item.is_auto_populated" class="mt-1">
+                            <input type="text" x-model="item.response.notes" @blur="saveNotes(item)" placeholder="N/A reason…" class="border border-amber-300 rounded px-2 py-1 text-sm w-full bg-amber-50">
                         </div>
 
                         <!-- YES/NO Toggle -->
@@ -166,8 +310,8 @@
             <template x-for="p in devicePhotos" :key="p.id">
                 <div class="relative group">
                     <a :href="p.image" target="_blank">
-                        <img :src="p.image" class="w-full h-24 object-cover rounded border" :title="p.photo_type">
-                        <span class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs px-1 py-0.5 truncate" x-text="p.photo_type"></span>
+			<img :src="p.image" class="w-full h-24 object-cover rounded border" :title="p.photo_type_display">
+                            <span class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs px-1 py-0.5 truncate" x-text="p.photo_type_display"></span>    
                     </a>
                     <button @click="deletePhoto(p.id)"
                             class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
@@ -202,6 +346,10 @@ function checklistApp() {
 	cedarSyncing: false,	
         gradeResult: {},
         qaResult: {},
+	cedarPanel: [],
+        cedarPanelOpen: false,    
+	pat: { pat_status: null, pat_pass_id: '', pat_justification: '' },
+        patSaving: false,    
         overrideGrade: '',
         overrideReason: '',
         pendingPhoto: { type: null, item: null },
@@ -240,12 +388,17 @@ function checklistApp() {
                 const res = await fetch(`/api/checklists/devices/${this.deviceId}/checklists/${this.stageSlug}/`);
                 const data = await res.json();
                 this.instanceId = data.id;
-                const groups = {};
+		this.cedarPanel = data.cedar_panel || [];
+		this.pat = data.pat || { pat_status: null, pat_pass_id: '', pat_justification: '' };    
+                const allPassed = this.cedarPanel.length > 0 && this.cedarPanel.every(r => r.passed === true);
+                this.cedarPanelOpen = !allPassed;    
+		const groups = {};
                 for (const r of data.responses) {
+                    if (!r.template_item) continue;  // defect-resolution rows have no template item
                     const section = r.template_item.section_label || 'Other';
                     if (!groups[section]) groups[section] = [];
                     groups[section].push({ template_item: r.template_item, response: r });
-                }
+                }    
                 this.sections = Object.entries(groups).map(([label, items]) => ({
                     label,
                     items: items.sort((a, b) => a.template_item.order_number - b.template_item.order_number)
@@ -309,6 +462,28 @@ function checklistApp() {
             }
         },
 
+	async savePat() {
+	    this.patSaving = true;
+	    try {
+		const res = await fetch(`/api/devices/${this.deviceId}/pat/`, {
+		    method: 'POST',
+		    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCSRF() },
+		    body: JSON.stringify(this.pat),
+		});
+		const data = await res.json();
+		if (!res.ok) throw new Error(data.detail || 'Save failed');
+		this.pat = {
+		    pat_status: data.pat_status || null,
+		    pat_pass_id: data.pat_pass_id || '',
+		    pat_justification: data.pat_justification || '',
+		};
+	    } catch (e) {
+		alert('PAT save failed: ' + e.message);
+		console.error('PAT save error:', e);
+	    } finally {
+		this.patSaving = false;
+	    }
+	},    
         async completeChecklist() {
             this.completing = true;
             try {

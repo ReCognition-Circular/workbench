@@ -89,7 +89,6 @@ class ChecklistTemplateItem(models.Model):
     def __str__(self):
         return f"[{self.template.code}] {self.section_label} → {self.label}"
 
-
 class ChecklistInstance(models.Model):
     """One filled-out checklist for one device at one stage."""
 
@@ -148,6 +147,14 @@ class ChecklistItemResponse(models.Model):
         ChecklistTemplateItem,
         on_delete=models.PROTECT,
         related_name="responses",
+        null=True, blank=True,
+    )
+    defect = models.ForeignKey(
+        "Defect",
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name="responses",
+        help_text="Resolution response for a defect (template_item is null)",
     )
     value = models.JSONField(null=True, blank=True, help_text="Boolean, string, or null")
     notes = models.TextField(blank=True)
@@ -159,11 +166,22 @@ class ChecklistItemResponse(models.Model):
     )
 
     class Meta:
-        unique_together = [["instance", "template_item"]]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["instance", "template_item"],
+                name="unique_response_template_item",
+                condition=models.Q(template_item__isnull=False),
+            ),
+            models.UniqueConstraint(
+                fields=["instance", "defect"],
+                name="unique_response_defect",
+                condition=models.Q(defect__isnull=False),
+            ),
+        ]
 
     def __str__(self):
-        return f"{self.template_item.label}: {self.value}"
-
+        label = self.template_item.label if self.template_item else f"Defect #{self.defect_id}"
+        return f"{label}: {self.value}"
 
 class Defect(models.Model):
     """Bridges check-in findings to refurb work. Stored records, not a view."""

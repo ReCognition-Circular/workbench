@@ -18,7 +18,10 @@
 	        </span>   
 		{% if checklist_slug %}
                 <a href="{% url 'device_checklist' device.id checklist_slug %}" class="px-3 py-1 bg-purple-600 text-white rounded-full text-sm font-medium hover:bg-purple-700">Checklist</a>
-                {% endif %}
+		{% endif %}
+                {% for link in checklist_links %}
+                <a href="{% url 'device_checklist' device.id link.slug %}" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-300">{{ link.name }}</a>
+                {% endfor %}
                 <a href="/devices/{{ device.id }}/edit/" class="px-3 py-1 bg-green-600 text-white rounded-full text-sm font-medium hover:bg-green-700">Edit</a>
             {% else %}
                 <span class="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm">
@@ -29,6 +32,23 @@
     </div>
 
     <div class="space-y-6">	    
+	    <!-- Open Defects Warning -->
+            {% if open_defects %}
+            <div class="bg-amber-50 border border-amber-300 rounded-lg shadow-sm p-4">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 text-amber-500 text-xl">⚠️</div>
+                    <div class="ml-3">
+                        <h2 class="text-sm font-semibold text-amber-800">Unresolved refurb defects ({{ open_defects|length }})</h2>
+                        <p class="text-sm text-amber-700 mt-1">This device cannot pass QA until these defects are resolved.</p>
+                        <ul class="mt-2 text-sm text-amber-700 list-disc list-inside">
+                            {% for d in open_defects %}
+                            <li>#{{ d.id }} — {{ d.get_resolution_status_display }}: {{ d.description|default:"(no description)" }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
             <!-- Specs Card -->
             <div class="bg-white rounded-lg shadow-sm p-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-4">Specifications</h2>
@@ -88,7 +108,8 @@
 	    <!-- Status Card -->
             <div class="bg-white rounded-lg shadow-sm p-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-4">Status</h2>
-                <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+		<p class="text-sm mb-3"><span class="text-gray-500">Device Type:</span> <span class="font-medium">{{ device.get_device_type_display }}</span></p>
+		<dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                     <!-- Initial Grade / Final Grade -->
                     <div>
                         <dt class="text-gray-500">Initial Grade</dt>

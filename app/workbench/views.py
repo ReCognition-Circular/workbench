@@ -133,12 +133,20 @@ def device_detail(request, pk):
         "fulfilment_request", "fulfilment_request__recipient"
     ).all()        
     from wipe.models import DataWipeRecord
+    from checklists.models import ChecklistInstance
     wipe_records = DataWipeRecord.objects.filter(device=device).order_by("-uploaded_at")
 
     checklist_slug = None
     if device.stage:
         slug_map = {"CHECK_IN": "check-in", "REFURB_IN_PROGRESS": "refurb", "QA": "qa"}
         checklist_slug = slug_map.get(device.stage.code)
+
+    # Links to any checklists that already exist for this device, so the
+    # operator can revisit/amend past stages (e.g. refurb after moving to QA).
+    checklist_links = []
+    for inst in ChecklistInstance.objects.filter(device=device).select_related("template").order_by("template__code"):
+        if inst.template.code != checklist_slug:
+            checklist_links.append({"slug": inst.template.code, "name": inst.template.name})
 
     return render(request, "device_detail.html", {
         "device": device,
@@ -147,6 +155,8 @@ def device_detail(request, pk):
         "allocations": allocations,
         "wipe_records": wipe_records,
         "checklist_slug": checklist_slug,
+        "checklist_links": checklist_links,
+        "open_defects": device.open_refurb_defects,
     })
 
 @login_required
@@ -174,6 +184,7 @@ def device_checklist(request, pk, stage):
         "device": device,
         "checklist_template": template,
         "stage_slug": stage,
+        "open_defects": device.open_refurb_defects,
     })
 
 @login_required
@@ -241,6 +252,7 @@ def manual_device_create(request):
         model_name = request.POST.get("model_name", "").strip()
         model_number = request.POST.get("model_number", "").strip()
         serial_number = request.POST.get("serial_number", "").strip()
+        device_type = request.POST.get("device_type", "").strip()
         processor = request.POST.get("processor", "").strip()
         memory_gb = request.POST.get("memory_gb", "").strip()
         storage_type = request.POST.get("storage_type", "UNKNOWN")
@@ -459,7 +471,7 @@ def fulfilment_request_list(request):
     # Annotate with allocated count and compute shortfall
     fr_data = []
     for fr in frs:
-        allocated = fr.allocation_set.count()
+        allocated = fr.allocation_set.filter(status__in=['RESERVED', 'DISPATCHED']).count()
         fr_data.append({
             'fr': fr,
             'allocated': allocated,
@@ -476,7 +488,7 @@ def fulfilment_request_detail(request, pk):
     )
     allocations = fr.allocation_set.select_related(
         'device', 'device__device_specification', 'device__stage',
-    ).all()
+    ).filter(status__in=['RESERVED', 'DISPATCHED'])
 
     # Stage breakdown
     stage_counts = {}

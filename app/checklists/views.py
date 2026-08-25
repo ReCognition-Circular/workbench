@@ -29,7 +29,7 @@ from checklists.serializers import (
     DevicePhotoSerializer,
     GradeResultSerializer,
 )
-from devices.models import Device, RepairTask
+from devices.models import Device, RepairTask, RepairOutcome, StorageType
 
 # ── Grade Calculation ───────────────────────────────────────────────────
 
@@ -181,10 +181,6 @@ class DeviceChecklistView(APIView):
                     template_item=item,
                 )
 
-        serializer = ChecklistInstanceSerializer(instance)
-        data = serializer.data
-
-        # ── Refurb: inject defect section ─────────────────────────────────
         if template_code == "refurb":
             from checklists.models import Defect
             open_defects = Defect.objects.filter(
@@ -193,21 +189,42 @@ class DeviceChecklistView(APIView):
                 resolution_status__in=["OPEN", "IN_PROGRESS"],
             ).order_by("-created_at")
 
+            # Ensure each open defect has a resolution response on this instance
+            for d in open_defects:
+                ChecklistItemResponse.objects.get_or_create(
+                    instance=instance,
+                    defect=d,
+                )
+
+            fill_device_spec(instance)
+            write_back_device_spec(instance)
+
+        if template_code == "qa":
+            fill_qa_items(instance)
+
+        serializer = ChecklistInstanceSerializer(instance)
+        data = serializer.data
+        if template_code == "qa":
+            data["cedar_panel"] = _cedar_panel_data(device)
+
+        # ── Refurb: inject defect section ─────────────────────────────────
+        if template_code == "refurb":
             defect_items = []
             for d in open_defects:
+                resp = d.responses.filter(instance=instance).first()
                 defect_items.append({
                     "id": d.id,
-                    "description": d.description or str(d.source_item.label) if d.source_item else f"Defect #{d.id}",
+                    "response_id": resp.id if resp else None,
+                    "description": (d.description or str(d.source_item.label)) if d.source_item else f"Defect #{d.id}",
                     "source_type": d.source_type,
                     "resolution_status": d.resolution_status,
-                    "resolved": False,
+                    "resolved": d.resolution_status == "FIXED",
                 })
 
             data["defect_section"] = {
                 "label": "Defect Repairs",
                 "items": defect_items,
             } if defect_items else None
-
         return Response(data)
 
 class ChecklistCompleteView(APIView):
@@ -291,6 +308,42 @@ class ChecklistCompleteView(APIView):
                     break
 
             if all_pass:
+                from devices.models import GateOverride
+
+                # ── Gate 1: open refurb defects (block unless overridden) ──
+                open_defects = Defect.objects.filter(
+                    device=device,
+                    generates_refurb_item=True,
+                    resolution_status__in=["OPEN", "IN_PROGRESS"],
+                )
+                if open_defects.exists() and not GateOverride.objects.filter(
+                    device=device, gate=GateOverride.Gate.DEFECTS
+                ).exists():
+                    return Response(
+                        {
+                            "error": "Open refurb defects must be resolved or overridden.",
+                            "defect_ids": list(open_defects.values_list("id", flat=True)),
+                            "count": open_defects.count(),
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # ── Gate 2: final Cedar audit PASS (block unless overridden) ──
+                final_audit_ok = (
+                    device.final_audit is not None
+                    and device.final_audit.result == "PASS"
+                )
+                if not final_audit_ok and not GateOverride.objects.filter(
+                    device=device, gate=GateOverride.Gate.FINAL_AUDIT
+                ).exists():
+                    return Response(
+                        {
+                            "error": "Final Cedar audit must PASS (or be overridden).",
+                            "final_audit_status": device.final_audit_status,
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
                 device.qa_status = "PASS"
                 from workflow.models import Stage
                 dispatch_stage = Stage.objects.filter(code="AWAITING_DISPATCH").first()
@@ -454,7 +507,240 @@ def fill_cedar_track(device, asset_cert):
                 "description": item.label,
             },
         )
+def fill_device_spec(instance):
+    """Auto-fill DEVICE_SPEC items (old values) from the device's specification.
 
+    Idempotent: never overwrites a value the technician has already entered.
+    Only applies to the refurb checklist.
+    """
+    if instance.template.code != "refurb":
+        return
+
+    spec = instance.device.device_specification
+    if not spec:
+        return
+
+    spec_items = ChecklistTemplateItem.objects.filter(
+        template=instance.template,
+        auto_source="DEVICE_SPEC",
+    )
+
+    for item in spec_items:
+        key = item.cedar_component_key
+        if not key:
+            continue
+
+        raw = getattr(spec, key, None)
+        if raw is None or raw == "":
+            continue
+        if key == "storage_type" and raw == StorageType.UNKNOWN:
+            continue
+
+        value = str(raw)
+
+        response, created = ChecklistItemResponse.objects.get_or_create(
+            instance=instance,
+            template_item=item,
+            defaults={
+                "value": value,
+                "notes": "Auto-filled from device specification",
+            },
+        )
+        if not created and response.value is None:
+            response.value = value
+            response.notes = "Auto-filled from device specification"
+            response.save(update_fields=["value", "notes"])
+def _cedar_panel_data(device):
+    """Build the QA 'Cedar read-only panel' rows from the latest audit."""
+    audit = device.final_audit or device.latest_audit or device.initial_audit
+    if not audit:
+        return []
+
+    tests = (audit.test_results or {}).get("tests") or {}
+    if not isinstance(tests, dict):
+        return []
+
+    template = ChecklistTemplate.objects.filter(code="check-in", is_active=True).first()
+    if not template:
+        return []
+
+    rows = []
+    for item in ChecklistTemplateItem.objects.filter(
+        template=template,
+        section_label="Cedar Track",
+    ).order_by("order_number"):
+        key = item.cedar_component_key
+        if not key:
+            continue  # e.g. Storage — handled by the wipe record, not asset JSON
+        component = tests.get(key)
+        rows.append({
+            "label": item.label,
+            "tier": item.weight_tier,
+            "passed": _cedar_component_passed(component) if component is not None else None,
+        })
+    return rows
+def fill_qa_items(instance):
+    """Auto-fill QA 'Records' auto-items from device data sources.
+
+    Only applies to the QA checklist. Idempotent: never overwrites a value
+    the technician has already entered. Sets True/False when data is
+    definitive; leaves value=None (N/A) when there is no data to verify.
+    """
+    if instance.template.code != "qa":
+        return
+
+    device = instance.device
+
+    def set_value(item, value):
+        if value is None:
+            return
+        response, created = ChecklistItemResponse.objects.get_or_create(
+            instance=instance,
+            template_item=item,
+            defaults={"value": value, "notes": "Auto-filled from device data"},
+        )
+        if not created and response.value is None:
+            response.value = value
+            response.notes = "Auto-filled from device data"
+            response.save(update_fields=["value", "notes"])
+
+    items = {
+        i.auto_source: i
+        for i in ChecklistTemplateItem.objects.filter(
+            template=instance.template,
+            auto_source__in=["DATAWIPE_RECORD", "CEDAR_TEST", "REFURB_STATUS"],
+        )
+    }
+
+    # DataWipeRecord present & cleared
+    item = items.get("DATAWIPE_RECORD")
+    if item:
+        wipes = device.wipe_records.filter(certificate_type="ERASE")
+        if wipes.exists():
+            set_value(
+                item,
+                wipes.filter(result__in=["PASS", "SUCCESS", "NOT_REQUIRED"]).exists(),
+            )
+        elif device.wipe_notes:
+            resp = instance.responses.filter(template_item=item).first()
+            if resp and resp.value is None and not resp.notes:
+                resp.notes = device.wipe_notes
+                resp.save(update_fields=["notes"])
+    # Cedar audit certificate on file (final/QA audit must PASS)
+    item = items.get("CEDAR_TEST")
+    if item:
+        final_audit = device.final_audit
+        if final_audit is not None:
+            set_value(item, final_audit.result == "PASS")
+        else:
+            # Create an empty response so the item still renders before the
+            # second (QA) audit is run, prompting the technician to run it.
+            ChecklistItemResponse.objects.get_or_create(
+                instance=instance,
+                template_item=item,
+                defaults={"value": None, "notes": "Awaiting second Cedar audit"},
+            )
+
+    # Refurb checklist complete
+    item = items.get("REFURB_STATUS")
+    if item:
+        refurb = (
+            ChecklistInstance.objects.filter(device=device, template__code="refurb")
+            .order_by("-id")
+            .first()
+        )
+        if refurb:
+            set_value(item, refurb.status == ChecklistInstance.Status.COMPLETE)
+def write_back_device_spec(instance):
+    """Write manual Spec-Change 'new' values back to DeviceSpecification._upgraded.
+
+    Persists the technician's manual entries (Storage new size/type, RAM new size)
+    to the matching _upgraded fields. Empty/invalid values are skipped so a blank
+    entry never wipes an existing upgrade.
+    """
+    if instance.template.code != "refurb":
+        return
+
+    spec = instance.device.device_specification
+    if not spec:
+        return
+
+    changed = []
+
+    int_fields = ["storage_size_gb_upgraded", "memory_gb_upgraded"]
+    for key in int_fields:
+        item = ChecklistTemplateItem.objects.filter(
+            template=instance.template, cedar_component_key=key
+        ).first()
+        if not item:
+            continue
+        response = instance.responses.filter(template_item=item).first()
+        if not response or not response.value:
+            continue
+        try:
+            value = int(str(response.value).strip())
+        except (TypeError, ValueError):
+            continue
+        setattr(spec, key, value)
+        changed.append(key)
+
+    item = ChecklistTemplateItem.objects.filter(
+        template=instance.template, cedar_component_key="storage_type_upgraded"
+    ).first()
+    if item:
+        response = instance.responses.filter(template_item=item).first()
+        if response and response.value:
+            value = str(response.value).strip()
+            if value in StorageType.values:
+                setattr(spec, "storage_type_upgraded", value)
+                changed.append("storage_type_upgraded")
+
+    if changed:
+        spec.save(update_fields=changed)
+def _apply_defect_resolution(resp):
+    """Apply a defect-linked response's value to its Defect + RepairTask.
+
+    value = ResolutionStatus string (FIXED / WONT_FIX / DEFERRED).
+    True → FIXED; None/empty → revert to OPEN.
+    """
+    from checklists.models import Defect
+
+    defect = resp.defect
+    if not defect:
+        return
+
+    raw = resp.value
+    if raw is True:
+        status_value = Defect.ResolutionStatus.FIXED
+    elif raw is None or raw is False or raw == "":
+        status_value = Defect.ResolutionStatus.OPEN
+    else:
+        status_value = str(raw).strip().upper()
+
+    valid = {c.value for c in Defect.ResolutionStatus}
+    if status_value not in valid:
+        return  # unrecognised value — leave defect unchanged
+
+    defect.resolution_status = status_value
+    defect.resolution_response = (
+        resp if status_value != Defect.ResolutionStatus.OPEN else None
+    )
+
+    terminal = {
+        Defect.ResolutionStatus.FIXED,
+        Defect.ResolutionStatus.WONT_FIX,
+        Defect.ResolutionStatus.DEFERRED,
+    }
+    if status in terminal:
+        defect.resolved_at = timezone.now()
+        defect.resolution_response = resp
+    if status == Defect.ResolutionStatus.FIXED and defect.repair_task:
+        defect.repair_task.outcome = RepairOutcome.SUCCESS
+        defect.repair_task.completed_at = timezone.now()
+        defect.repair_task.save()
+    defect.save()
+
+    defect.save(update_fields=["resolution_status", "resolution_response", "resolved_at"])
 # ── Responses (auto-save) ────────────────────────────────────────────────
 
 class ResponseUpdateView(APIView):
@@ -465,6 +751,7 @@ class ResponseUpdateView(APIView):
         serializer = ChecklistItemResponseUpdateSerializer(resp, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save(responded_by=request.user)
+            _apply_defect_resolution(resp)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

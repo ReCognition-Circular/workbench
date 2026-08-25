@@ -116,6 +116,9 @@ class DeviceSerializer(serializers.ModelSerializer):
             'location',
             'manufacturer',
             'model_name',
+            "pat_status",
+            "pat_pass_id",
+            "pat_justification",
             'location_code',
             'stage',
             'stage_code',
@@ -337,7 +340,7 @@ class RecipientDetailSerializer(serializers.ModelSerializer):
     def get_allocations(self, obj):
         allocations = obj.allocation_set.select_related(
             "device", "device__device_specification", "device__stage"
-        ).all()
+        ).filter(status__in=['RESERVED', 'DISPATCHED'])
         return AllocationOnRecipientSerializer(allocations, many=True).data
 
     def get_fulfilment_requests(self, obj):
@@ -357,7 +360,7 @@ class FulfilmentRequestOnRecipientSerializer(serializers.ModelSerializer):
         ]
 
     def get_allocated_device_count(self, obj):
-        return obj.allocation_set.count()
+        return obj.allocation_set.filter(status__in=['RESERVED', 'DISPATCHED']).count()
 class DeviceOnFulfilmentSerializer(serializers.ModelSerializer):
     """Read-only serializer for a device within an FR detail view."""
     inventory_number = serializers.CharField(source="device.inventory_number")
@@ -410,18 +413,18 @@ class FulfilmentRequestDetailSerializer(serializers.ModelSerializer):
     def get_allocated_devices(self, obj):
         allocations = obj.allocation_set.select_related(
             "device", "device__device_specification", "device__stage"
-        ).all()
+        ).filter(status__in=['RESERVED', 'DISPATCHED'])
         return DeviceOnFulfilmentSerializer(allocations, many=True).data
 
     def get_allocated_count(self, obj):
-        return obj.allocation_set.count()
+        return obj.allocation_set.filter(status__in=['RESERVED', 'DISPATCHED']).count()
 
     def get_shortfall(self, obj):
-        return max(0, obj.quantity - obj.allocation_set.count())
+        return max(0, obj.quantity - obj.allocation_set.filter(status__in=['RESERVED', 'DISPATCHED']).count())
 
     def get_stage_breakdown(self, obj):
         stages = {}
-        for alloc in obj.allocation_set.select_related("device__stage").all():
+        for alloc in obj.allocation_set.select_related("device__stage").filter(status__in=['RESERVED', 'DISPATCHED']):
             stage_code = alloc.device.stage.code if alloc.device.stage else "NO_STAGE"
             stages[stage_code] = stages.get(stage_code, 0) + 1
         return stages
@@ -442,7 +445,7 @@ class FulfilmentRequestListSerializer(serializers.ModelSerializer):
         ]
 
     def get_allocated_count(self, obj):
-        return obj.allocation_set.count()
+        return obj.allocation_set.filter(status__in=['RESERVED', 'DISPATCHED']).count()
 
     def get_shortfall(self, obj):
-        return max(0, obj.quantity - obj.allocation_set.count())    
+        return max(0, obj.quantity - obj.allocation_set.filter(status__in=['RESERVED', 'DISPATCHED']).count())

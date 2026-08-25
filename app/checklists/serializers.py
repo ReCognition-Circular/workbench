@@ -39,10 +39,10 @@ class ChecklistItemResponseSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChecklistItemResponse
         fields = [
-            "id", "template_item", "value", "notes",
+            "id", "template_item", "defect", "value", "notes",
             "responded_at", "responded_by",
         ]
-        read_only_fields = ["id", "template_item", "responded_at", "responded_by"]
+        read_only_fields = ["id", "template_item", "defect", "responded_at", "responded_by"]
 
 
 class ChecklistItemResponseUpdateSerializer(serializers.ModelSerializer):
@@ -84,14 +84,14 @@ class ChecklistInstanceListSerializer(serializers.ModelSerializer):
 # ── Device Photo ─────────────────────────────────────────────────────────
 
 class DevicePhotoSerializer(serializers.ModelSerializer):
+    photo_type_display = serializers.CharField(source="get_photo_type_display", read_only=True)
+
     class Meta:
         model = DevicePhoto
         fields = [
-            "id", "device", "photo_type", "image", "notes",
+            "id", "device", "photo_type", "photo_type_display", "image", "notes",
             "content_type", "object_id", "captured_at", "captured_by",
-        ]
-        read_only_fields = ["captured_at", "captured_by"]
-
+            ]
 
 # ── Grade Calculation (returned by the check-in complete endpoint) ───────
 

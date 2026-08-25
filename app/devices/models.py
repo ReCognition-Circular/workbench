@@ -274,6 +274,9 @@ class DeviceSpecification(models.Model):
     # Upgrade tracking (FOG path devices — original spec from GLPI stays untouched)
     memory_gb_upgraded = models.IntegerField(null=True, blank=True)
     storage_size_gb_upgraded = models.IntegerField(null=True, blank=True)
+    storage_type_upgraded = models.CharField(
+        max_length=20, choices=StorageType.choices, null=True, blank=True
+    )
     processor_upgraded = models.CharField(max_length=200, blank=True)
     source = models.CharField(
         max_length=20, choices=SpecSource.choices, default=SpecSource.FOG
@@ -322,14 +325,6 @@ class Device(models.Model):
         max_length=20, choices=WipeStatus.choices, default=WipeStatus.PENDING
     )
     wipe_notes = models.TextField(blank=True)
-    # Cedar asset audit pointers
-    initial_audit = models.ForeignKey(
-        "wipe.AuditRecord",
-        null=True, blank=True,
-        on_delete=models.SET_NULL,
-        related_name="+",
-        help_text="Earliest Cedar asset audit for this device",
-    )
     latest_audit = models.ForeignKey(
         "wipe.AuditRecord",
         null=True, blank=True,
@@ -360,6 +355,19 @@ class Device(models.Model):
         help_text="Cedar audit certificate designated as final (QA)",
     )
 
+    PAT_STATUS_CHOICES = [
+    ("PASS", "Pass"),
+    ("FAIL", "Fail"),
+    ("N/A", "N/A"),
+    ]
+    pat_status = models.CharField(
+        max_length=4,
+        choices=PAT_STATUS_CHOICES,
+        blank=True,
+        null=True,
+    ) 
+    pat_pass_id = models.CharField(max_length=100, blank=True, null=True)
+    pat_justification = models.TextField(blank=True, null=True)    
     # Parts tracking
     parts_status = models.CharField(
         max_length=20, choices=PartsStatus.choices, default=PartsStatus.UNKNOWN
@@ -444,6 +452,18 @@ class Device(models.Model):
     class Meta:
         ordering = ["-created_at"]
 
+    @property
+    def open_refurb_defects(self):
+        """Refurb defects still OPEN/IN_PROGRESS — block QA-pass, drive the warning banner."""
+        from checklists.models import Defect
+        return self.defects.filter(
+            generates_refurb_item=True,
+            resolution_status__in=[
+                Defect.ResolutionStatus.OPEN,
+                Defect.ResolutionStatus.IN_PROGRESS,
+            ],
+        )
+
     def __str__(self):
         return f"{self.inventory_number} ({self.serial_number})"
 class InventorySequence(models.Model):
@@ -505,3 +525,30 @@ class RepairTask(models.Model):
 
     def __str__(self):
         return f"{self.get_task_type_display()} — {self.device.inventory_number}"    
+class GateOverride(models.Model):
+    """Exceptional approval to bypass a QA gate (audit trail; no hard role gate)."""
+    class Gate(models.TextChoices):
+        DEFECTS = "defects", "Open refurb defects"
+        FINAL_AUDIT = "final_audit", "Final Cedar audit"
+
+    device = models.ForeignKey(
+        "Device",
+        on_delete=models.CASCADE,
+        related_name="gate_overrides",
+    )
+    gate = models.CharField(max_length=50, choices=Gate.choices)
+    justification = models.TextField()
+    overridden_by = models.CharField(max_length=150, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["device", "gate"],
+                name="unique_gate_override_per_device",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.device} — {self.gate}"    

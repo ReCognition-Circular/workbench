@@ -395,9 +395,30 @@ class DeviceViewSet(
             latest_audit_record = audit_record
 
         if initial_audit_record:
-            device.initial_audit = initial_audit_record
+            update_fields = []
+
+            # initial_audit is frozen — set once, never overwritten
+            if device.initial_audit is None:
+                device.initial_audit = initial_audit_record
+                update_fields.append("initial_audit")
+
             device.latest_audit = latest_audit_record
-            device.save(update_fields=["initial_audit", "latest_audit"])
+            update_fields.append("latest_audit")
+
+            # final_audit at QA: must be a cert NEWER than initial_audit
+            if (
+                device.stage
+                and device.stage.code == "QA"
+                and latest_audit_record
+                and latest_audit_record.id != device.initial_audit_id
+            ):
+                device.final_audit = latest_audit_record
+                device.final_audit_status = (
+                    "PASS" if latest_audit_record.result == "PASS" else "FAIL"
+                )
+                update_fields += ["final_audit", "final_audit_status"]
+
+            device.save(update_fields=update_fields)
 
             if device.stage and device.stage.code == "CHECK_IN":
                 try:
@@ -424,10 +445,68 @@ class DeviceViewSet(
                 "audit_count": len(audit_records_created),
                 "initial_audit_id": initial_audit_record.id if initial_audit_record else None,
                 "latest_audit_id": latest_audit_record.id if latest_audit_record else None,
+                "final_audit_id": device.final_audit_id,
             },
         })
 
+    @action(detail=True, methods=["post"], url_path="pat")
+    def pat(self, request, pk=None):
+        device = self.get_object()
 
+        pat_status = (request.data.get("pat_status") or "").strip() or None
+        if pat_status is not None and pat_status not in ("PASS", "FAIL", "N/A"):
+            return Response(
+                {"detail": "pat_status must be PASS, FAIL or N/A"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        pass_id = (request.data.get("pat_pass_id") or "").strip() or None
+        justification = (request.data.get("pat_justification") or "").strip() or None
+
+        device.pat_status = pat_status
+        device.pat_pass_id = pass_id
+        device.pat_justification = justification
+        device.save(update_fields=["pat_status", "pat_pass_id", "pat_justification"])
+
+        return Response(self.get_serializer(device).data)
+
+    @action(detail=True, methods=["post"], url_path="override-gate")
+    def override_gate(self, request, pk=None):
+        """Record an exceptional approval to bypass a QA gate (audit trail only)."""
+        device = self.get_object()
+        gate = request.data.get("gate")
+        justification = (request.data.get("justification") or "").strip()
+        valid_gates = {"defects": "defects", "final_audit": "final_audit"}
+        if gate not in valid_gates:
+            return Response(
+                {"error": "Invalid gate. Use 'defects' or 'final_audit'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not justification:
+            return Response(
+                {"error": "Justification is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        from devices.models import GateOverride
+        overridden_by = (
+            request.user.username
+            if getattr(request.user, "is_authenticated", False)
+            else (request.data.get("overridden_by") or "")
+        )
+        override, _created = GateOverride.objects.update_or_create(
+            device=device,
+            gate=valid_gates[gate],
+            defaults={
+                "justification": justification,
+                "overridden_by": overridden_by,
+            },
+        )
+        return Response({
+            "status": "overridden",
+            "gate": gate,
+            "override_id": override.id,
+            "overridden_by": overridden_by,
+        })
 
 _FAIL_VALUES = {"fail", "failed", "false", "no", "not_passed", "error"}
 
@@ -693,11 +772,46 @@ class StockAvailableView(APIView):
 
         serializer = StockAvailableSerializer(data)
         return Response(serializer.data)
+def _cancel_active_allocations(device_ids):
+    """Cancel RESERVED allocations for the given devices.
+    Returns (number_cancelled, set_of_affected_fulfilment_request_ids).
+    """
+    cancelled = 0
+    fr_ids = set()
+    for alloc in Allocation.objects.filter(
+        device_id__in=device_ids, status='RESERVED'
+    ).select_related('fulfilment_request'):
+        alloc.status = 'CANCELLED'
+        alloc.cancelled_at = timezone.now()
+        alloc.save(update_fields=['status', 'cancelled_at'])
+        cancelled += 1
+        if alloc.fulfilment_request_id:
+            fr_ids.add(alloc.fulfilment_request_id)
+    return cancelled, fr_ids
+
+
+def _refresh_fulfilment_request_statuses(fr_ids):
+    """Recompute FR status after allocations change."""
+    for fr in FulfilmentRequest.objects.filter(id__in=fr_ids):
+        if fr.status in ('COMPLETE', 'CANCELLED'):
+            continue
+        active_count = Allocation.objects.filter(
+            fulfilment_request=fr,
+            status__in=['RESERVED', 'DISPATCHED'],
+        ).count()
+        if active_count == 0:
+            new_status = 'PENDING'
+        elif fr.quantity > 0 and active_count >= fr.quantity:
+            new_status = 'READY'
+        else:
+            new_status = 'IN_PROGRESS'
+        if fr.status != new_status:
+            fr.status = new_status
+            fr.save(update_fields=['status'])
 class StockBulkUpdateView(APIView):
     """Update allocation_intent for multiple devices at once."""
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsAuthenticated]
-
     def post(self, request):
         device_ids = request.data.get('device_ids', [])
         allocation_intent = request.data.get('allocation_intent')
@@ -713,7 +827,13 @@ class StockBulkUpdateView(APIView):
             allocation_intent=allocation_intent
         )
 
-        return Response({'updated': count})
+        cancelled = 0
+        if allocation_intent != 'RESERVED':
+            cancelled, fr_ids = _cancel_active_allocations(device_ids)
+            _refresh_fulfilment_request_statuses(fr_ids)
+
+        return Response({'updated': count, 'cancelled': cancelled})
+
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def update_device_intent(request, pk):
@@ -732,8 +852,15 @@ def update_device_intent(request, pk):
         return Response({'error': f'invalid intent. Must be one of: {", ".join(valid_intents)}'}, status=400)
 
     device.allocation_intent = intent
-    device.save()
-    return Response({'status': 'ok', 'allocation_intent': intent})
+    device.save(update_fields=['allocation_intent'])
+
+    cancelled = 0
+    if intent != 'RESERVED':
+        cancelled, fr_ids = _cancel_active_allocations([device.id])
+        _refresh_fulfilment_request_statuses(fr_ids)
+
+    return Response({'status': 'ok', 'allocation_intent': intent, 'cancelled': cancelled})
+
 
 class CoordinatorDashboardView(TemplateView):
     template_name = "coordinator/dashboard.html"
@@ -745,6 +872,7 @@ class CoordinatorDashboardView(TemplateView):
         response = StockOverviewView.as_view()(request)
         context["stock"] = response.data
         return context
+
 
 FOG_PREFIX = '6'
 
@@ -848,9 +976,38 @@ class ReserveView(APIView):
             except FulfilmentRequest.DoesNotExist:
                 return Response({'error': 'FulfilmentRequest not found'}, status=404)
 
-        devices = Device.objects.filter(id__in=device_ids)
-        if not devices.exists():
+        devices = list(Device.objects.filter(id__in=device_ids))
+        if not devices:
             return Response({'error': 'No matching devices found'}, status=404)
+
+        # Guard 1: skip devices that already have an active allocation
+        already_reserved_ids = set(
+            Allocation.objects.filter(
+                device_id__in=device_ids,
+                status__in=['RESERVED', 'DISPATCHED'],
+            ).values_list('device_id', flat=True)
+        )
+        devices = [d for d in devices if d.id not in already_reserved_ids]
+        skipped = len(already_reserved_ids)
+
+        # Guard 2: do not exceed the FulfilmentRequest quantity
+        remaining = None
+        if fulfilment_request and fulfilment_request.quantity > 0:
+            active_count = Allocation.objects.filter(
+                fulfilment_request=fulfilment_request,
+                status__in=['RESERVED', 'DISPATCHED'],
+            ).count()
+            remaining = fulfilment_request.quantity - active_count
+            if remaining <= 0:
+                return Response({
+                    'error': f"Order {fulfilment_request.erpnext_order_id} is already fully "
+                             f"allocated ({fulfilment_request.quantity} devices)."
+                }, status=400)
+            if len(devices) > remaining:
+                return Response({
+                    'error': f"Only {remaining} slot(s) remain on order "
+                             f"{fulfilment_request.erpnext_order_id}, but {len(devices)} were selected."
+                }, status=400)
 
         count = 0
         for device in devices:
@@ -859,14 +1016,28 @@ class ReserveView(APIView):
                 recipient=recipient,
                 fulfilment_request=fulfilment_request,
                 status='RESERVED',
-                allocation_type='FOR_SALE',
+                allocation_type='SALE',
                 allocated_by=request.user if request.user.is_authenticated else None,
             )
             device.allocation_intent = 'RESERVED'
             device.save(update_fields=['allocation_intent'])
             count += 1
 
-        return Response({'reserved': count})    
+        # Keep FR status accurate
+        if fulfilment_request:
+            total_active = Allocation.objects.filter(
+                fulfilment_request=fulfilment_request,
+                status__in=['RESERVED', 'DISPATCHED'],
+            ).count()
+            if fulfilment_request.quantity > 0 and total_active >= fulfilment_request.quantity:
+                fulfilment_request.status = 'READY'
+            elif total_active > 0:
+                fulfilment_request.status = 'IN_PROGRESS'
+            else:
+                fulfilment_request.status = 'PENDING'
+            fulfilment_request.save(update_fields=['status'])
+
+        return Response({'reserved': count, 'skipped': skipped})
 
 class FulfilmentRequestViewSet(viewsets.ModelViewSet):
     """CRUD for Fulfilment Requests."""
@@ -910,6 +1081,19 @@ class FulfilmentRequestViewSet(viewsets.ModelViewSet):
                 {'error': 'No RESERVED allocations found to dispatch'},
                 status=400
             )
+        # Quantity guard: don't dispatch more than the order requests
+        if fr.quantity > 0:
+            already_dispatched = fr.allocation_set.filter(status='DISPATCHED').count()
+            remaining = fr.quantity - already_dispatched
+            to_dispatch = allocations.count()
+            if to_dispatch > remaining:
+                return Response({
+                    'error': (
+                        f"Cannot dispatch {to_dispatch} device(s): only {remaining} "
+                        f"slot(s) remain on order {fr.erpnext_order_id} "
+                        f"({already_dispatched} of {fr.quantity} already dispatched)."
+                    ),
+                }, status=400)    
         
         devices = []
         for alloc in allocations:
@@ -920,10 +1104,24 @@ class FulfilmentRequestViewSet(viewsets.ModelViewSet):
             if alloc.device:
                 alloc.device.stage = None
                 alloc.device.save(update_fields=['stage'])
-
+                devices.append(alloc.device)
         
-        # Update FR status
-        fr.status = 'COMPLETE'
+        # Update FR status based on how much of the order is now dispatched
+        if fr.quantity > 0:
+            total_dispatched = fr.allocation_set.filter(status='DISPATCHED').count()
+            if total_dispatched >= fr.quantity:
+                fr.status = 'COMPLETE'
+            elif total_dispatched > 0:
+                fr.status = 'IN_PROGRESS'
+            else:
+                fr.status = 'PENDING'
+        else:
+            # No quantity recorded — treat as complete if nothing is left RESERVED
+            fr.status = (
+                'COMPLETE'
+                if not fr.allocation_set.filter(status='RESERVED').exists()
+                else 'IN_PROGRESS'
+            )
         fr.save(update_fields=['status'])
         
         # Push Delivery Note to ERPNext
@@ -1003,7 +1201,7 @@ class FulfilmentRequestViewSet(viewsets.ModelViewSet):
             "status": "dispatched",
             "allocations_dispatched": len(devices),
             "delivery_note": dn_result,
-            "fr_status": "COMPLETE",
+            "fr_status": fr.status,
         })    
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

@@ -85,8 +85,17 @@ REFURB_SECTION_2 = [
 ]
 
 REFURB_SECTION_3 = [
-    ("Spec-Change", "Storage upgraded", "PASS_FAIL", 8, False, None, None),
-    ("Spec-Change", "RAM upgraded", "PASS_FAIL", 9, False, None, None),
+    ("Spec-Change", "Storage changed", "YES_NO", 8, False, None, None),
+    ("Spec-Change", "Storage old size (GB)", "TEXT", 10, False, "DEVICE_SPEC", "storage_size_gb"),
+    ("Spec-Change", "Storage new size (GB)", "TEXT", 12, False, None, "storage_size_gb_upgraded"),
+    ("Spec-Change", "RAM changed", "YES_NO", 13, False, None, None),
+    ("Spec-Change", "RAM old size (GB)", "TEXT", 14, False, "DEVICE_SPEC", "memory_gb"),
+    ("Spec-Change", "RAM new size (GB)", "TEXT", 15, False, None, "memory_gb_upgraded"),
+]
+
+REFURB_SECTION_3_TYPES = [
+    ("Spec-Change", "Storage old type", "SELECT", 9, False, "DEVICE_SPEC", "storage_type"),
+    ("Spec-Change", "Storage new type", "SELECT", 11, False, None, "storage_type_upgraded"),
 ]
 
 # ── QA template items ────────────────────────────────────────────────────
@@ -103,14 +112,14 @@ QA_SECTION_2 = [
     ("Physical", "Keyboard / trackpad", "PASS_FAIL", 6, False, None, None),
     ("Physical", "Hinges / lid action", "PASS_FAIL", 7, False, None, None),
     ("Physical", "All ports functional", "PASS_FAIL", 8, False, None, None),
-    ("Physical", "Charger / power LED / cable", "PASS_FAIL", 9, False, None, None),
+    ("Physical", "Charger / power cable", "PASS_FAIL", 9, False, None, None),
 ]
 
 QA_SECTION_3 = [
     ("Records", "Device spec matches record", "PASS_FAIL", 10, False, None, None),
-    ("Records", "DataWipeRecord present & cleared", "PASS_FAIL", 11, True, "DATAWIPE_RECORD", None),
-    ("Records", "Cedar certificate on file", "PASS_FAIL", 12, True, "CEDAR_TEST", None),
-    ("Records", "Refurb checklist complete", "PASS_FAIL", 13, True, "REFURB_STATUS", None),
+    ("Records", "DataWipeRecord present & cleared", "PASS_FAIL", 11, False, "DATAWIPE_RECORD", None),
+    ("Records", "Cedar audit certificate on file", "PASS_FAIL", 12, False, "CEDAR_TEST", None),
+    ("Records", "Refurb checklist complete", "PASS_FAIL", 13, False, "REFURB_STATUS", None),
 ]
 
 
@@ -177,8 +186,9 @@ class Command(BaseCommand):
             version=1,
         )
         _build_template_items(ct_refurb, REFURB_SECTION_1)
-        _build_template_items(ct_refurb, REFURB_SECTION_2, options=["Windows 11", "Ubuntu", "Linux Mint", "Other"])
+        _build_template_items(ct_refurb, REFURB_SECTION_2, options=["Windows 11", "Ubuntu", "Linux Mint", "Other", "None"])
         _build_template_items(ct_refurb, REFURB_SECTION_3)
+        _build_template_items(ct_refurb, REFURB_SECTION_3_TYPES, options=["HDD", "SSD", "NVME", "EMMC"])
         self.stdout.write(f"  ✅ Refurb — {ct_refurb.items.count()} items")
 
         # ── QA ────────────────────────────────────────────────────────────
