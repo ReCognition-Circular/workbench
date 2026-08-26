@@ -49,6 +49,20 @@
                 </div>
             </div>
             {% endif %}
+	    <!-- Checklist Warning -->
+            {% if device.checklist_warning %}
+            <div class="bg-amber-50 border border-amber-300 rounded-lg shadow-sm p-4">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 text-amber-500 text-xl">⚠️</div>
+                    <div class="ml-3">
+                        <h2 class="text-sm font-semibold text-amber-800">Checklist not completed</h2>
+                        <p class="text-sm text-amber-700 mt-1">
+                            This device moved past the <strong>{{ device.checklist_warning_stage }}</strong> stage without completing its checklist.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
             <!-- Specs Card -->
             <div class="bg-white rounded-lg shadow-sm p-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-4">Specifications</h2>

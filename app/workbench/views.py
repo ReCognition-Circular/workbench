@@ -91,6 +91,8 @@ def device_list(request):
             "model_name": d.device_specification.model_name if d.device_specification else "-",
             "win11_compatible": d.win11_compatible,
             "allocation_intent": d.allocation_intent,
+            "checklist_warning": d.checklist_warning,
+            "checklist_warning_stage": d.checklist_warning_stage,
         })
     manufacturers = DeviceSpecification.objects.values_list("manufacturer", flat=True).exclude(manufacturer="").distinct().order_by("manufacturer")
     locations = Location.objects.all().order_by("code")

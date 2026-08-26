@@ -256,6 +256,13 @@ class ChecklistCompleteView(APIView):
         instance.completed_at = timezone.now()
         instance.completed_by = request.user
         instance.save()
+        # ── Clear skipped-checklist warning ──────────────────────────────
+        if device.checklist_warning:
+            template_to_stage = {"check-in": "CHECK_IN", "refurb": "REFURB_IN_PROGRESS"}
+            if device.checklist_warning_stage == template_to_stage.get(template_code):
+                device.checklist_warning = False
+                device.checklist_warning_stage = None
+                device.save(update_fields=["checklist_warning", "checklist_warning_stage"])
 
         # ── Check-In specific: auto-grade ─────────────────────────────────
         if template_code == "check-in":

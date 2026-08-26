@@ -394,6 +394,16 @@ class Device(models.Model):
     qa_status = models.CharField(
         max_length=10, choices=QAStatus.choices, null=True, blank=True
     )
+    checklist_warning = models.BooleanField(
+    default=False,
+    help_text="True when a stage was exited without its checklist completed",
+    )
+    checklist_warning_stage = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Stage code whose checklist was skipped (e.g. CHECK_IN)",
+    )
     refurb_notes = models.TextField(blank=True)
     image = models.CharField(
         max_length=20, choices=Image.choices, default=Image.NONE

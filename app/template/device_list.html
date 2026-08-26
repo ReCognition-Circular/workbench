@@ -225,8 +225,11 @@
                             {{ device.win11_compatible }}
                         </span>
                     </td>
-                    <td class="px-3 py-4">
+		    <td class="px-3 py-4">
                         <span class="px-2 py-1 text-xs rounded bg-indigo-100 text-indigo-800">{{ device.stage_name }}</span>
+                        {% if device.checklist_warning %}
+                            <span class="px-2 py-1 text-xs rounded bg-amber-100 text-amber-800 ml-1" title="Checklist '{{ device.checklist_warning_stage }}' not completed">⚠</span>
+                        {% endif %}
                     </td>
                     <td class="px-3 py-4 text-gray-500">{{ device.location_code|default:"-" }}</td>
                     <td class="px-3 py-4 text-gray-500 text-sm">{{ device.updated_at|date:"d M H:i" }}</td>

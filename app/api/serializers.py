@@ -119,6 +119,8 @@ class DeviceSerializer(serializers.ModelSerializer):
             "pat_status",
             "pat_pass_id",
             "pat_justification",
+            'checklist_warning',
+            'checklist_warning_stage',
             'location_code',
             'stage',
             'stage_code',
@@ -128,7 +130,7 @@ class DeviceSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'checklist_warning', 'checklist_warning_stage']
 
     def create(self, validated_data):
         spec_data = validated_data.pop('device_specification', None)

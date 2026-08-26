@@ -201,9 +201,11 @@ class DeviceViewSet(
 
         return Response(DeviceSerializer(device).data, status=status.HTTP_200_OK)
 
+
     @action(detail=True, methods=["post"])
     def transition(self, request, pk=None):
-        """Move device to any stage. Creates a StageTransition record for audit."""
+        """Move device to a stage, validated by the shared workflow gate."""
+        from workflow.engine import validate_stage_transition
         from workflow.models import Stage, StageTransition
 
         device = self.get_object()
@@ -226,6 +228,25 @@ class DeviceViewSet(
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        allowed, warning_stage, block_reason = validate_stage_transition(device, to_stage)
+
+        if not allowed:
+            return Response(
+                {"error": block_reason},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Update device stage (+ soft-gate warning flag)
+        device.stage = to_stage
+        update_fields = ["stage"]
+
+        if warning_stage:
+            device.checklist_warning = True
+            device.checklist_warning_stage = warning_stage
+            update_fields += ["checklist_warning", "checklist_warning_stage"]
+
+        device.save(update_fields=update_fields)
+
         # Record the transition
         StageTransition.objects.create(
             device=device,
@@ -235,13 +256,8 @@ class DeviceViewSet(
             notes=notes,
         )
 
-        # Update device stage
-        device.stage = to_stage
-        device.save(update_fields=["stage"])
-
         serializer = self.get_serializer(device)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
     @action(detail=True, methods=["post"], url_path="sync-cedar")
     def sync_cedar(self, request, pk=None):
         """
