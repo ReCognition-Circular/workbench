@@ -13,7 +13,8 @@ from donations.erasure_summary import donor_erasure_summary
 
 from . import views
 from api.views import CoordinatorDashboardView
-from environmental.views import order_report, donation_report
+from environmental.views import order_report, donation_report, donor_environmental_report, order_environmental_report
+from workbench.order_views import order_certs
 
 urlpatterns = [
     path('', RedirectView.as_view(url='/devices/', permanent=False)),
@@ -48,6 +49,10 @@ urlpatterns = [
     path('pledges/<str:reference>/environmental-report/', donation_report, name='pledge_environmental_report'),
     path('donate/certs/', donor_certs, name='donor_certs'),
     path('donate/certs/summary/', donor_erasure_summary, name='donor_certs_summary'),
+    path('donate/certs/environmental/', donor_environmental_report, name='donor_certs_environmental'),
+    path('orders/', RedirectView.as_view(url='/orders/certs/', permanent=False), name='orders'),
+    path('orders/certs/', order_certs, name='order_certs'),
+    path('orders/certs/environmental/', order_environmental_report, name='order_certs_environmental'),
     path('api/integration/', include('integrations.urls')),
 ]
 

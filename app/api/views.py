@@ -1091,6 +1091,18 @@ class FulfilmentRequestViewSet(viewsets.ModelViewSet):
         
         # Find all RESERVED allocations for this FR
         allocations = fr.allocation_set.filter(status='RESERVED')
+        # Partial despatch support: optionally restrict to specific devices.
+        # Frontend can POST {"inventory_numbers": ["607160003"]} to despatch a subset.
+        inventory_numbers = request.data.get('inventory_numbers')
+        if inventory_numbers:
+            if not isinstance(inventory_numbers, (list, tuple)):
+                return Response(
+                    {'error': 'inventory_numbers must be a list'},
+                    status=400,
+                )
+            allocations = allocations.filter(
+                device__inventory_number__in=inventory_numbers
+            )
         
         if not allocations.exists():
             return Response(

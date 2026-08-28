@@ -59,7 +59,7 @@
             <form method="post" style="display: inline;">
                 {% csrf_token %}
                 <input type="hidden" name="reference" value="{{ pledge.reference_number }}">
-                <button type="submit" name="download" value="all" class="btn btn-download">⬇ Download All Wipe Certificates (ZIP)</button><a href="/donate/certs/summary/?reference={{ pledge.reference_number }}" class="btn btn-download" style="background:#7c3aed; margin-left:0.5rem;">⬇ Data Erasure Summary (PDF)</a>
+                <button type="submit" name="download" value="all" class="btn btn-download">⬇ Download All Wipe Certificates (ZIP)</button><a href="/donate/certs/summary/?reference={{ pledge.reference_number }}" class="btn btn-download" style="background:#7c3aed; margin-left:0.5rem;">⬇ Data Erasure Summary (PDF)</a><br><a href="/donate/certs/environmental/?reference={{ pledge.reference_number }}" class="btn btn-download" style="background:#0d9488; margin-top:2mm;">⬇ Environmental Impact Report (PDF)</a>
             </form>
         </div>
         <p class="summary">{{ devices|length }} device(s) in this pledge</p>

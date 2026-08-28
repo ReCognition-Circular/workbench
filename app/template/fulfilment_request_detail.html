@@ -194,13 +194,21 @@
                             </span>
                         </td>
                         <td class="px-4 py-3">{{ a.target_ready_by|date:"d/m/Y"|default:"—" }}</td>
-                        <td class="px-4 py-3">
+			<td class="px-4 py-3">
                             <span class="px-2 py-0.5 text-xs rounded font-medium
                                 {% if a.status == 'RESERVED' %}bg-orange-100 text-orange-800
                                 {% elif a.status == 'DISPATCHED' %}bg-green-100 text-green-800
                                 {% elif a.status == 'CANCELLED' %}bg-gray-100 text-gray-500{% endif %}">
                                 {{ a.get_status_display }}
                             </span>
+                            {% if a.status == 'RESERVED' %}
+                            <button class="dispatchDeviceBtn ml-2 px-2 py-0.5 text-xs rounded bg-green-600 text-white hover:bg-green-700"
+                                    data-fr-id="{{ fr.id }}"
+                                    data-inventory="{{ a.device.inventory_number }}">
+                                🚚 Despatch
+                            </button>
+                            {% endif %}
+                        </td>
                         </td>
                     </tr>
                     {% empty %}
@@ -262,6 +270,63 @@ document.getElementById('dispatchAllBtn')?.addEventListener('click', function() 
         statusDiv.className = 'ml-3 text-sm text-red-600';
         btn.disabled = false;
         btn.textContent = '🚚 Despatch All';
+    });
+});
+document.querySelectorAll('.dispatchDeviceBtn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        const frId = btn.dataset.frId;
+        const inventory = btn.dataset.inventory;
+        const statusDiv = document.getElementById('dispatchStatus');
+
+        if (!window.confirm('Despatch ' + inventory + '? This will create a Delivery Note in ERPNext for this device.')) {
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Dispatching...';
+        if (statusDiv) {
+            statusDiv.classList.remove('hidden');
+            statusDiv.textContent = 'Sending ' + inventory + '...';
+            statusDiv.className = 'ml-3 text-sm text-gray-500';
+        }
+
+        fetch(`/api/fulfilment-requests/${frId}/dispatch/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ inventory_numbers: [inventory] }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'dispatched') {
+                const msg = '✅ ' + data.allocations_dispatched + ' device(s) despatched. DN: ' + (data.delivery_note?.name || 'pending');
+                if (statusDiv) {
+                    statusDiv.textContent = msg;
+                    statusDiv.className = 'ml-3 text-sm text-green-600';
+                } else {
+                    btn.textContent = '✅ Dispatched';
+                }
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                const msg = '❌ ' + (data.error || 'Failed');
+                if (statusDiv) {
+                    statusDiv.textContent = msg;
+                    statusDiv.className = 'ml-3 text-sm text-red-600';
+                }
+                btn.disabled = false;
+                btn.textContent = '🚚 Despatch';
+            }
+        })
+        .catch(err => {
+            if (statusDiv) {
+                statusDiv.textContent = '❌ Network error';
+                statusDiv.className = 'ml-3 text-sm text-red-600';
+            }
+            btn.disabled = false;
+            btn.textContent = '🚚 Despatch';
+        });
     });
 });
 </script>

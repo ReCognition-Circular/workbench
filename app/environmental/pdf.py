@@ -5,11 +5,23 @@ from django.core.files.base import ContentFile
 from django.template import Context, Engine
 from weasyprint import HTML
 
-from .constants import BOAVIZTA_TERMINAL_GWP_KG
+from .constants import IMPACT_CATEGORIES
 
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "template" / "pdf"
 LOGO_PATH = Path(__file__).resolve().parent.parent / "core" / "static" / "core" / "Logo.svg"
+LETTERHEAD_PATH = Path(__file__).resolve().parent.parent / "core" / "static" / "core" / "letterhead.png"
 TEMPLATE_NAME = "environmental_report.html"
+
+CATEGORY_KEYS = [key for key, *_ in IMPACT_CATEGORIES]
+
+# Display decimals: per-unit vs total.
+CATEGORY_DECIMALS = {
+    "gwp": 1, "adpe": 4, "ir": 1, "odp": 6, "ap": 2, "ept": 2,
+}
+CATEGORY_TOTAL_DECIMALS = {
+    "gwp": 0, "adpe": 4, "ir": 0, "odp": 6, "ap": 2, "ept": 2,
+}
+CATEGORY_THOUSANDS = {"gwp", "ir"}
 
 
 def _load_template():
@@ -18,6 +30,20 @@ def _load_template():
 
 def _logo_url():
     return LOGO_PATH.as_uri() if LOGO_PATH.exists() else ""
+
+
+def _letterhead_url():
+    return LETTERHEAD_PATH.as_uri() if LETTERHEAD_PATH.exists() else ""
+
+
+def _fmt(value, key, total=False):
+    if value is None:
+        return "&mdash;"
+    decimals = CATEGORY_TOTAL_DECIMALS[key] if total else CATEGORY_DECIMALS[key]
+    v = round(float(value), decimals)
+    if key in CATEGORY_THOUSANDS:
+        return f"{v:,.{decimals}f}"
+    return f"{v:.{decimals}f}"
 
 
 def _render_html(context):
@@ -29,17 +55,53 @@ def _render_html(context):
 def generate_pdf(report):
     """Render the report HTML and attach the resulting PDF to `report`."""
     data = report.breakdown_json or {}
+    totals = data.get("totals", {})
     breakdown = data.get("breakdown", {})
+    factors = data.get("factors", {})
 
-    breakdown_items = [
-        {
-            "device_type": device_type,
-            "count": values.get("count", 0),
-            "per_unit_kg": BOAVIZTA_TERMINAL_GWP_KG.get(device_type, 0),
-            "subtotal_kg": values.get("subtotal_kg", 0),
-        }
-        for device_type, values in breakdown.items()
-    ]
+    device_types = list(breakdown.keys())
+
+    # Multi-criteria table: one row per category.
+    table_rows = []
+    for key, name, unit, description in IMPACT_CATEGORIES:
+        table_rows.append(
+            {
+                "label": f"{name} ({unit})",
+                "cells": [_fmt(factors[t].get(key), key) for t in device_types],
+                "total": _fmt(totals.get(key), key, total=True),
+            }
+        )
+
+    # Per-type summary (count + carbon).
+    type_summary = []
+    for t in device_types:
+        type_summary.append(
+            {
+                "device_type": t,
+                "count": breakdown[t]["count"],
+                "gwp_per_unit": _fmt(factors[t].get("gwp"), "gwp"),
+                "gwp_subtotal": _fmt(breakdown[t]["subtotals"].get("gwp"), "gwp", total=True),
+            }
+        )
+
+    total_gwp = float(totals.get("gwp") or 0)
+    headline = {
+        "kg": _fmt(total_gwp, "gwp", total=True),
+        "tonnes": f"{total_gwp / 1000:.1f}",
+    }
+
+    rows = []
+    for r in data.get("rows", []):
+        rows.append(
+            {
+                "inventory_number": r.get("inventory_number"),
+                "serial_number": r.get("serial_number"),
+                "device_type": r.get("device_type"),
+                "gwp_kg": _fmt(r.get("gwp_kg"), "gwp"),
+            }
+        )
+
+    excluded = data.get("excluded", [])
 
     if report.kind == report.Kind.ORDER:
         kind_display = "Fulfilment request"
@@ -63,13 +125,17 @@ def generate_pdf(report):
 
     context = {
         "logo_url": _logo_url(),
+        "letterhead_url": _letterhead_url(),
         "report": report,
         "kind_display": kind_display,
         "batch_label": batch_label,
         "batch_ref": batch_ref,
-        "breakdown_items": breakdown_items,
-        "rows": data.get("rows", []),
-        "excluded": data.get("excluded", []),
+        "device_types": device_types,
+        "table_rows": table_rows,
+        "type_summary": type_summary,
+        "headline": headline,
+        "rows": rows,
+        "excluded": excluded,
         "generated_by_name": generated_by_name,
     }
 
@@ -78,4 +144,3 @@ def generate_pdf(report):
 
     filename = f"environmental_report_{report.pk}.pdf"
     report.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
-    return report

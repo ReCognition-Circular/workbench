@@ -66,7 +66,19 @@ def device_list(request):
     if location_filter:
         devices_qs = devices_qs.filter(location__code__icontains=location_filter)
 
-    devices_qs = devices_qs.order_by("-created_at")
+    sort = request.GET.get("sort", "-created_at")
+    allowed_sorts = {
+        "-created_at", "created_at",
+        "-updated_at", "updated_at",
+        "inventory_number", "-inventory_number",
+        "serial_number", "-serial_number",
+        "device_type", "-device_type",
+        "grade", "-grade",
+        "allocation_intent", "-allocation_intent",
+    }
+    if sort not in allowed_sorts:
+        sort = "-created_at"
+    devices_qs = devices_qs.order_by(sort)
 
     stages = Stage.objects.all().order_by("sequence")
 
@@ -101,6 +113,7 @@ def device_list(request):
         "devices": devices,
         "stages": stages,
         "search": search,
+        "sort": sort,
         "stage_filter": stage_filter,
         "grade_filter": grade_filter,
         "wipe_filter": wipe_filter,

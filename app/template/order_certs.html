@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Order Tracking & Certificates — ReCognition Circular{% endblock %}
+
+{% block extra_head %}
+<style>
+    .certs-container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+    .card { background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card h1 { font-size: 1.25rem; font-weight: 700; color: #1f2937; margin-bottom: 0.5rem; }
+    .card p { color: #6b7280; margin-bottom: 1rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.25rem; color: #374151; }
+    .form-group input { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem; }
+    .btn { display: inline-block; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; font-size: 0.875rem; cursor: pointer; border: none; text-decoration: none; }
+    .btn-primary { background: #1a56db; color: white; }
+    .btn-download { background: #059669; color: white; }
+    .btn-teal { background: #0d9488; color: white; }
+    .btn-disabled { background: #e5e7eb; color: #6b7280; cursor: not-allowed; pointer-events: none; }
+    .btn-back { background: #f3f4f6; color: #374151; }
+    .error { padding: 0.75rem; background: #fef2f2; color: #b91c1c; border-radius: 8px; margin-bottom: 1rem; }
+    .notice { padding: 0.75rem; background: #eff6ff; color: #1e40af; border-radius: 8px; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th { text-align: left; padding: 0.5rem; font-size: 0.75rem; color: #6b7280; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; }
+    td { padding: 0.75rem 0.5rem; font-size: 0.875rem; border-bottom: 1px solid #f3f4f6; }
+    .pass { color: #059669; font-weight: 600; }
+    .pending { color: #d97706; font-weight: 600; }
+    .fail { color: #b91c1c; font-weight: 600; }
+    .status { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+    .status-complete { background: #d1fae5; color: #065f46; }
+    .status-dispatched { background: #dbeafe; color: #1e40af; }
+    .status-ready { background: #ccfbf1; color: #115e59; }
+    .status-pending { background: #fef3c7; color: #92400e; }
+    .status-other { background: #f3f4f6; color: #374151; }
+    .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+    .summary { font-size: 0.875rem; color: #6b7280; }
+    .meta { font-size: 0.875rem; color: #374151; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="certs-container">
+    {% if not fr %}
+    <div class="card">
+        <h1>Track Your Order & Download Certificates</h1>
+        <p>Enter your order reference number to see your order status and download your hardware audit certificates and environmental impact report.</p>
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="order_id">Order Reference Number</label>
+                <input type="text" id="order_id" name="order_id" placeholder="e.g. SAL-ORD-2026-00010" required>
+            </div>
+            <button type="submit" class="btn btn-primary">View Order</button>
+        </form>
+        <p style="margin-top: 1rem; font-size: 0.75rem; color: #9ca3af;">
+            Your order reference number can be found on your order confirmation email.
+        </p>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="header-actions">
+            <div>
+                <h1 style="margin-bottom: 0.25rem;">{{ fr.erpnext_order_id }}</h1>
+                <p style="margin-bottom: 0.25rem;">{{ fr.recipient.name }} — ordered {{ fr.created_at|date:"j F Y" }}</p>
+                <p style="margin-bottom: 0;" class="meta">
+                    {% if fr.status == "COMPLETE" %}
+                    <span class="status status-complete">Complete</span>
+                    {% elif fr.status == "DISPATCHED" %}
+                    <span class="status status-dispatched">Dispatched</span>
+                    {% elif fr.status == "READY" %}
+                    <span class="status status-ready">Ready</span>
+                    {% elif fr.status == "PENDING" %}
+                    <span class="status status-pending">Pending</span>
+                    {% else %}
+                    <span class="status status-other">{{ fr.status }}</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                {% if download_error %}<div class="notice">{{ download_error }}</div>{% endif %}
+
+                {% if has_audit_certs %}
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="order_id" value="{{ fr.erpnext_order_id }}">
+                    <button type="submit" name="download" value="all" class="btn btn-download">⬇ Download All Audit Certificates (ZIP)</button>
+                </form>
+                {% else %}
+                <span class="btn btn-disabled" style="margin-top: 0.5rem;">⬇ Download All Audit Certificates (ZIP)</span>
+                <p class="notice" style="margin-top: 0.5rem;">Audit certificates will be available once the devices have been processed.</p>
+                {% endif %}
+
+                {% if fr.status == "READY" or fr.status == "DISPATCHED" or fr.status == "COMPLETE" %}
+                <a href="/orders/certs/environmental/?order_id={{ fr.erpnext_order_id }}" class="btn btn-teal" style="margin-top: 0.5rem;">⬇ Environmental Impact Report (PDF)</a>
+                {% else %}
+                <span class="btn btn-disabled" style="margin-top: 0.5rem;">⬇ Environmental Impact Report (PDF)</span>
+                <p class="notice" style="margin-top: 0.5rem;">Your environmental impact report will be available once you take possession of the devices.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% if fr.delivery_method or fr.delivery_address or fr.delivery_scheduled_date %}
+        <p class="summary" style="margin-top: 0.5rem;">
+            Delivery: {{ fr.delivery_method|default:"—" }}{% if fr.delivery_scheduled_date %} · scheduled {{ fr.delivery_scheduled_date|date:"j F Y" }}{% endif %}
+            {% if fr.delivery_address %}<br>{{ fr.delivery_address }}{% endif %}
+        </p>
+        {% endif %}
+        <p class="summary">{{ devices|length }} device(s) in this order</p>
+    </div>
+
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Device</th>
+                    <th>Make / Model</th>
+                    <th>Serial</th>
+                    <th>Audit</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in devices %}
+                <tr>
+                    <td>{{ d.inventory_number }}</td>
+                    <td>{% if d.device_specification %}{{ d.device_specification.manufacturer }} {{ d.device_specification.model_name }}{% else %}—{% endif %}</td>
+                    <td>{{ d.serial_number }}</td>
+                    <td>
+                        {% if d.audit_cert %}
+                        {% if d.audit_cert.result|upper == "PASS" %}
+                        <span class="pass">✅ Passed</span>
+                        {% elif d.audit_cert.result|upper == "FAIL" %}
+                        <span class="fail">❌ Failed</span>
+                        {% else %}
+                        <span class="pending">⏳ {{ d.audit_cert.result }}</span>
+                        {% endif %}
+                        {% else %}
+                        <span class="pending">⏳ No certificate</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4">No devices found for this order.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <a href="/orders/certs/" class="btn btn-back">← Look up another order</a>
+    {% endif %}
+</div>
+{% endblock %}

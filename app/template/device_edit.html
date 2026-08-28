@@ -23,7 +23,7 @@
     .btn-back { display: inline-block; padding: 0.5rem 1rem; background: #f3f4f6; color: #374151; border-radius: 8px; text-decoration: none; font-size: 0.875rem; margin-bottom: 1rem; }
     .btn-back:hover { background: #e5e7eb; }
     .stage-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; background: #e0e7ff; color: #4338ca; }
-    .saved-msg { display: none; padding: 0.75rem; background: #d1fae5; color: #065f46; border-radius: 8px; text-align: center; font-weight: 600; margin-bottom: 1rem; }
+    .saved-msg { display: none; padding: 0.75rem 1.5rem; background: #d1fae5; color: #065f46; border-radius: 8px; text-align: center; font-weight: 600; position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
     .saved-msg.visible { display: block; }
     @media (max-width: 600px) { .info-grid { grid-template-columns: 1fr; } }
 </style>
@@ -31,7 +31,7 @@
 
 {% block content %}
 <div class="edit-container">
-    <a href="/devices/" class="btn-back">&larr; Back to Devices</a>
+    <a href="{% url 'device_detail' device.pk %}" class="btn-back">&larr; Back to Device</a>	
     <div id="saved-msg" class="saved-msg">Device updated successfully</div>
 
     <div class="card">
@@ -178,14 +178,14 @@
             </div>
             <div class="form-group">
                 <label for="allocation_intent">Allocation Intent</label>
-                <select id="allocation_intent" name="allocation_intent">
+		<select id="allocation_intent" name="allocation_intent">
 		    <option value="UNDECIDED" {% if device.allocation_intent == "UNDECIDED" %}selected{% endif %}>To be classified</option>
-                    <option value="SALE" {% if device.allocation_intent == "SALE" %}selected{% endif %}>Sale / Lease</option>
-                    <option value="DEVICE_BANK" {% if device.allocation_intent == "DEVICE_BANK" %}selected{% endif %}>Device Bank</option>
-                    <option value="RECYCLING" {% if device.allocation_intent == "RECYCLING" %}selected{% endif %}>Recycling</option>
 		    <option value="RESERVED" {% if device.allocation_intent == "RESERVED" %}selected{% endif %}>Reserved</option>
-                    <option value="OTHER" {% if device.allocation_intent == "OTHER" %}selected{% endif %}>Other</option>
-                </select>
+		    <option value="FOR_SALE" {% if device.allocation_intent == "FOR_SALE" %}selected{% endif %}>For Sale / Lease</option>
+		    <option value="DEVICE_BANK" {% if device.allocation_intent == "DEVICE_BANK" %}selected{% endif %}>Device Bank</option>
+		    <option value="PARTS_HARVESTING" {% if device.allocation_intent == "PARTS_HARVESTING" %}selected{% endif %}>Parts Harvesting</option>
+		    <option value="RECYCLE" {% if device.allocation_intent == "RECYCLE" %}selected{% endif %}>Recycle</option>
+		</select>
             </div>
             <div class="form-group">
                 <label for="market_value_pounds">Market Value (£)</label>
