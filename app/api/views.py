@@ -24,7 +24,6 @@ from django.utils import timezone
 from django.conf import settings
 from integrations.erpnext_client import ERPNextClient, ERPNextClientError
 from integrations.models import IntegrationLog
-from integrations.services import create_stock_entry
 from integrations.cedar_api import search_erasure_certificates, search_asset_certificates, search_asset_certificates_by_serials, CedarAPIError
 from wipe.models import DataWipeRecord, AuditRecord
 from wipe.pdf_generator import generate_wipe_certificate, generate_audit_certificate
@@ -54,6 +53,7 @@ from rest_framework import status
 from locations.models import Location
 from devices.models import Device
 from checklists.views import fill_cedar_track
+from integrations.services import create_stock_entry
 
 class DeviceFilter(django_filters.FilterSet):
     """Custom filter set for DeviceViewSet supporting related model fields."""
@@ -156,12 +156,6 @@ class DeviceViewSet(
             check_in = Stage.objects.get(code='CHECK_IN')
             device.stage = check_in
             device.save(update_fields=['stage'])
-        # Push Stock Entry to ERPNext (non-blocking — device created regardless)
-        try:
-            create_stock_entry(device)
-        except ERPNextClientError:
-            # Logged in IntegrationLog — device still created in Workbench
-            pass    
         
     def update(self, request, *args, **kwargs):
         """Override update to redirect if coming from a form POST."""
@@ -409,6 +403,14 @@ class DeviceViewSet(
             if initial_audit_record is None:
                 initial_audit_record = audit_record
             latest_audit_record = audit_record
+            try:
+                audit_record.certificate_file.name = (
+                    f"audit_certs/{device.inventory_number}_{audit_record.id}_audit.pdf"
+                )
+                generate_audit_certificate(device, audit_record)
+                audit_record.save(update_fields=["certificate_file"])
+            except Exception as e:
+                logger.warning(f"Audit certificate generation skipped: {e}")
 
         if initial_audit_record:
             update_fields = []
@@ -416,6 +418,8 @@ class DeviceViewSet(
             # initial_audit is frozen — set once, never overwritten
             if device.initial_audit is None:
                 device.initial_audit = initial_audit_record
+                device.initial_audit_status = "PASS" if initial_audit_record.result == "PASS" else "FAIL"
+                update_fields.append("initial_audit_status")
                 update_fields.append("initial_audit")
 
             device.latest_audit = latest_audit_record
@@ -1037,6 +1041,15 @@ class ReserveView(APIView):
             )
             device.allocation_intent = 'RESERVED'
             device.save(update_fields=['allocation_intent'])
+
+            # Push Stock Entry to ERPNext under the correct item code
+            # (serial is created here, at allocation time — not at intake)
+            if fulfilment_request and fulfilment_request.item_code:
+                try:
+                    create_stock_entry(device, fulfilment_request.item_code)
+                except ERPNextClientError:
+                    # Logged in IntegrationLog — allocation still created locally
+                    pass
             count += 1
 
         # Keep FR status accurate
@@ -1157,30 +1170,15 @@ class FulfilmentRequestViewSet(viewsets.ModelViewSet):
         try:
             client = ERPNextClient()
 
-            # First, create Serial Number records in ERPNext
-            created_sns = []
-            for device in devices:
-                if not device.inventory_number:
-                    continue
-                try:
-                    client.create('Serial No', {
-                        'serial_no': device.inventory_number,
-                        'item_code': fr.item_code or 'LAPTOP-UNSPECIFIED',
-                        'status': 'Delivered',
-                    })
-                    created_sns.append(device.inventory_number)
-                except ERPNextClientError as e:
-                    # If it already exists, that's fine — continue
-                    if 'already exists' in str(e).lower():
-                        created_sns.append(device.inventory_number)
-                        continue
-                    raise
-
-            serial_numbers = created_sns
+            # Serials already exist in ERPNext (created by the allocation-time
+            # Stock Entry). Reference them directly — do NOT create them here.
+            serial_numbers = [
+                d.inventory_number for d in devices if d.inventory_number
+            ]
             
             dn_data = {
                 "doctype": "Delivery Note",
-                "customer": fr.recipient.name if fr.recipient else "",
+                "customer": (fr.recipient.erpnext_customer_id or fr.recipient.name) if fr.recipient else "",
                 "company": settings.ERPNEXT_COMPANY,
                 "set_warehouse": settings.ERPNEXT_DEFAULT_WAREHOUSE,
                 "items": [

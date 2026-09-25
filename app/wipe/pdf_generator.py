@@ -101,11 +101,38 @@ def _fmt_duration(value):
 
 
 def _fieldfile_path(value):
+    """Return a filesystem path for a FileField, or None if empty.
+
+    FieldFile.path raises ValueError (not AttributeError) when no file is
+    attached, so hasattr() is unsafe here.
+    """
     if value is None:
         return None
-    if hasattr(value, "path"):
-        return value.path
-    return str(value)
+    name = getattr(value, "name", None)
+    if name:
+        try:
+            return value.path
+        except (ValueError, NotImplementedError):
+            return None
+    return str(value) if value else None
+
+
+def _resolve_output_path(record, subdir, suffix, fallback_id):
+    """Return a usable PDF output path for a certificate record.
+
+    Records created by the Cedar sync often have an empty
+    certificate_file, so derive a deterministic filename (mirroring
+    workbench/order_views.py) instead of raising.
+    """
+    path = _fieldfile_path(record.certificate_file)
+    if not path:
+        from django.conf import settings as _settings
+        rel = "%s/%s_%s.pdf" % (subdir, fallback_id, suffix)
+        record.certificate_file.name = rel
+        record.save(update_fields=["certificate_file"])
+        path = str(Path(_settings.MEDIA_ROOT) / rel)
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def _logo_url():
@@ -299,9 +326,10 @@ def generate_wipe_certificate(device, wipe_record):
         "notes": notes,
     }
 
-    output_path = _fieldfile_path(wipe_record.certificate_file)
-    if not output_path:
-        raise ValueError("DataWipeRecord.certificate_file is empty.")
+    output_path = _resolve_output_path(
+        wipe_record, "wipe_certificates", "wipe",
+        getattr(device, "inventory_number", None) or device.pk,
+    )
     return _render_pdf("wipe_certificate.html", context, output_path)
 
 
@@ -338,8 +366,9 @@ def generate_audit_certificate(device, audit_record):
         "notes": notes,
     }
 
-    output_path = _fieldfile_path(audit_record.certificate_file)
-    if not output_path:
-        raise ValueError("AuditRecord.certificate_file is empty.")
+    output_path = _resolve_output_path(
+        audit_record, "audit_certificates", "audit",
+        getattr(device, "inventory_number", None) or device.pk,
+    )
     return _render_pdf("audit_certificate.html", context, output_path)
 

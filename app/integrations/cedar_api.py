@@ -33,7 +33,7 @@ def _get_or_refresh_token():
         logger.info("No Cedar token found — authenticating")
 
     resp = requests.post(
-        urljoin(CEDAR_BASE, 'authenticate/client'),
+        CEDAR_BASE.rstrip('/') + '/authenticate/client',
         json={
             'cloud_code': settings.CEDAR_CLOUD_CODE,
             'cloud_pass': settings.CEDAR_CLOUD_PASS,

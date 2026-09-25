@@ -158,8 +158,8 @@
                     <div>
                         <dt class="text-gray-500">Final Audit</dt>
                         <dd class="font-medium">{{ device.get_final_audit_status_display }}</dd>
-                        {% for r in wipe_records %}
-                            {% if r.certificate_type == "AUDIT" and r.certificate_file %}
+			{% for r in device.audit_records.all %}
+			    {% if r.certificate_file %}
                             <dd><a href="/media/{{ r.certificate_file }}" class="text-blue-600 underline text-xs">Download Audit Cert</a></dd>
                             {% endif %}
                         {% endfor %}
