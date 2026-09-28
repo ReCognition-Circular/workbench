@@ -44,6 +44,7 @@ def sales_order_webhook(request):
         description = item.get("description", "")
 
         spec_requirements = {}
+        clean_desc = ""
         if description:
             clean_desc = re.sub(r'<[^>]+>', '', description).strip()
             try:

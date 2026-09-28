@@ -9,7 +9,7 @@ from integrations.models import IntegrationLog
 logger = logging.getLogger(__name__)
 
 
-def create_stock_entry(device):
+def create_stock_entry(device, item_code):
     """
     Create a Stock Entry (Material Receipt) in ERPNext for a device at intake.
     
@@ -27,7 +27,7 @@ def create_stock_entry(device):
         "to_warehouse": "Stores - RCC",
         "items": [
             {
-                "item_code": "LAPTOP-UNSPECIFIED",
+                "item_code": item_code,
                 "qty": 1,
                 "serial_no": inventory_number,
                 "t_warehouse": "Stores - RCC",

@@ -5,9 +5,9 @@ from django.db import models
 from devices.models import Device
 from workflow.models import Stage
 from donations.models import DonationPledge
-from devices.models import DeviceSpecification, Manufacturer, Recipient, DeviceType,  FulfilmentRequest
 from devices.utils import generate_manual_inventory_number
 from locations.models import Location
+from devices.models import DeviceSpecification, Manufacturer, Recipient, DeviceType, FulfilmentRequest, AllocationIntent
 
 @login_required
 def device_list(request):
@@ -24,6 +24,8 @@ def device_list(request):
     manufacturer_filter = request.GET.get("manufacturer", "")
     model_number_filter = request.GET.get("model_number", "")
     location_filter = request.GET.get("location", "")
+    intent_filter = request.GET.get("intent", "")
+    state_filter = request.GET.get("state", "in_stock")
     if type_filter:
         devices_qs = devices_qs.filter(device_type=type_filter)
     type_filter = request.GET.get("type", "")
@@ -65,6 +67,14 @@ def device_list(request):
 
     if location_filter:
         devices_qs = devices_qs.filter(location__code__icontains=location_filter)
+
+    if intent_filter:
+        devices_qs = devices_qs.filter(allocation_intent=intent_filter)
+
+    if state_filter == "in_stock":
+        devices_qs = devices_qs.exclude(stage__isnull=True)
+    elif state_filter == "dispatched":
+        devices_qs = devices_qs.filter(stage__isnull=True)
 
     sort = request.GET.get("sort", "-created_at")
     allowed_sorts = {
@@ -124,6 +134,9 @@ def device_list(request):
         "location_filter": location_filter,
         "type_filter": type_filter,
         "device_types": DeviceType.choices,
+        "intent_filter": intent_filter,
+        "state_filter": state_filter,
+        "allocation_intents": AllocationIntent.choices,
         "manufacturers": manufacturers,
         "locations": locations,
         "pending_pledges": DonationPledge.objects.filter(expected_devices__status="EXPECTED").exclude(status__in=["COMPLETE", "CANCELLED"]).distinct().count(),
@@ -482,7 +495,14 @@ def recipient_edit(request, pk):
     })
 @login_required
 def fulfilment_request_list(request):
+    status_filter = request.GET.get('status', 'active')
     frs = FulfilmentRequest.objects.select_related('recipient').all()
+    if status_filter == 'active':
+        frs = frs.exclude(status='COMPLETE')
+    elif status_filter == 'completed':
+        frs = frs.filter(status='COMPLETE')
+    # 'all' leaves the full queryset unchanged
+
     # Annotate with allocated count and compute shortfall
     fr_data = []
     for fr in frs:
@@ -492,8 +512,10 @@ def fulfilment_request_list(request):
             'allocated': allocated,
             'shortfall': max(0, fr.quantity - allocated),
         })
-    return render(request, 'fulfilment_request_list.html', {'fr_data': fr_data})
-
+    return render(request, 'fulfilment_request_list.html', {
+        'fr_data': fr_data,
+        'status_filter': status_filter,
+    })
 
 @login_required
 def fulfilment_request_detail(request, pk):
