@@ -46,3 +46,10 @@ temp/
 *.bkup*
 *.bak
 *.bkup*
+
+# Report/PDF generation test artefacts
+app/_t_*.pdf
+app/_test_letterhead.pdf
+app/recognition-letterhead.pdf
+recognition-letterhead.pdf
+app/core/static/core/_env_*.png
