@@ -6,8 +6,18 @@
 <div class="space-y-6">
     <div class="flex justify-between items-center">
         <h1 class="text-2xl font-bold text-gray-800">Fulfilment Requests</h1>
-        <span class="text-sm text-gray-400">{{ fr_data|length }} order(s)</span>
-    </div>
+        <div class="flex items-center gap-4">
+            <div class="flex rounded-md overflow-hidden border border-gray-300 text-sm">
+                <a href="/fulfilment-requests/?status=active"
+                   class="px-3 py-1.5 {% if status_filter == 'active' %}bg-primary text-white{% else %}bg-white text-gray-600 hover:bg-gray-50{% endif %}">Active</a>
+                <a href="/fulfilment-requests/?status=completed"
+                   class="px-3 py-1.5 {% if status_filter == 'completed' %}bg-primary text-white{% else %}bg-white text-gray-600 hover:bg-gray-50{% endif %}">Completed</a>
+                <a href="/fulfilment-requests/?status=all"
+                   class="px-3 py-1.5 {% if status_filter == 'all' %}bg-primary text-white{% else %}bg-white text-gray-600 hover:bg-gray-50{% endif %}">All</a>
+            </div>
+            <span class="text-sm text-gray-400">{{ fr_data|length }} order(s)</span>
+        </div>
+    </div>	
 
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200 text-sm">

@@ -223,7 +223,7 @@
                             <button @click="toggleResponse(item, true)"
                                     :class="item.response.value === true ? 'bg-green-500 text-white' : 'bg-gray-200'"
                                     class="px-3 py-1 rounded-l text-sm transition">Pass</button>
-                            <button x-show="item.template_item.is_auto_populated"
+			    <button x-show="item.template_item.is_auto_populated || (item.template_item.options && item.template_item.options.allow_na)"
                                     @click="toggleResponse(item, null)"
                                     :class="item.response.value === null ? 'bg-amber-500 text-white' : 'bg-gray-200'"
                                     class="px-3 py-1 text-sm transition">N/A</button>
@@ -273,6 +273,16 @@
                                 <option :value="opt" :selected="item.response.value === opt" x-text="opt"></option>
                             </template>
                         </select>
+			<!-- TEXT input -->
+                        <div x-show="item.template_item.item_type === 'TEXT'" class="w-44 shrink-0">
+                            <input x-show="!item.template_item.is_auto_populated" type="text"
+                                   x-model="item.response.value"
+                                   @blur="toggleResponse(item, item.response.value)"
+                                   class="border rounded px-2 py-1 text-sm w-full"
+                                   placeholder="Enter value…">
+                            <span x-show="item.template_item.is_auto_populated" class="text-sm text-gray-700"
+                                  x-text="item.response.value || '—'"></span>
+                        </div>
 
                         <!-- Photo button (if photo_required) -->
                         <button x-show="item.template_item.photo_required" @click="capturePhoto(item)" class="ml-2 text-blue-500 text-sm hover:underline">📷</button>

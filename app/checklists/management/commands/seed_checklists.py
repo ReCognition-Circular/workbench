@@ -104,9 +104,9 @@ QA_SECTION_1 = [
     ("BIOS", "BIOS date/time correct", "PASS_FAIL", 1, False, None, None),
     ("BIOS", "Boot order correct", "PASS_FAIL", 2, False, None, None),
     ("BIOS", "Secure Boot enabled", "PASS_FAIL", 3, False, None, None),
-    ("BIOS", "TPM / admin password cleared", "PASS_FAIL", 4, False, None, None),
+    ("BIOS", "TPM password reset", "PASS_FAIL", 4, False, None, None),
+    ("BIOS", "Admin password reset", "PASS_FAIL", 14, False, None, None),
 ]
-
 QA_SECTION_2 = [
     ("Physical", "Screen condition", "PASS_FAIL", 5, False, None, None),
     ("Physical", "Keyboard / trackpad", "PASS_FAIL", 6, False, None, None),
@@ -200,6 +200,9 @@ class Command(BaseCommand):
         _build_template_items(ct_qa, QA_SECTION_1)
         _build_template_items(ct_qa, QA_SECTION_2)
         _build_template_items(ct_qa, QA_SECTION_3)
+        for item in ct_qa.items.filter(label__in=["Secure Boot enabled", "TPM password reset"]):
+            item.options = {"allow_na": True}
+            item.save(update_fields=["options"])
         self.stdout.write(f"  ✅ QA — {ct_qa.items.count()} items")
 
         self.stdout.write(self.style.SUCCESS("\nSeed complete — 3 templates created."))

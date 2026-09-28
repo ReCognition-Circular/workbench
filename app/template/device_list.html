@@ -14,7 +14,7 @@
     <!-- Filters -->
 <!-- Filters -->
     <div class="bg-white rounded-lg shadow p-4">
-        <form method="get" class="grid grid-cols-1 md:grid-cols-10 gap-4">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-12 gap-4">
 	    <div>
                 <label class="block text-sm font-medium text-gray-700">Search</label>
                 <input type="text" name="search" value="{{ search }}" 
@@ -30,6 +30,23 @@
                     {% endfor %}
                 </select>
             </div>	
+	    <div>
+                <label class="block text-sm font-medium text-gray-700">Intent</label>
+                <select name="intent" onchange="this.form.submit()" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                    <option value="">All Intents</option>
+                    {% for value, label in allocation_intents %}
+                        <option value="{{ value }}" {% if intent_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+	    <div>
+                <label class="block text-sm font-medium text-gray-700">State</label>
+                <select name="state" onchange="this.form.submit()" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                    <option value="in_stock" {% if state_filter == 'in_stock' %}selected{% endif %}>In stock</option>
+                    <option value="dispatched" {% if state_filter == 'dispatched' %}selected{% endif %}>Dispatched</option>
+                    <option value="all" {% if state_filter == 'all' %}selected{% endif %}>All</option>
+                </select>
+            </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Stage</label>
                 <select name="stage" onchange="this.form.submit()" class="mt-1 block w-full rounded border-gray-300 shadow-sm">                
@@ -134,6 +151,8 @@
     <input type="hidden" name="stage" value="{{ stage_filter }}">
     <input type="hidden" name="grade" value="{{ grade_filter }}">
     <input type="hidden" name="wipe" value="{{ wipe_filter }}">
+    <input type="hidden" name="intent" value="{{ intent_filter }}">
+    <input type="hidden" name="state" value="{{ state_filter }}">
     <input type="hidden" name="parts" value="{{ parts_filter }}">
     <input type="hidden" name="win11" value="{{ win11_filter }}">
     <input type="hidden" name="manufacturer" value="{{ manufacturer_filter }}">

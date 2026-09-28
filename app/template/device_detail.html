@@ -152,17 +152,18 @@
                     </div>
                     <!-- Initial Audit / Final Audit -->
                     <div>
-                        <dt class="text-gray-500">Initial Audit</dt>
+			<dt class="text-gray-500">Initial Audit</dt>
                         <dd class="font-medium">{{ device.get_initial_audit_status_display }}</dd>
-                    </div>
+                        {% if device.initial_audit.certificate_file %}
+                        <dd><a href="/media/{{ device.initial_audit.certificate_file }}" class="text-blue-600 underline text-xs">Download Initial Audit Cert</a></dd>
+                        {% endif %}
+                    </div>    
                     <div>
                         <dt class="text-gray-500">Final Audit</dt>
                         <dd class="font-medium">{{ device.get_final_audit_status_display }}</dd>
-			{% for r in device.audit_records.all %}
-			    {% if r.certificate_file %}
-                            <dd><a href="/media/{{ r.certificate_file }}" class="text-blue-600 underline text-xs">Download Audit Cert</a></dd>
-                            {% endif %}
-                        {% endfor %}
+			{% if device.final_audit.certificate_file %}
+                        <dd><a href="/media/{{ device.final_audit.certificate_file }}" class="text-blue-600 underline text-xs">Download Final Audit Cert</a></dd>
+                        {% endif %}
                     </div>
                     <!-- QA Status / Operating System -->
                     <div>
