@@ -535,19 +535,24 @@ def _result_is_fail(value):
     return str(value or "").strip().lower() in _FAIL_VALUES
 
 def _serial_variants(serial):
-    """Return uppercase serial variants with 0/O and 1/I ambiguity swapped."""
+    """Return uppercase serial variants with separators removed and 0/O, 1/I ambiguity swapped."""
     s = str(serial or "").strip().upper()
     if not s:
         return []
-    variants = {
-        s,
-        s.replace("0", "O"),
-        s.replace("O", "0"),
-        s.replace("1", "I"),
-        s.replace("I", "1"),
-        s.replace("0", "O").replace("1", "I"),
-        s.replace("O", "0").replace("I", "1"),
-    }
+    # Also try a separator-stripped form: 'R9-0HRCQD' -> 'R90HRCQD'
+    base = s.replace("-", "").replace(" ", "").replace("_", "")
+    seeds = {s, base}
+    variants = set()
+    for seed in seeds:
+        variants.update({
+            seed,
+            seed.replace("0", "O"),
+            seed.replace("O", "0"),
+            seed.replace("1", "I"),
+            seed.replace("I", "1"),
+            seed.replace("0", "O").replace("1", "I"),
+            seed.replace("O", "0").replace("I", "1"),
+        })
     return sorted(variants)
 
 def _cert_field(cert, field, default=None):
