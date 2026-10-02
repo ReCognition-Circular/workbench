@@ -451,12 +451,16 @@ class Device(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        # Auto-calculate Windows 11 compatibility from processor spec
+        # Auto-calculate Windows 11 compatibility from processor spec.
+        # No processor detail => UNKNOWN (value is always derived, never manual).
+        from devices.win11_check import determine_win11_compatible
+
+        processor = ""
         if self.device_specification and self.device_specification.processor:
-            from devices.win11_check import determine_win11_compatible
-            self.win11_compatible = determine_win11_compatible(
-                self.device_specification.processor
-            )
+            processor = self.device_specification.processor
+
+        self.win11_compatible = determine_win11_compatible(processor)
+
         super().save(*args, **kwargs)
 
     class Meta:
