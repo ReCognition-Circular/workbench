@@ -311,6 +311,35 @@ class DeviceViewSet(
                 else:
                     results["asset"]["pass"] += 1
 
+        else:
+            # No erasure certificate was found. Only downgrade a status that
+            # claims a Cedar-derived outcome (PASS/FAIL) AND only when we
+            # actually queried at least one drive serial — otherwise we have
+            # not proven the cert is absent, we simply did not look.
+            #
+            # Devices that legitimately have no Cedar cert are exempted:
+            # donor-wiped, no storage media, not applicable, wiped externally.
+            queried = [
+                d for d in results["erasure"]["drives"]
+                if d.get("serial") and not d.get("error")
+            ]
+            non_cedar_states = {
+                "DONOR_WIPED",
+                "NO_STORAGE",
+                "N/A",
+                "PENDING",
+                # "WIPED_EXTERNAL",  # enable in step 5
+            }
+            if queried and device.wipe_status not in non_cedar_states:
+                logger.info(
+                    "Cedar erasure sync: no cert for %s (drive serials queried: %s); "
+                    "wipe_status %s -> PENDING",
+                    device.inventory_number,
+                    [d["serial"] for d in queried],
+                    device.wipe_status,
+                )
+                device.wipe_status = "PENDING"
+                device.save(update_fields=["wipe_status"])
         # --- Create/update DataWipeRecord from erasure results ---
         wipe_record = None
         if all_erasure_data:
