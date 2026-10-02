@@ -237,9 +237,6 @@ def _to_decimal(raw, fallback=0):
 @login_required
 def device_edit(request, pk):
     """Device edit page."""
-@login_required
-def device_edit(request, pk):
-    """Device edit page."""
     device = get_object_or_404(
         Device.objects.select_related("stage", "location", "device_specification"),
         pk=pk,
