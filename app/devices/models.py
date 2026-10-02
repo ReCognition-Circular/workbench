@@ -53,6 +53,7 @@ class WipeStatus(models.TextChoices):
     PASS = 'PASS', "Wipe completed successfully"
     FAIL = 'FAIL', "Wipe attempted but failed"
     N_A = 'N/A', "Not applicable — wiping not required"
+    WIPED_EXTERNAL = 'WIPED_EXTERNAL', "Wiped outside Cedar (manual/third-party)"
 
 class AuditStatus(models.TextChoices):
     NOT_STARTED = 'NOT_STARTED', "Not yet audited"
@@ -255,6 +256,32 @@ class FulfilmentRequest(models.Model):
     def __str__(self):
         return self.summary or self.erpnext_order_id
 
+class ErasureExceptionCategory(models.TextChoices):
+    NOT_REQUIRED = 'NOT_REQUIRED', "Not required"
+    NOT_POSSIBLE = 'NOT_POSSIBLE', "Not possible via Cedar"
+    WIPED_EXTERNAL = 'WIPED_EXTERNAL', "Wiped outside Cedar"
+
+
+class ErasureExceptionReason(models.TextChoices):
+    # NOT_REQUIRED
+    DONOR_PRE_WIPED = 'DONOR_PRE_WIPED', "Donor confirmed pre-wiped"
+    NO_STORAGE_MEDIA = 'NO_STORAGE_MEDIA', "No storage media present"
+    # NOT_POSSIBLE (trigger — device can still proceed via replacement drive)
+    SOLDERED_NAND = 'SOLDERED_NAND', "Soldered storage (e.g. Apple NAND)"
+    UNSUPPORTED_CONTROLLER = 'UNSUPPORTED_CONTROLLER', "Controller not supported by Cedar"
+    DRIVE_DAMAGED = 'DRIVE_DAMAGED', "Drive damaged / unreadable"
+    # WIPED_EXTERNAL
+    REMOVED_WIPED_ELSEWHERE = 'REMOVED_WIPED_ELSEWHERE', "Drive removed and wiped elsewhere"
+    THIRD_PARTY_PRODUCT = 'THIRD_PARTY_PRODUCT', "Wiped with third-party product"
+    LINUX_CLI = 'LINUX_CLI', "Wiped via Linux CLI"
+    # shared
+    OTHER = 'OTHER', "Other (note required)"
+
+
+class ErasureExceptionStatus(models.TextChoices):
+    NONE = 'NONE', "No exception — Cedar erasure required"
+    GRANTED = 'GRANTED', "Exception granted"
+
 class SpecSource(models.TextChoices):
     FOG = "FOG", "FOG auto-detected"
     CEDAR = "CEDAR", "Cedar audit"
@@ -380,6 +407,37 @@ class Device(models.Model):
     memory_gb_upgraded = models.IntegerField(null=True, blank=True)
     storage_size_gb_upgraded = models.IntegerField(null=True, blank=True)
     processor_upgraded = models.CharField(max_length=200, blank=True) 
+    # Erasure intent — records whether Cedar erasure is required for this device,
+    # and if not, why. The normal case is erasure_required=True with no exception.
+    erasure_required = models.BooleanField(
+        default=True,
+        help_text="False only when a categorised exception has been granted",
+    )
+    erasure_exception_category = models.CharField(
+        max_length=20,
+        choices=ErasureExceptionCategory.choices,
+        blank=True,
+        default='',
+    )
+    erasure_exception_reason = models.CharField(
+        max_length=30,
+        choices=ErasureExceptionReason.choices,
+        blank=True,
+        default='',
+    )
+    erasure_exception_note = models.TextField(
+        blank=True,
+        default='',
+        help_text="Mandatory when reason is OTHER",
+    )
+    erasure_exception_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    erasure_exception_at = models.DateTimeField(null=True, blank=True)
 
     # Allocation / stock intent
     allocation_intent = models.CharField(
