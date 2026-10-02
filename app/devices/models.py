@@ -52,6 +52,7 @@ class WipeStatus(models.TextChoices):
     PENDING = 'PENDING', "Needs wiping"
     PASS = 'PASS', "Wipe completed successfully"
     FAIL = 'FAIL', "Wipe attempted but failed"
+    N_A = 'N/A', "Not applicable — wiping not required"
 
 class AuditStatus(models.TextChoices):
     NOT_STARTED = 'NOT_STARTED', "Not yet audited"

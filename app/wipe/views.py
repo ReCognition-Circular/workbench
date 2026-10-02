@@ -35,14 +35,19 @@ class DataWipeRecordViewSet(
             uploaded_by=request.user if request.user.is_authenticated else None,
         )
 
-        # Update device wipe_status based on result
+        # Map the wipe record's result onto Device.wipe_status.
+        # DataWipeRecord.result: SUCCESS / FAILED / PASS / FAIL / NOT_REQUIRED
+        # Device.wipe_status:   the WipeStatus vocabulary
         result = serializer.validated_data.get("result")
-        if result == "SUCCESS":
-            device.wipe_status = "PASS"
-        elif result == "FAILED":
-            device.wipe_status = "FAIL"
-        elif result == "NOT_REQUIRED":
-            device.wipe_status = "NO_STORAGE"
-        device.save(update_fields=["wipe_status"])
-
+        result_to_status = {
+            "SUCCESS": "PASS",
+            "PASS": "PASS",
+            "FAILED": "FAIL",
+            "FAIL": "FAIL",
+            "NOT_REQUIRED": "N/A",
+        }
+        new_status = result_to_status.get(result)
+        if new_status and new_status != device.wipe_status:
+            device.wipe_status = new_status
+            device.save(update_fields=["wipe_status"])
         return Response(DataWipeRecordSerializer(record).data, status=status.HTTP_201_CREATED)
