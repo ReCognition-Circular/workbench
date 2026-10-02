@@ -215,6 +215,28 @@ def device_checklist(request, pk, stage):
         "open_defects": device.open_refurb_defects,
     })
 
+def _valid_choice(device, field_name, raw):
+    """Return raw only if it's a valid choice for device.<field_name>; else None."""
+    if raw is None or raw == "":
+        return None
+    valid = {c[0] for c in device._meta.get_field(field_name).choices}
+    return raw if raw in valid else None
+
+
+def _to_decimal(raw, fallback=0):
+    """Convert a posted string to Decimal safely; fall back on empty/invalid."""
+    from decimal import Decimal, InvalidOperation
+    if raw is None or str(raw).strip() == "":
+        return fallback
+    try:
+        return Decimal(str(raw).strip())
+    except (InvalidOperation, ValueError):
+        return fallback
+
+
+@login_required
+def device_edit(request, pk):
+    """Device edit page."""
 @login_required
 def device_edit(request, pk):
     """Device edit page."""
@@ -225,21 +247,30 @@ def device_edit(request, pk):
 
     
     if request.method == "POST":
-        # Capture form fields from POST data
+        # Capture form fields from POST data — validated against model choices
         device_type = request.POST.get("device_type", "").strip()
-        device.initial_grade = request.POST.get("initial_grade", device.initial_grade)
-        device.final_grade = request.POST.get("final_grade", device.final_grade)
-        device.initial_audit_status = request.POST.get("initial_audit_status", device.initial_audit_status)
-        device.final_audit_status = request.POST.get("final_audit_status", device.final_audit_status)
-        device.wipe_status = request.POST.get("wipe_status", device.wipe_status)
+
+        for field_name in (
+            "initial_grade",
+            "final_grade",
+            "initial_audit_status",
+            "final_audit_status",
+            "wipe_status",
+            "parts_status",
+            "allocation_intent",
+        ):
+            value = _valid_choice(device, field_name, request.POST.get(field_name))
+            if value is not None:
+                setattr(device, field_name, value)
+
+        # Free-form text
         device.wipe_notes = request.POST.get("wipe_notes", device.wipe_notes)
-        device.parts_status = request.POST.get("parts_status", device.parts_status)
         device.parts_notes = request.POST.get("parts_notes", device.parts_notes)
-        device.parts_cost_pounds = request.POST.get("parts_cost_pounds") or 0
         device.notes = request.POST.get("notes", device.notes)
-        device.allocation_intent = request.POST.get("allocation_intent", device.allocation_intent)
-        device.market_value_pounds = request.POST.get("market_value_pounds") or None
-        
+
+        # Money fields — safe decimal conversion
+        device.parts_cost_pounds = _to_decimal(request.POST.get("parts_cost_pounds"), 0)
+        device.market_value_pounds = _to_decimal(request.POST.get("market_value_pounds"), None)
         # Update DeviceSpecification fields if present
         if device.device_specification:
             spec = device.device_specification
