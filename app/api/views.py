@@ -328,7 +328,7 @@ class DeviceViewSet(
                 "NO_STORAGE",
                 "N/A",
                 "PENDING",
-                # "WIPED_EXTERNAL",  # enable in step 5
+                "WIPED_EXTERNAL",
             }
             if queried and device.wipe_status not in non_cedar_states:
                 logger.info(
