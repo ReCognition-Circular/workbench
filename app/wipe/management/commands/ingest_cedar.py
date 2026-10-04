@@ -17,7 +17,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from devices.models import Device, WipeStatus
@@ -64,6 +64,15 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        raise CommandError(
+            "ingest_cedar is RETIRED. The Cedar FTP integration has been "
+            "replaced by the Cedar API (see integrations/cedar_api.py and "
+            "the sync in api/views.py). This command is disabled because its "
+            "_extract_result() defaults to PASS when it cannot parse a result, "
+            "which can record a wipe as passed with no evidence. "
+            "Do not re-enable without fixing that default and confirming the "
+            "FTP route is in use. See CHANGELOG-erasure-spec.md."
+        )
         mode = options["mode"]
         self.stdout.write(f"Cedar ingestion — mode: {mode}")
 
