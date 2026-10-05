@@ -211,6 +211,18 @@ class DeviceChecklistView(APIView):
         if template_code in ("refurb", "qa"):
             data["erasure_panel"] = _erasure_panel_data(device)
 
+        # ── Refurb lock: erasure question must be answered before work starts
+        # Locked on OPEN only. The device still transitions here freely; the
+        # QA gate is the backstop.
+        if template_code == "refurb":
+            erasure_answered = not device.erasure_required
+            data["locked"] = not erasure_answered
+            data["locked_reason"] = (
+                "Erasure intent must be recorded before the refurb checklist can be completed."
+                if data["locked"]
+                else ""
+            )
+
         # ── Refurb: inject defect section ─────────────────────────────────
         if template_code == "refurb":
             defect_items = []
