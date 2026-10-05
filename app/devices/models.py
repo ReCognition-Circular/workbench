@@ -264,7 +264,8 @@ class ErasureExceptionCategory(models.TextChoices):
 
 class ErasureExceptionReason(models.TextChoices):
     # NOT_REQUIRED
-    DONOR_PRE_WIPED = 'DONOR_PRE_WIPED', "Donor confirmed pre-wiped"
+    DONOR_DECLARED = 'DONOR_DECLARED', "Declared by donor on donation pledge"
+    DONOR_PRE_WIPED = 'DONOR_PRE_WIPED', "Donor confirmed pre-wiped (operator-recorded)"
     NO_STORAGE_MEDIA = 'NO_STORAGE_MEDIA', "No storage media present"
     # NOT_POSSIBLE (trigger — device can still proceed via replacement drive)
     SOLDERED_NAND = 'SOLDERED_NAND', "Soldered storage (e.g. Apple NAND)"
