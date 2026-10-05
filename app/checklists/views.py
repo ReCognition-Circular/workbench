@@ -207,6 +207,10 @@ class DeviceChecklistView(APIView):
         if template_code == "qa":
             data["cedar_panel"] = _cedar_panel_data(device)
 
+        # ── Erasure intent (refurb + QA) ──────────────────────────────────
+        if template_code in ("refurb", "qa"):
+            data["erasure_panel"] = _erasure_panel_data(device)
+
         # ── Refurb: inject defect section ─────────────────────────────────
         if template_code == "refurb":
             defect_items = []
@@ -557,6 +561,44 @@ def fill_device_spec(instance):
             response.value = value
             response.notes = "Auto-filled from device specification"
             response.save(update_fields=["value", "notes"])
+def _erasure_panel_data(device):
+    """Read-only summary of the device's erasure intent.
+
+    `answered` is False when the device still requires Cedar erasure and no
+    exception has been granted — i.e. the operator has not answered the
+    question yet. The refurb checklist is locked while unanswered.
+    """
+    from devices.models import ErasureExceptionCategory, ErasureExceptionReason
+
+    category = device.erasure_exception_category or ""
+    reason = device.erasure_exception_reason or ""
+
+    def _label(enum_cls, value):
+        try:
+            return enum_cls(value).label
+        except Exception:
+            return value
+
+    return {
+        "required": device.erasure_required,
+        "answered": not device.erasure_required,
+        "category": category,
+        "category_label": _label(ErasureExceptionCategory, category) if category else "",
+        "reason": reason,
+        "reason_label": _label(ErasureExceptionReason, reason) if reason else "",
+        "note": device.erasure_exception_note or "",
+        "decided_by": (
+            device.erasure_exception_by.username
+            if device.erasure_exception_by_id
+            else ""
+        ),
+        "decided_at": (
+            device.erasure_exception_at.isoformat()
+            if device.erasure_exception_at
+            else None
+        ),
+        "wipe_status": device.wipe_status,
+    }
 def _cedar_panel_data(device):
     """Build the QA 'Cedar read-only panel' rows from the latest audit."""
     audit = device.final_audit or device.latest_audit or device.initial_audit
