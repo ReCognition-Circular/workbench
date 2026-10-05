@@ -145,11 +145,31 @@ class DeviceViewSet(
                 match.status = "RECEIVED"
                 match.save(update_fields=["matched_device", "status"])
 
-                # If donor confirmed storage removed/already wiped, flag the device
-                if match.donation_pledge.storage_removed:
+                # Donor declared storage removed / already wiped on the pledge.
+                # That declaration IS the decision — no operator adjudicates it,
+                # so erasure_exception_by stays null and the provenance is the
+                # pledge reference. We still wipe by default; this is the donor
+                # opting out.
+                pledge = match.donation_pledge
+                if pledge.storage_removed:
                     device.wipe_status = "DONOR_WIPED"
-                    device.save(update_fields=["wipe_status"])
-
+                    device.erasure_required = False
+                    device.erasure_exception_category = "NOT_REQUIRED"
+                    device.erasure_exception_reason = "DONOR_DECLARED"
+                    device.erasure_exception_note = (
+                        f"Declared by donor — pledge {pledge.reference_number}"
+                    )
+                    device.erasure_exception_by = None
+                    device.erasure_exception_at = timezone.now()
+                    device.save(update_fields=[
+                        "wipe_status",
+                        "erasure_required",
+                        "erasure_exception_category",
+                        "erasure_exception_reason",
+                        "erasure_exception_note",
+                        "erasure_exception_by",
+                        "erasure_exception_at",
+                    ])
         # Auto-transition: RECEIVED → CHECK_IN (FOG/n8n devices land at RECEIVED)
         if device.stage and device.stage.code == 'RECEIVED':
             from workflow.models import Stage
