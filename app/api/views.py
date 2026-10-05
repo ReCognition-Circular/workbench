@@ -498,6 +498,88 @@ class DeviceViewSet(
             },
         })
 
+    @action(detail=True, methods=["post"], url_path="set-erasure-exception")
+    def set_erasure_exception(self, request, pk=None):
+        """Grant or revoke an erasure exception for this device.
+
+        An exception is permission, not evidence — it records that Cedar
+        erasure is not required, and who decided that.
+
+        POST {"action": "grant", "category": "...", "reason": "...", "note": "..."}
+        POST {"action": "revoke"}
+        """
+        from devices.models import ErasureExceptionCategory, ErasureExceptionReason
+
+        device = self.get_object()
+        do = (request.data.get("action") or "").strip().lower()
+
+        if do == "grant":
+            category = (request.data.get("category") or "").strip()
+            reason = (request.data.get("reason") or "").strip()
+            note = (request.data.get("note") or "").strip()
+
+            if category not in ErasureExceptionCategory.values:
+                return Response(
+                    {"error": "Invalid category. Use one of: "
+                              + ", ".join(ErasureExceptionCategory.values)},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if reason not in ErasureExceptionReason.values:
+                return Response(
+                    {"error": "Invalid reason. Use one of: "
+                              + ", ".join(ErasureExceptionReason.values)},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if reason == ErasureExceptionReason.OTHER and not note:
+                return Response(
+                    {"error": "A note is required when reason is OTHER."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            device.erasure_required = False
+            device.erasure_exception_category = category
+            device.erasure_exception_reason = reason
+            device.erasure_exception_note = note
+            device.erasure_exception_by = (
+                request.user if getattr(request.user, "is_authenticated", False) else None
+            )
+            device.erasure_exception_at = timezone.now()
+            device.save(update_fields=[
+                "erasure_required",
+                "erasure_exception_category",
+                "erasure_exception_reason",
+                "erasure_exception_note",
+                "erasure_exception_by",
+                "erasure_exception_at",
+            ])
+            return Response({
+                "status": "granted",
+                "erasure_required": False,
+                "category": category,
+                "reason": reason,
+            })
+
+        if do == "revoke":
+            device.erasure_required = True
+            device.erasure_exception_category = ""
+            device.erasure_exception_reason = ""
+            device.erasure_exception_note = ""
+            device.erasure_exception_by = None
+            device.erasure_exception_at = None
+            device.save(update_fields=[
+                "erasure_required",
+                "erasure_exception_category",
+                "erasure_exception_reason",
+                "erasure_exception_note",
+                "erasure_exception_by",
+                "erasure_exception_at",
+            ])
+            return Response({"status": "revoked", "erasure_required": True})
+
+        return Response(
+            {"error": "action must be 'grant' or 'revoke'."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
     @action(detail=True, methods=["post"], url_path="pat")
     def pat(self, request, pk=None):
         device = self.get_object()
