@@ -35,6 +35,7 @@ from .serializers import (
     StageSerializer,
     DonorSerializer,
     SiteSerializer,
+    WipeEvidenceSerializer,
     DeviceLocationUpdateSerializer,
     StockOverviewSerializer,
     StockAvailableSerializer,
@@ -599,6 +600,38 @@ class DeviceViewSet(
         return Response(
             {"error": "action must be 'grant' or 'revoke'."},
             status=status.HTTP_400_BAD_REQUEST,
+        )
+    @action(detail=True, methods=["get", "post"], url_path="wipe-evidence")
+    def wipe_evidence(self, request, pk=None):
+        """Upload or list document evidence for a failed Cedar erasure (Step 11).
+
+        GET  — list evidence attached to this device.
+        POST — upload a certificate, destruction photograph, or the failed
+               Cedar report. Multipart: evidence_type, file, notes.
+        """
+        from devices.models import WipeEvidence
+
+        device = self.get_object()
+
+        if request.method == "GET":
+            records = device.wipe_evidence.all()
+            return Response(WipeEvidenceSerializer(records, many=True).data)
+
+        serializer = WipeEvidenceSerializer(data={
+            "device": device.id,
+            "evidence_type": request.data.get("evidence_type"),
+            "file": request.FILES.get("file"),
+            "notes": request.data.get("notes", ""),
+        })
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        record = serializer.save(
+            uploaded_by=request.user if request.user.is_authenticated else None
+        )
+        return Response(
+            WipeEvidenceSerializer(record).data,
+            status=status.HTTP_201_CREATED,
         )
     @action(detail=True, methods=["post"], url_path="pat")
     def pat(self, request, pk=None):

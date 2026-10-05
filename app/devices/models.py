@@ -325,6 +325,42 @@ class DeviceSpecification(models.Model):
         return f"{self.manufacturer} {self.model_name} ({self.serial_number})"
 
 
+class WipeEvidence(models.Model):
+    """Document evidence for a failed Cedar erasure (Step 11).
+
+    Two cases: a certificate from another wipe tool, or a photograph of a
+    destroyed drive. The failed Cedar report is attached as the anchor, since
+    it is the only document linking device serial to drive serial.
+    """
+
+    class EvidenceType(models.TextChoices):
+        CERTIFICATE = "CERTIFICATE", "Certificate (wiped by another tool)"
+        DESTRUCTION_PHOTO = "DESTRUCTION_PHOTO", "Destruction photograph"
+        CEDAR_FAILURE_REPORT = "CEDAR_FAILURE_REPORT", "Failed Cedar report (anchor)"
+
+    device = models.ForeignKey(
+        "Device",
+        on_delete=models.CASCADE,
+        related_name="wipe_evidence",
+    )
+    evidence_type = models.CharField(max_length=30, choices=EvidenceType.choices)
+    file = models.FileField(upload_to="wipe_evidence/%Y/%m/")
+    notes = models.TextField(blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ["-uploaded_at"]
+        verbose_name_plural = "wipe evidence"
+
+    def __str__(self):
+        return f"{self.get_evidence_type_display()} — {self.device.inventory_number}"
+
 class Device(models.Model):
     inventory_number = models.CharField(max_length=50, unique=True)
     serial_number = models.CharField(max_length=100, unique=True, blank=True)

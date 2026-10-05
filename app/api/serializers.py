@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from devices.models import Device, DeviceSpecification, Allocation, Recipient, FulfilmentRequest
+from devices.models import Device, DeviceSpecification, Allocation, Recipient, FulfilmentRequest, WipeEvidence
 from locations.models import Location, Site
 from workflow.models import Stage
 from donors.models import Donor
@@ -45,6 +45,21 @@ class DeviceSpecificationSerializer(serializers.ModelSerializer):
         model = DeviceSpecification
         fields = '__all__'
 
+class WipeEvidenceSerializer(serializers.ModelSerializer):
+    evidence_type_display = serializers.CharField(
+        source="get_evidence_type_display", read_only=True
+    )
+    uploaded_by_name = serializers.CharField(
+        source="uploaded_by.username", read_only=True, default=None
+    )
+
+    class Meta:
+        model = WipeEvidence
+        fields = [
+            "id", "device", "evidence_type", "evidence_type_display",
+            "file", "notes", "uploaded_at", "uploaded_by", "uploaded_by_name",
+        ]
+        read_only_fields = ["id", "uploaded_at", "uploaded_by", "uploaded_by_name"]
 
 class DeviceSpecificationWriteSerializer(serializers.ModelSerializer):
     memory_gb = serializers.IntegerField(allow_null=True, required=False)
