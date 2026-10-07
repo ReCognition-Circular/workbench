@@ -471,6 +471,14 @@ class Device(models.Model):
         related_name="+",
     )
     erasure_exception_at = models.DateTimeField(null=True, blank=True)
+    # Drive location — set when an operator physically removes the storage
+    # medium from the machine. Records WHERE the drive is, and deliberately
+    # does not close the erasure obligation: only WipeEvidence does that.
+    # Default False so existing devices stay gated until an operator acts.
+    drive_removed = models.BooleanField(
+        default=False,
+        help_text="True when the storage medium has been physically removed",
+    )
 
     # Allocation / stock intent
     allocation_intent = models.CharField(
