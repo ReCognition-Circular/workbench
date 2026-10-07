@@ -641,12 +641,20 @@ function checklistApp() {
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCSRF() },
                     body: JSON.stringify(body),
                 });
-                const data = await res.json();
+		const data = await res.json();
+
+                // Surface gate failures (defects / final audit / erasure obligation)
+                if (!res.ok) {
+                    const msg = data.error || data.detail || 'Could not complete the checklist.';
+                    alert('Cannot complete ' + this.stageSlug.toUpperCase() + ' checklist:\n\n' + msg);
+                    return;
+                }
+
                 if (this.stageSlug === 'check-in') {
                     this.gradeResult = data;
                 } else if (this.stageSlug === 'qa') {
                     this.qaResult = data;
-                }
+                }    
                 if (data.new_stage) {
                     window.location.href = `/devices/${this.deviceId}/`;
                 }
