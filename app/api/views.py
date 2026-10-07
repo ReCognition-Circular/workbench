@@ -350,6 +350,7 @@ class DeviceViewSet(
                 "N/A",
                 "PENDING",
                 "WIPED_EXTERNAL",
+                "FAIL",
             }
             if queried and device.wipe_status not in non_cedar_states:
                 logger.info(

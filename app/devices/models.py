@@ -644,6 +644,7 @@ class GateOverride(models.Model):
     class Gate(models.TextChoices):
         DEFECTS = "defects", "Open refurb defects"
         FINAL_AUDIT = "final_audit", "Final Cedar audit"
+        ERASURE = "erasure", "Unresolved erasure obligation"
 
     device = models.ForeignKey(
         "Device",

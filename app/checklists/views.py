@@ -367,6 +367,29 @@ class ChecklistCompleteView(APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
+                # ── Gate 3: erasure obligation (block unless overridden) ──
+                erasure_unresolved = (
+                    device.wipe_status == "FAIL"
+                    and not device.drive_removed
+                    and not device.wipe_evidence.exists()
+                )
+                if erasure_unresolved and not GateOverride.objects.filter(
+                    device=device, gate=GateOverride.Gate.ERASURE
+                ).exists():
+                    return Response(
+                        {
+                            "error": (
+                                "Cedar erasure failed and the drive is still "
+                                "fitted. Either attach evidence (a certificate, "
+                                "a destruction photograph, or the failed Cedar "
+                                "report) or record that the drive has been "
+                                "removed."
+                            ),
+                            "wipe_status": device.wipe_status,
+                            "drive_removed": device.drive_removed,
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
                 device.qa_status = "PASS"
                 from workflow.models import Stage
                 dispatch_stage = Stage.objects.filter(code="AWAITING_DISPATCH").first()
