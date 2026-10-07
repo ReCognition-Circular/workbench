@@ -163,6 +163,7 @@ def device_detail(request, pk):
     from wipe.models import DataWipeRecord
     from checklists.models import ChecklistInstance
     wipe_records = DataWipeRecord.objects.filter(device=device).order_by("-uploaded_at")
+    wipe_evidence = device.wipe_evidence.all()
 
     checklist_slug = None
     if device.stage:
@@ -182,6 +183,7 @@ def device_detail(request, pk):
         "default_next_stage": default_next_stage,
         "allocations": allocations,
         "wipe_records": wipe_records,
+        "wipe_evidence": wipe_evidence,
         "checklist_slug": checklist_slug,
         "checklist_links": checklist_links,
         "open_defects": device.open_refurb_defects,

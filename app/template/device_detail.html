@@ -138,7 +138,7 @@
                         <dt class="text-gray-500">Ownership</dt>
                         <dd class="font-medium">{{ device.get_ownership_type_display }}</dd>
                     </div>
-                    <div>
+		    <div>
                         <dt class="text-gray-500">Wipe Status</dt>
                         <dd class="font-medium">{{ device.get_wipe_status_display }}</dd>
                         {% if device.wipe_notes %}
@@ -149,6 +149,47 @@
                             <dd><a href="/media/{{ r.certificate_file }}" class="text-blue-600 underline text-xs">Download Wipe Cert</a></dd>
                             {% endif %}
                         {% endfor %}
+                    </div>
+
+                    <!-- Data Erasure obligation -->
+                    <div class="col-span-2 border-t pt-3 mt-1">
+                        <dt class="text-gray-500 mb-1">Data Erasure</dt>
+
+                        {% if device.wipe_status == 'FAIL' and not wipe_evidence %}
+                            <dd class="rounded border border-red-300 bg-red-50 p-2 text-xs text-red-800">
+                                <strong>Erasure obligation open.</strong>
+                                Cedar could not erase this drive and no evidence has been attached.
+                                {% if device.drive_removed %}
+                                    The drive has been removed from the machine and is held separately.
+                                {% else %}
+                                    The drive is still fitted in the machine.
+                                {% endif %}
+                                Attach a certificate, a destruction photograph, or a failed Cedar report.
+                            </dd>
+                        {% elif device.wipe_status == 'FAIL' and wipe_evidence %}
+                            <dd class="rounded border border-green-300 bg-green-50 p-2 text-xs text-green-800">
+                                <strong>Erasure obligation discharged.</strong>
+                                Cedar could not erase the drive, but supporting evidence has been attached.
+                                {% if device.drive_removed %}Drive removed from the machine.{% endif %}
+                            </dd>
+                        {% else %}
+                            <dd class="text-xs text-gray-400">No open erasure obligation.</dd>
+                        {% endif %}
+
+                        {% if wipe_evidence %}
+                            <dd class="mt-2">
+                                <span class="text-gray-500 text-xs">Evidence:</span>
+                                <ul class="text-xs mt-1 space-y-0.5">
+                                    {% for e in wipe_evidence %}
+                                    <li>
+                                        <a href="{{ e.file.url }}" class="text-blue-600 underline" target="_blank">{{ e.get_evidence_type_display }}</a>
+                                        <span class="text-gray-400">&middot; {{ e.uploaded_at|date:"d M Y" }}{% if e.uploaded_by %} &middot; {{ e.uploaded_by.username }}{% endif %}</span>
+                                        {% if e.notes %}<div class="text-gray-400">{{ e.notes }}</div>{% endif %}
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </dd>
+                        {% endif %}
                     </div>
                     <!-- Initial Audit / Final Audit -->
                     <div>
