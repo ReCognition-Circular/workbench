@@ -156,12 +156,93 @@
                             <span class="px-2 py-0.5 rounded text-xs font-semibold"
                                   :class="row.passed === true ? 'bg-green-100 text-green-800' : (row.passed === false ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-500')"
                                   x-text="row.passed === true ? 'PASS' : (row.passed === false ? 'FAIL' : 'Not tested')"></span>
-                        </div>
+                       </div>
                     </template>
                 </div>
             </div>
         </template>
-	<!-- PAT block (QA) -->
+	<!-- Erasure intent panel (refurb + QA) -->
+	<template x-if="stageSlug === 'refurb' || stageSlug === 'qa'">
+	    <div class="bg-white rounded-lg shadow mb-4 overflow-hidden">
+		<div class="bg-gray-50 px-4 py-2 font-semibold text-gray-700 border-b flex items-center justify-between">
+		    <span>Data erasure</span>
+		    <span class="px-2 py-0.5 rounded text-xs font-semibold"
+			  :class="erasurePanel.required ? (erasurePanel.answered ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800') : 'bg-green-100 text-green-800'"
+			  x-text="erasurePanel.required ? (erasurePanel.answered ? 'Exception granted' : 'Required — not yet recorded') : 'Not required'"></span>
+		</div>
+		<div class="px-4 py-3 text-sm">
+		    <div class="flex items-center justify-between py-1">
+			<span class="text-gray-500">Wipe status</span>
+			<span class="font-medium" x-text="erasurePanel.wipe_status || '—'"></span>
+		    </div>
+		    <template x-if="erasurePanel.answered">
+			<div>
+			    <div class="flex items-center justify-between py-1">
+				<span class="text-gray-500">Category</span>
+				<span class="font-medium" x-text="erasurePanel.category_label || '—'"></span>
+			    </div>
+			    <div class="flex items-center justify-between py-1">
+				<span class="text-gray-500">Reason</span>
+				<span class="font-medium" x-text="erasurePanel.reason_label || '—'"></span>
+			    </div>
+			    <div x-show="erasurePanel.note" class="py-1">
+				<span class="text-gray-500">Note</span>
+				<p class="mt-1 text-gray-700" x-text="erasurePanel.note"></p>
+			    </div>
+			    <div class="flex items-center justify-between py-1 text-xs text-gray-400">
+				<span x-text="erasurePanel.decided_by ? ('Recorded by ' + erasurePanel.decided_by) : 'Not yet decided'"></span>
+				<span x-text="erasurePanel.decided_at ? new Date(erasurePanel.decided_at).toLocaleString() : ''"></span>
+			    </div>
+			</div>
+		    </template>
+
+		    <!-- Operator: grant / revoke -->
+		    <div class="border-t mt-3 pt-3">
+			<template x-if="!erasurePanel.answered">
+			    <div>
+				<p class="text-xs text-gray-500 mb-2">No exception recorded. Cedar erasure is required for this device.</p>
+				<div x-show="erasurePanel.categories && erasurePanel.categories.length">
+				    <label class="block text-xs text-gray-500 mb-1">Category</label>
+				    <select x-model="erasureForm.category" class="border rounded px-2 py-1 text-sm w-full mb-2">
+					<option value="">— select —</option>
+					<template x-for="c in erasurePanel.categories" :key="c.value">
+					    <option :value="c.value" x-text="c.label"></option>
+					</template>
+				    </select>
+				    <label class="block text-xs text-gray-500 mb-1">Reason</label>
+				    <select x-model="erasureForm.reason" class="border rounded px-2 py-1 text-sm w-full mb-2">
+					<option value="">— select —</option>
+					<template x-for="r in erasurePanel.reasons" :key="r.value">
+					    <option :value="r.value" x-text="r.label"></option>
+					</template>
+				    </select>
+				    <label class="block text-xs text-gray-500 mb-1">
+					Note <span x-show="erasureForm.reason === 'OTHER'" class="text-red-500">(required)</span>
+				    </label>
+				    <textarea x-model="erasureForm.note" rows="2" class="border rounded px-2 py-1 text-sm w-full mb-2" placeholder="Reason…"></textarea>
+				    <button @click="grantErasureException()"
+					    :disabled="erasureSaving || !erasureForm.category || !erasureForm.reason || (erasureForm.reason === 'OTHER' && !erasureForm.note)"
+					    class="px-3 py-1 bg-amber-600 text-white rounded text-sm font-semibold hover:bg-amber-700 disabled:opacity-50">
+					<span x-show="!erasureSaving">Record exception</span>
+					<span x-show="erasureSaving">Saving…</span>
+				    </button>
+				</div>
+			    </div>
+			</template>
+			<template x-if="erasurePanel.answered">
+			    <div class="flex items-center justify-between">
+				<p class="text-xs text-gray-500">Exception granted — Cedar erasure not required.</p>
+				<button @click="revokeErasureException()" :disabled="erasureSaving"
+					class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50">
+				    Revoke
+				</button>
+			    </div>
+			</template>
+		    </div>
+		</div>
+	    </div>
+	</template>
+	<!-- PAT block (QA) -->	
 	<template x-if="stageSlug === 'qa'">
 	    <div class="bg-white rounded-lg shadow mb-4 overflow-hidden">
 		<div class="bg-gray-50 px-4 py-2 font-semibold text-gray-700 border-b">PAT Test</div>
@@ -293,13 +374,14 @@
 
         <!-- Complete Button -->
         <div class="bg-white rounded-lg shadow p-4 mb-4 text-center">
-            <button @click="completeChecklist()" :disabled="completing" class="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50">
+	    <button @click="completeChecklist()" :disabled="completing || locked" class="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50">	    
                 <span x-show="!completing">✓ Complete {{ checklist_template.name }}</span>
                 <span x-show="completing">Submitting…</span>
             </button>
-            <p x-show="stageSlug === 'check-in' && !allRequiredDone()" class="text-sm text-amber-600 mt-2">
+	    <p x-show="stageSlug === 'check-in' && !allRequiredDone()" class="text-sm text-amber-600 mt-2">
                 Some required items are not yet answered.
             </p>
+            <p x-show="locked" class="text-sm text-red-600 mt-2" x-text="lockedReason"></p>
         </div>
 
     </div><!-- end checklist container -->
@@ -363,6 +445,11 @@ function checklistApp() {
         overrideGrade: '',
         overrideReason: '',
         pendingPhoto: { type: null, item: null },
+	erasurePanel: {},
+        locked: false,
+        lockedReason: '',    
+	erasureForm: { category: '', reason: '', note: '' },
+        erasureSaving: false,    
 
         init() {
             this.deviceId = parseInt(this.$el.dataset.deviceId);
@@ -400,6 +487,9 @@ function checklistApp() {
                 this.instanceId = data.id;
 		this.cedarPanel = data.cedar_panel || [];
 		this.pat = data.pat || { pat_status: null, pat_pass_id: '', pat_justification: '' };    
+		this.erasurePanel = data.erasure_panel || {};
+		this.locked = data.locked || false;
+		this.lockedReason = data.locked_reason || '';   
                 const allPassed = this.cedarPanel.length > 0 && this.cedarPanel.every(r => r.passed === true);
                 this.cedarPanelOpen = !allPassed;    
 		const groups = {};
@@ -492,6 +582,50 @@ function checklistApp() {
 		console.error('PAT save error:', e);
 	    } finally {
 		this.patSaving = false;
+	    }
+	},    
+	async grantErasureException() {
+	    this.erasureSaving = true;
+	    try {
+		const res = await fetch(`/api/devices/${this.deviceId}/set-erasure-exception/`, {
+		    method: 'POST',
+		    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCSRF() },
+		    body: JSON.stringify({
+			action: 'grant',
+			category: this.erasureForm.category,
+			reason: this.erasureForm.reason,
+			note: this.erasureForm.note,
+		    }),
+		});
+		const data = await res.json();
+		if (!res.ok) throw new Error(data.error || 'Save failed');
+		this.erasureForm = { category: '', reason: '', note: '' };
+		await this.loadChecklist();
+	    } catch (e) {
+		alert('Erasure exception failed: ' + e.message);
+		console.error('Erasure exception error:', e);
+	    } finally {
+		this.erasureSaving = false;
+	    }
+	},
+
+	async revokeErasureException() {
+	    if (!confirm('Revoke this erasure exception? Cedar erasure will be required again.')) return;
+	    this.erasureSaving = true;
+	    try {
+		const res = await fetch(`/api/devices/${this.deviceId}/set-erasure-exception/`, {
+		    method: 'POST',
+		    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCSRF() },
+		    body: JSON.stringify({ action: 'revoke' }),
+		});
+		const data = await res.json();
+		if (!res.ok) throw new Error(data.error || 'Revoke failed');
+		await this.loadChecklist();
+	    } catch (e) {
+		alert('Revoke failed: ' + e.message);
+		console.error('Revoke error:', e);
+	    } finally {
+		this.erasureSaving = false;
 	    }
 	},    
         async completeChecklist() {

@@ -258,25 +258,21 @@ class FulfilmentRequest(models.Model):
 
 class ErasureExceptionCategory(models.TextChoices):
     NOT_REQUIRED = 'NOT_REQUIRED', "Not required"
-    NOT_POSSIBLE = 'NOT_POSSIBLE', "Not possible via Cedar"
     WIPED_EXTERNAL = 'WIPED_EXTERNAL', "Wiped outside Cedar"
 
 
 class ErasureExceptionReason(models.TextChoices):
-    # NOT_REQUIRED
+    # System-only: written by perform_create() from a donor pledge declaration.
+    # Never offered to an operator — the donor's declaration IS the decision.
     DONOR_DECLARED = 'DONOR_DECLARED', "Declared by donor on donation pledge"
-    DONOR_PRE_WIPED = 'DONOR_PRE_WIPED', "Donor confirmed pre-wiped (operator-recorded)"
+    # Operator-selectable
     NO_STORAGE_MEDIA = 'NO_STORAGE_MEDIA', "No storage media present"
-    # NOT_POSSIBLE (trigger — device can still proceed via replacement drive)
-    SOLDERED_NAND = 'SOLDERED_NAND', "Soldered storage (e.g. Apple NAND)"
-    UNSUPPORTED_CONTROLLER = 'UNSUPPORTED_CONTROLLER', "Controller not supported by Cedar"
-    DRIVE_DAMAGED = 'DRIVE_DAMAGED', "Drive damaged / unreadable"
-    # WIPED_EXTERNAL
     REMOVED_WIPED_ELSEWHERE = 'REMOVED_WIPED_ELSEWHERE', "Drive removed and wiped elsewhere"
-    THIRD_PARTY_PRODUCT = 'THIRD_PARTY_PRODUCT', "Wiped with third-party product"
-    LINUX_CLI = 'LINUX_CLI', "Wiped via Linux CLI"
-    # shared
     OTHER = 'OTHER', "Other (note required)"
+class ErasureExceptionCategory(models.TextChoices):
+    NOT_REQUIRED = 'NOT_REQUIRED', "Not required"
+    NOT_POSSIBLE = 'NOT_POSSIBLE', "Not possible via Cedar"
+    WIPED_EXTERNAL = 'WIPED_EXTERNAL', "Wiped outside Cedar"
 
 
 class ErasureExceptionStatus(models.TextChoices):

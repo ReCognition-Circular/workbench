@@ -610,6 +610,14 @@ def _erasure_panel_data(device):
             else None
         ),
         "wipe_status": device.wipe_status,
+        "categories": [
+            {"value": c.value, "label": c.label}
+            for c in ErasureExceptionCategory
+        ],
+        "reasons": [
+            {"value": r.value, "label": r.label}
+            for r in ErasureExceptionReason
+        ],
     }
 def _cedar_panel_data(device):
     """Build the QA 'Cedar read-only panel' rows from the latest audit."""
