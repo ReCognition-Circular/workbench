@@ -364,11 +364,14 @@ class DeviceViewSet(
         # --- Create/update DataWipeRecord from erasure results ---
         wipe_record = None
         if all_erasure_data:
-            if any(_result_is_fail(_cert_field(c, "result", "Pass"))
-                   for c in all_erasure_data):
+            results = [_cert_field(c, "result") for c in all_erasure_data]
+            if any(_result_is_fail(r) for r in results):
                 worst = "FAIL"
-            else:
+            elif all(str(r or "").strip().lower() in ("pass", "passed", "ok", "success")
+                     for r in results):
                 worst = "PASS"
+            else:
+                worst = "PENDING"
 
             first_cert = all_erasure_data[0]
             wipe_standard = _cert_field(first_cert, "standard", "")
