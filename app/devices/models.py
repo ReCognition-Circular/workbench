@@ -256,10 +256,6 @@ class FulfilmentRequest(models.Model):
     def __str__(self):
         return self.summary or self.erpnext_order_id
 
-class ErasureExceptionCategory(models.TextChoices):
-    NOT_REQUIRED = 'NOT_REQUIRED', "Not required"
-    WIPED_EXTERNAL = 'WIPED_EXTERNAL', "Wiped outside Cedar"
-
 
 class ErasureExceptionReason(models.TextChoices):
     # System-only: written by perform_create() from a donor pledge declaration.
@@ -273,11 +269,6 @@ class ErasureExceptionCategory(models.TextChoices):
     NOT_REQUIRED = 'NOT_REQUIRED', "Not required"
     NOT_POSSIBLE = 'NOT_POSSIBLE', "Not possible via Cedar"
     WIPED_EXTERNAL = 'WIPED_EXTERNAL', "Wiped outside Cedar"
-
-
-class ErasureExceptionStatus(models.TextChoices):
-    NONE = 'NONE', "No exception — Cedar erasure required"
-    GRANTED = 'GRANTED', "Exception granted"
 
 class SpecSource(models.TextChoices):
     FOG = "FOG", "FOG auto-detected"
