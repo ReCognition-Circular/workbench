@@ -80,6 +80,10 @@
                         <dt class="text-gray-500">Processor</dt>
                         <dd class="font-medium">{{ device.device_specification.processor }}</dd>
                     </div>
+		    <div>
+                        <dt class="text-gray-500">Graphics</dt>
+                        <dd class="font-medium">{{ device.device_specification.gpu|default:"—" }}</dd>
+                    </div>
                     <div>
                         <dt class="text-gray-500">Memory</dt>
                         <dd class="font-medium">{{ device.device_specification.memory_gb }} GB</dd>

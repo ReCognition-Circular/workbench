@@ -98,9 +98,13 @@
                     <option value="BER" {% if device.final_grade == "BER" %}selected{% endif %}>Beyond Economic Repair</option>
                 </select>
             </div>
-            <div class="form-group">
+	    <div class="form-group">
                 <label for="processor">Processor</label>
                 <input type="text" id="processor" name="processor" value="{{ device.device_specification.processor|default:'' }}">
+            </div>
+            <div class="form-group">
+                <label for="gpu">Graphics (GPU)</label>
+                <input type="text" id="gpu" name="gpu" value="{{ device.device_specification.gpu|default:'' }}">
             </div>
             <div class="form-group">
                 <label for="memory_gb">Memory (GB)</label>
@@ -226,6 +230,7 @@
                 market_value_pounds: document.getElementById('market_value_pounds').value || null,
 		device_specification_data: {
                     processor: document.getElementById('processor').value,
+		    gpu: document.getElementById('gpu').value,	
                     memory_gb: document.getElementById('memory_gb').value || null,
                     storage_type: document.getElementById('storage_type').value,
                     storage_size_gb: document.getElementById('storage_size_gb').value || null,

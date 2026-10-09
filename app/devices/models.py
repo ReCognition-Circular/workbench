@@ -282,6 +282,7 @@ class DeviceSpecification(models.Model):
     model_number = models.CharField(max_length=100, blank=True)
     serial_number = models.CharField(max_length=100, blank=True, unique=True)
     processor = models.CharField(max_length=200, blank=True)
+    gpu = models.CharField(max_length=200, blank=True)
     memory_gb = models.IntegerField(null=True, blank=True)
     storage_type = models.CharField(
         max_length=20, choices=StorageType.choices, default=StorageType.UNKNOWN

@@ -73,6 +73,7 @@ class DeviceSpecificationWriteSerializer(serializers.ModelSerializer):
             'manufacturer',
             'model_name',
             'processor',
+            'gpu',
             'memory_gb',
             'storage_type',
             'storage_size_gb',
@@ -152,6 +153,18 @@ class DeviceSerializer(serializers.ModelSerializer):
         location_code = validated_data.pop('location_code', None)
         stage_code = validated_data.pop('stage_code', None)
         donor_id = validated_data.pop('donor_id', None)
+        # device_type belongs on Device, not DeviceSpecification. Current n8n
+        # sends it top-level; some clients nest it inside the specification
+        # subtree. DRF strips unknown nested keys before create() runs, so a
+        # nested value must be read from the raw payload. Top-level wins.
+        if spec_data:
+            spec_data.pop('host_name', None)   # unrecognised by the spec serializer
+
+        if not validated_data.get('device_type'):
+            raw_spec = (self.initial_data or {}).get('device_specification_data') or {}
+            nested_type = raw_spec.get('device_type')
+            if nested_type:
+                validated_data['device_type'] = nested_type
 
         if location_code:
             try:
