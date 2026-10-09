@@ -1,0 +1,58 @@
+{
+  "updatedAt": "2026-03-06T13:59:52.000Z",
+  "createdAt": "2026-03-06T09:19:37.124Z",
+  "id": "-sPk8VZIAb22hv6MdgUfB",
+  "name": "Duplicate Check",
+  "description": null,
+  "active": false,
+  "isArchived": true,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2085cfee-edd6-4caa-9023-f1626727c3a7",
+      "name": "When clicking \u2018Execute workflow\u2019"
+    }
+  ],
+  "connections": {},
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "b12d3dab-ba35-41b6-b529-72bce2cd1246",
+  "activeVersionId": null,
+  "versionCounter": 3,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-03-06T09:19:37.175Z",
+      "createdAt": "2026-03-06T09:19:37.175Z",
+      "role": "workflow:owner",
+      "workflowId": "-sPk8VZIAb22hv6MdgUfB",
+      "projectId": "1QhMRJYuO8xtYfJD",
+      "project": {
+        "updatedAt": "2026-01-23T16:30:55.431Z",
+        "createdAt": "2026-01-22T15:39:16.810Z",
+        "id": "1QhMRJYuO8xtYfJD",
+        "name": "DAVID ABOSCH <david@recognition-circular.org>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1a262c4f-45e8-438c-8358-3323325186ca"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

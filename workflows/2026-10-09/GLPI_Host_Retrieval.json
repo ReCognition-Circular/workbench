@@ -1,0 +1,158 @@
+{
+  "updatedAt": "2026-03-19T15:03:27.464Z",
+  "createdAt": "2026-03-06T10:28:46.390Z",
+  "id": "mKQqFSkDMt6TNOJ9",
+  "name": "GLPI Host Retrieval",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "13e60160-a071-4257-9dbc-b2ec378c78d9",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -352,
+        1136
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "5OzOJPR6FWJ9b4V8",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/5OzOJPR6FWJ9b4V8",
+          "cachedResultName": "GLPI Session Management"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -144,
+        1136
+      ],
+      "id": "cfc20f30-db74-4472-bf01-d34f1d014fde",
+      "name": "Call 'GLPI Session Management'"
+    },
+    {
+      "parameters": {
+        "url": "http://172.16.0.178/apirest.php/listSearchOptions/Computer?app_token=n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "session-token",
+              "value": "={{ $json.session_token }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        112,
+        1136
+      ],
+      "id": "b6b2c7a5-cc7c-4f1e-9a9c-b1899402132c",
+      "name": "Get GLPI hosts"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Call 'GLPI Session Management'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GLPI hosts": {
+      "main": [
+        []
+      ]
+    },
+    "Call 'GLPI Session Management'": {
+      "main": [
+        [
+          {
+            "node": "Get GLPI hosts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "global": {
+      "lastRunTime": "2026-03-06 08:41:01"
+    }
+  },
+  "meta": null,
+  "pinData": {
+    "Start": [
+      {
+        "json": {},
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "versionId": "bdc310a1-c1cc-4074-bce7-9b0761a2eb54",
+  "activeVersionId": null,
+  "versionCounter": 34,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-03-06T10:28:46.426Z",
+      "createdAt": "2026-03-06T10:28:46.426Z",
+      "role": "workflow:owner",
+      "workflowId": "mKQqFSkDMt6TNOJ9",
+      "projectId": "1QhMRJYuO8xtYfJD",
+      "project": {
+        "updatedAt": "2026-01-23T16:30:55.431Z",
+        "createdAt": "2026-01-22T15:39:16.810Z",
+        "id": "1QhMRJYuO8xtYfJD",
+        "name": "DAVID ABOSCH <david@recognition-circular.org>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1a262c4f-45e8-438c-8358-3323325186ca"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

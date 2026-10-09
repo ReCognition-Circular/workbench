@@ -1,0 +1,170 @@
+{
+  "updatedAt": "2026-03-10T10:28:08.440Z",
+  "createdAt": "2026-03-10T10:23:50.384Z",
+  "id": "a1Ylhck6su4aPLik",
+  "name": "Retrieve GLPI computers",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "url": "http://172.16.0.178/apirest.php/initSession",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Authorization",
+              "value": "user_token j5PWaDtm2Lq5zChSNt8lJld1Kks8HmuQ45tvSTaH"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2048,
+        640
+      ],
+      "id": "6abb66e5-3aed-41e6-8901-dc9c1d370d0f",
+      "name": "get session token",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "38a83898-c839-4d47-abfb-2797dc7a6e84",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        1840,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://172.16.0.178/apirest.php/Computer?range=0-999&expand_dropdowns=true",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "App-Token",
+              "value": "n8Mtcysn7AiUZg9x74qmjETUuwU4Uh7rhb3iaHMZ"
+            },
+            {
+              "name": "Session-Token",
+              "value": "={{ $json.session_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2256,
+        640
+      ],
+      "id": "e7e75267-abb7-4b2c-9706-83ebc5ad0da7",
+      "name": "Get GLPI Computers"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Structure the GLPI data for the orchestrator\nconst sessionItem = items[0]; // From session token request\nconst computersItem = items[1]; // From computers request\n\nreturn [{\n  json: {\n    session_token: sessionItem.json.session_token,\n    glpi_computers: computersItem.json || [],\n    total_computers: Array.isArray(computersItem.json) ? computersItem.json.length : 0,\n    retrieved_at: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        640
+      ],
+      "id": "5d1bd8b8-963d-4c99-9227-5d11d218e3a3",
+      "name": "Structure Output"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "get session token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get session token": {
+      "main": [
+        [
+          {
+            "node": "Get GLPI Computers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GLPI Computers": {
+      "main": [
+        [
+          {
+            "node": "Structure Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "daa02404-b12c-4e4b-9082-f8d1d170e7db",
+  "activeVersionId": null,
+  "versionCounter": 23,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-03-10T10:23:50.510Z",
+      "createdAt": "2026-03-10T10:23:50.510Z",
+      "role": "workflow:owner",
+      "workflowId": "a1Ylhck6su4aPLik",
+      "projectId": "1QhMRJYuO8xtYfJD",
+      "project": {
+        "updatedAt": "2026-01-23T16:30:55.431Z",
+        "createdAt": "2026-01-22T15:39:16.810Z",
+        "id": "1QhMRJYuO8xtYfJD",
+        "name": "DAVID ABOSCH <david@recognition-circular.org>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1a262c4f-45e8-438c-8358-3323325186ca"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

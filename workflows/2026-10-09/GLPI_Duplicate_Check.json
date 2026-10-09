@@ -1,0 +1,46 @@
+{
+  "updatedAt": "2026-03-19T13:15:55.000Z",
+  "createdAt": "2026-03-10T14:46:58.541Z",
+  "id": "HPP6J2eIxJPX7EFwjSdLE",
+  "name": "GLPI Duplicate Check",
+  "description": null,
+  "active": false,
+  "isArchived": true,
+  "nodes": [],
+  "connections": {},
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "0cea3015-573c-46db-be56-dab4be01b57e",
+  "activeVersionId": null,
+  "versionCounter": 6,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-03-10T14:46:58.639Z",
+      "createdAt": "2026-03-10T14:46:58.639Z",
+      "role": "workflow:owner",
+      "workflowId": "HPP6J2eIxJPX7EFwjSdLE",
+      "projectId": "1QhMRJYuO8xtYfJD",
+      "project": {
+        "updatedAt": "2026-01-23T16:30:55.431Z",
+        "createdAt": "2026-01-22T15:39:16.810Z",
+        "id": "1QhMRJYuO8xtYfJD",
+        "name": "DAVID ABOSCH <david@recognition-circular.org>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1a262c4f-45e8-438c-8358-3323325186ca"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

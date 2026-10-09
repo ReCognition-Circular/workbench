@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReCognition Work — Operations</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            padding: 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 24px;
+            color: #1a1a1a;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #1a1a1a;
+        }
+        .card p { font-size: 14px; color: #666; margin-bottom: 16px; }
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #444;
+        }
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        input[type="file"] { padding: 8px; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #2563eb; color: white; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+        .btn-success { background: #16a34a; color: white; }
+        .btn-success:hover { background: #15803d; }
+        .btn-warning { background: #d97706; color: white; }
+        .btn-warning:hover { background: #b45309; }
+        .status {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+        .status.success { display: block; background: #dcfce7; color: #166534; }
+        .status.error { display: block; background: #fee2e2; color: #991b1b; }
+        .status.loading { display: block; background: #fef9c3; color: #854d0e; }
+        .inline-group { display: flex; gap: 12px; }
+        .inline-group > * { flex: 1; }
+        hr { border: none; border-top: 1px solid #eee; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 ReCognition Work — Operations</h1>
+
+        <!-- Card 1: Sync FOG → GLPI -->
+        <div class="card">
+            <h2>🔄 Sync FOG → GLPI</h2>
+            <p>Import new hosts from FOG into GLPI with full hardware specifications.</p>
+            <button id="syncBtn" class="btn btn-primary" onclick="triggerSync()">▶ Run Sync</button>
+            <div id="syncStatus" class="status"></div>
+        </div>
+
+        <!-- Card 2: Print Asset Label -->
+        <div class="card">
+            <h2>🏷️ Print Asset Label</h2>
+            <p>Generate and print a barcode asset label for a device.</p>
+            <div class="inline-group">
+                <div>
+                    <label for="invNum">Inventory Number</label>
+                    <input type="text" id="invNum" placeholder="e.g. 12040051">
+                </div>
+                <div>
+                    <label for="modelName">Model Name</label>
+                    <input type="text" id="modelName" placeholder="e.g. EliteBook 840 G3">
+                </div>
+            </div>
+            <button class="btn btn-success" onclick="printAssetLabel()">🖨️ Print Label</button>
+            <div id="labelStatus" class="status"></div>
+        </div>
+
+        <!-- Card 3: Print Postage Label -->
+        <div class="card">
+            <h2>📦 Print Postage Label</h2>
+            <p>Print a carrier-provided postage label to the postage printer.</p>
+            <label for="postageFile">Upload carrier label (PDF or image)</label>
+            <input type="file" id="postageFile" accept=".pdf,.png,.jpg,.jpeg">
+            <button class="btn btn-warning" onclick="printPostageLabel()">🖨️ Print Postage Label</button>
+            <div id="postageStatus" class="status"></div>
+        </div>
+    </div>
+
+    <script>
+        const N8N_WEBHOOK = 'https://172.16.0.23:5678/webhook/trigger-fog-glpi';
+        const PRINT_SERVICE = '';
+
+        function showStatus(el, type, msg) {
+            el.className = 'status ' + type;
+            el.textContent = msg;
+        }
+
+        // Card 1: Sync FOG → GLPI
+        async function triggerSync() {
+            const btn = document.getElementById('syncBtn');
+            const status = document.getElementById('syncStatus');
+            btn.disabled = true;
+            showStatus(status, 'loading', '⏳ Sync in progress...');
+
+            try {
+                const resp = await fetch(N8N_WEBHOOK, { method: 'POST' });
+                if (resp.ok) {
+                    showStatus(status, 'success', '✅ Sync triggered successfully!');
+                } else {
+                    showStatus(status, 'error', '❌ Sync failed: ' + resp.statusText);
+                }
+            } catch (err) {
+                showStatus(status, 'error', '❌ Error: ' + err.message);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Card 2: Print Asset Label
+        async function printAssetLabel() {
+            const inv = document.getElementById('invNum').value.trim();
+            const model = document.getElementById('modelName').value.trim();
+            const status = document.getElementById('labelStatus');
+
+            if (!inv) { showStatus(status, 'error', '❌ Please enter an inventory number.'); return; }
+
+            showStatus(status, 'loading', '⏳ Printing label...');
+            try {
+                const resp = await fetch(PRINT_SERVICE + '/print/label', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inventory_number: inv, model_name: model })
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    showStatus(status, 'success', '✅ Label printed successfully!');
+                } else {
+                    showStatus(status, 'error', '❌ Print failed: ' + (data.error || resp.statusText));
+                }
+            } catch (err) {
+                showStatus(status, 'error', '❌ Error: ' + err.message);
+            }
+        }
+
+        // Card 3: Print Postage Label
+        async function printPostageLabel() {
+            const fileInput = document.getElementById('postageFile');
+            const status = document.getElementById('postageStatus');
+
+            if (!fileInput.files.length) { showStatus(status, 'error', '❌ Please select a file.'); return; }
+
+            showStatus(status, 'loading', '⏳ Sending postage label to printer...');
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const resp = await fetch(PRINT_SERVICE + '/print/postage', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (resp.ok) {
+                    showStatus(status, 'success', '✅ Postage label printed!');
+                } else {
+                    showStatus(status, 'error', '❌ Print failed: ' + (data.error || resp.statusText));
+                }
+            } catch (err) {
+                showStatus(status, 'error', '❌ Error: ' + err.message);
+            }
+        }
+    </script>
+</body>
+</html>

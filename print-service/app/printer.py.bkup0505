@@ -1,0 +1,67 @@
+import os
+import logging
+from brother_ql.raster import BrotherQLRaster
+from brother_ql.backends.helpers import send
+from brother_ql.conversion import convert
+from PIL import Image
+
+from .config import config
+
+logger = logging.getLogger(__name__)
+
+class PrinterService:
+    def __init__(self):
+        self.device_path = None
+        
+    def find_printer_device(self):
+        """Find the correct printer device path"""
+        for path in config.USB_DEVICE_PATHS:
+            if os.path.exists(path):
+                logger.info(f"Found printer at: {path}")
+                self.device_path = path
+                return path
+        
+        logger.error("No printer device found in paths: %s", config.USB_DEVICE_PATHS)
+        return None
+    
+    def print_image(self, image: Image.Image, printer_model: str = None):
+        """Print an image to the specified printer"""
+        try:
+            if not self.device_path:
+                self.device_path = self.find_printer_device()
+                if not self.device_path:
+                    raise RuntimeError("Printer device not found")
+            
+            # Use default model if not specified
+            if not printer_model:
+                printer_model = config.PRINTER_MODEL_ASSET
+            
+            logger.info(f"Printing to {printer_model} at {self.device_path}")
+            
+            # Initialize printer
+            qlr = BrotherQLRaster(printer_model)
+            
+            # Convert image for printing
+            # Based on brother_ql documentation, convert modifies qlr in place
+            convert(
+                qlr=qlr,
+                images=[image],  # Pass as a list
+                label=config.LABEL_SIZE,
+                cut=config.CUT_AFTER_PRINT,
+            )
+            
+            # Send to printer - check the actual API signature
+            # The send function might have different parameters
+            send(qlr.data, self.device_path)
+            
+            logger.info("Print successful")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Print failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return False
+
+# Global printer service instance
+printer_service = PrinterService()

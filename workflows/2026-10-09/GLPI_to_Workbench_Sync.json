@@ -1,0 +1,169 @@
+{
+  "updatedAt": "2026-05-19T13:49:04.025Z",
+  "createdAt": "2026-05-15T14:42:09.276Z",
+  "id": "Mx2qiZn71rMdORSE",
+  "name": "GLPI to Workbench Sync",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  cc.inventory_number,\n  cc.serial_number,\n  cc.glpi_data->>'name' AS computer_name,\n  (SELECT c.name FROM glpi_cache c WHERE c.entity_type = 'manufacturer' AND c.glpi_id = (cc.glpi_data->>'manufacturers_id')::int LIMIT 1) AS manufacturer_name,\n  (SELECT c.name FROM glpi_cache c WHERE c.entity_type = 'model' AND c.glpi_id = (cc.glpi_data->>'computermodels_id')::int LIMIT 1) AS model_name,\n  (SELECT c.name FROM glpi_cache c WHERE c.entity_type = 'processor' AND c.glpi_id = ((cc.glpi_data->'_component_ids'->>'processor')::int) LIMIT 1) AS processor_name,\n  (SELECT c.name FROM glpi_cache c WHERE c.entity_type = 'memory' AND c.glpi_id = ((cc.glpi_data->'_component_ids'->>'memory')::int) LIMIT 1) AS memory_name,\n  (SELECT c.name FROM glpi_cache c WHERE c.entity_type = 'storage' AND c.glpi_id = ((cc.glpi_data->'_component_ids'->>'storage')::int) LIMIT 1) AS storage_name,\n  cc.glpi_data->>'comment' AS comment\nFROM created_computers cc\nWHERE cc.glpi_computer_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $json.glpi_computer_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -32,
+        0
+      ],
+      "id": "2b0fb2cb-22ca-478f-80c1-cacf8f1176bd",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "V7cbqAVqoEJ2eCid",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\n\n// Map GLPI computer type to Workbench device type\nlet deviceType = \"LAPTOP\";\nconst typeName = (data.computer_type || \"\").toLowerCase();\nif (typeName.includes(\"desktop\")) deviceType = \"DESKTOP\";\nelse if (typeName.includes(\"all in one\")) deviceType = \"ALL_IN_ONE\";\nelse if (typeName.includes(\"tablet\")) deviceType = \"TABLET\";\n\n// Parse memory\nlet memoryGb = null;\nconst memMatch = data.memory_name ? data.memory_name.match(/([\\d.]+)/) : null;\nif (memMatch) memoryGb = Math.round(parseFloat(memMatch[1]));\n\n// Parse storage\nlet storageSizeGb = null;\nlet storageType = \"UNKNOWN\";\nconst s = data.storage_name || \"\";\n\nconst gbMatch = s.match(/(\\d+)\\s*GB/i);\nconst tbMatch = s.match(/(\\d+)\\s*TB/i);\nif (gbMatch) storageSizeGb = parseInt(gbMatch[1]);\nelse if (tbMatch) storageSizeGb = parseInt(tbMatch[1]) * 1024;\nelse {\n  const modelSizeMatch = s.match(/(\\d{3,4})(?:GB|MEE|G)/i);\n  if (modelSizeMatch) storageSizeGb = parseInt(modelSizeMatch[1]);\n}\n\nif (s.includes(\"NVMe\") || s.includes(\"SSD\") || s.includes(\"UMIS\") || s.includes(\"HFM\")) storageType = \"SSD\";\nelse if (s.includes(\"HDD\")) storageType = \"HDD\";\nelse if (s.includes(\"eMMC\")) storageType = \"EMMC\";\n\nreturn {\n  inventory_number: data.inventory_number,\n  serial_number: data.serial_number,\n  device_type: deviceType,\n  device_specification_data: {\n    manufacturer: data.manufacturer_name || \"\",\n    model_name: data.model_name || \"\",\n    processor: data.processor_name || \"\",\n    memory_gb: memoryGb,\n    storage_type: storageType,\n    storage_size_gb: storageSizeGb,\n    source: \"FOG\"\n  },\n  stage_code: \"RECEIVED\",\n  wipe_status: \"PENDING\",\n  notes: data.comment || \"\"\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        0
+      ],
+      "id": "1e3203bd-5a87-4f6d-844c-8aac715e9845",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://work.recognition-circular.org/api/devices/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-API-Key",
+              "value": "wb-mUhodfwKz1NwXQ9nIdnXEo2mgQR8c3HUpIAiQ3PhLaQ"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "2532178c-1e70-4174-b739-81988a999cb3",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "e90f7712-9dce-4674-abcc-464f2405d2e6",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -256,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "26ec2e11-b02b-418b-9af3-e50b9eb2cb86",
+  "activeVersionId": "26ec2e11-b02b-418b-9af3-e50b9eb2cb86",
+  "versionCounter": 86,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-05-15T14:42:09.345Z",
+      "createdAt": "2026-05-15T14:42:09.345Z",
+      "role": "workflow:owner",
+      "workflowId": "Mx2qiZn71rMdORSE",
+      "projectId": "1QhMRJYuO8xtYfJD",
+      "project": {
+        "updatedAt": "2026-01-23T16:30:55.431Z",
+        "createdAt": "2026-01-22T15:39:16.810Z",
+        "id": "1QhMRJYuO8xtYfJD",
+        "name": "DAVID ABOSCH <david@recognition-circular.org>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1a262c4f-45e8-438c-8358-3323325186ca"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version 26ec2e11",
+    "description": ""
+  }
+}
