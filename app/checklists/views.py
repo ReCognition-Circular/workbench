@@ -527,7 +527,7 @@ def fill_cedar_track(device, asset_cert):
             continue
 
         passed = _cedar_component_passed(component)
-
+        
         response, created = ChecklistItemResponse.objects.get_or_create(
             instance=instance,
             template_item=item,
@@ -537,7 +537,16 @@ def fill_cedar_track(device, asset_cert):
             },
         )
         if not created:
-            continue  # already filled — do not overwrite, do not re-create defect
+            # Row already exists. Two cases:
+            #   - technician has entered a value → leave it alone (idempotent)
+            #   - row is blank (value is None) → backfill from Cedar, same as
+            #     fill_device_spec / fill_qa_items do for their auto items.
+            if response.value is None:
+                response.value = passed
+                response.notes = "Auto-filled from Cedar asset certificate"
+                response.save(update_fields=["value", "notes"])
+            else:
+                continue  # already filled — do not overwrite, do not re-create defect
 
         if not _should_defect(item, passed):
             continue
