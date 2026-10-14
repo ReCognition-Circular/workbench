@@ -35,15 +35,28 @@ class ChecklistTemplateSerializer(serializers.ModelSerializer):
 class ChecklistItemResponseSerializer(serializers.ModelSerializer):
     """A single answer — PATCHed on every toggle for auto-save."""
     template_item = ChecklistTemplateItemSerializer(read_only=True)
+    has_skip_repair = serializers.SerializerMethodField()
 
     class Meta:
         model = ChecklistItemResponse
         fields = [
-            "id", "template_item", "defect", "value", "notes",
+            "id", "template_item", "defect", "has_skip_repair", "value", "notes",
             "responded_at", "responded_by",
         ]
-        read_only_fields = ["id", "template_item", "defect", "responded_at", "responded_by"]
+        read_only_fields = [
+            "id", "template_item", "defect", "has_skip_repair",
+            "responded_at", "responded_by",
+        ]
 
+    def get_has_skip_repair(self, obj):
+        """True if a check-in Cedar defect was raised against this response.
+
+        Not response.defect — that FK is the refurb-side resolution and is
+        null until refurb acts on it.
+        """
+        return obj.generated_defects.filter(
+            source_type=Defect.SourceType.CEDAR_TEST
+        ).exists()
 
 class ChecklistItemResponseUpdateSerializer(serializers.ModelSerializer):
     """Used by the PATCH endpoint — only value and notes are writable."""
