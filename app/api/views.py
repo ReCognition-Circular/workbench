@@ -696,6 +696,86 @@ class DeviceViewSet(
             "overridden_by": overridden_by,
         })
 
+    @action(detail=True, methods=["post"], url_path="raise-skip-repair")
+    def raise_skip_repair(self, request, pk=None):
+        """Raise a repair from a skipped Cedar component (§7.4).
+
+        A skip means Cedar could not test the component — it is not a fault
+        and not a pass. The operator judges whether that gap matters, and if
+        it does they say so here, in their own words. The row stays at N/A:
+        flipping it to Fail would claim Cedar tested and failed it.
+
+        POST {"response_id": <int>, "description": <str, optional>}
+        """
+        from checklists.models import Defect, ChecklistItemResponse
+
+        device = self.get_object()
+
+        response_id = request.data.get("response_id")
+        if not response_id:
+            return Response(
+                {"error": "response_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        response = ChecklistItemResponse.objects.filter(
+            pk=response_id,
+            instance__device=device,
+        ).select_related("template_item").first()
+
+        if response is None:
+            return Response(
+                {"error": "Checklist response not found for this device"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        item = response.template_item
+        if item is None or item.section_label != "Cedar Track":
+            return Response(
+                {"error": "Only Cedar Track items can raise a skip repair"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if response.value is not None:
+            return Response(
+                {"error": "Only a skipped (N/A) row can raise a skip repair"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Idempotent: check-in is one-way, so a second call must not create a
+        # second defect. Reversal is a refurb decision on the existing one.
+        existing = Defect.objects.filter(
+            checklist_response=response,
+            source_type=Defect.SourceType.CEDAR_TEST,
+        ).first()
+        if existing:
+            return Response({
+                "status": "already_raised",
+                "defect_id": existing.id,
+                "already_raised": True,
+            })
+
+        description = (request.data.get("description") or "").strip()
+        if not description:
+            description = item.label
+
+        defect = Defect.objects.create(
+            device=device,
+            source_type=Defect.SourceType.CEDAR_TEST,
+            source_item=item,
+            checklist_response=response,
+            generates_refurb_item=True,
+            resolution_status=Defect.ResolutionStatus.OPEN,
+            description=description,
+        )
+
+        return Response({
+            "status": "raised",
+            "defect_id": defect.id,
+            "description": defect.description,
+            "already_raised": False,
+        }, status=status.HTTP_201_CREATED)
+
 _FAIL_VALUES = {"fail", "failed", "false", "no", "not_passed", "error"}
 
 
