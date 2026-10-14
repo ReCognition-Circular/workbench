@@ -556,19 +556,19 @@ def fill_cedar_track(device, asset_cert):
             template_item=item,
             defaults={
                 "value": status,
-                "notes": note,
             },
         )
         if not created:
-            # Row already exists. Two cases:
-            #   - technician has entered a value → leave it alone (idempotent)
-            #   - row is blank (value is None) → backfill from Cedar, same as
-            #     fill_device_spec / fill_qa_items do for their auto items.
-            if response.value is None:
+            # Do not overwrite a value an operator has set: responded_by is
+            # stamped only by ResponseUpdateView (the manual toggle endpoint).
+            # A row with a value but no responded_by came from a previous sync,
+            # so Cedar is free to correct it — e.g. a pre-tri-state True that
+            # really means the component was skipped.
+            if response.responded_by is not None:
+                continue
+            if response.value != status:
                 response.value = status
                 response.save(update_fields=["value"])
-            else:
-                continue  # already filled — do not overwrite, do not re-create defect
 
         # A skip (None) is neither pass nor fail — it raises no defect here.
         # The operator resolves it later (§7.4). Only an explicit fail does.

@@ -286,8 +286,9 @@
                 <div class="bg-gray-50 px-4 py-2 font-semibold text-gray-700 border-b" x-text="section.label"></div>
 
                 <template x-for="item in section.items" :key="item.response.id">
-                    <div class="px-4 py-3 border-b last:border-b-0 flex items-center justify-between"
+                    <div class="px-4 py-3 border-b last:border-b-0"
                          :class="item.template_item.is_auto_populated ? 'bg-gray-50' : ''">
+			<div class="flex items-center justify-between">    
 
                         <!-- Label -->
                         <div class="flex-1">
@@ -367,6 +368,35 @@
 
                         <!-- Photo button (if photo_required) -->
                         <button x-show="item.template_item.photo_required" @click="capturePhoto(item)" class="ml-2 text-blue-500 text-sm hover:underline">📷</button>
+			</div>
+			<!-- Skip repair (Cedar Track, skipped/auto only) -->
+                        <div x-show="item.response.value === null
+                                     && item.template_item.is_auto_populated
+                                     && item.template_item.section_label === 'Cedar Track'"
+                             class="mt-2 border-t pt-2">
+                            <template x-if="!item.response.has_skip_repair">
+                                <div>
+                                    <label class="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                                        <input type="checkbox" x-model="item.repairToggle" class="rounded border-gray-300">
+                                        <span>Cedar could not test this — raise a repair?</span>
+                                    </label>
+                                    <div x-show="item.repairToggle" class="mt-2 flex gap-2">
+                                        <input type="text" x-model="item.repairText"
+					       placeholder="Describe the repair…"
+                                               class="border rounded px-2 py-1 text-sm flex-1">
+                                        <button @click="raiseSkipRepair(item)"
+                                                class="px-3 py-1 bg-amber-600 text-white rounded text-sm font-semibold hover:bg-amber-700">
+                                            Raise repair
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="item.response.has_skip_repair">
+                                <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800">
+                                    ✓ Repair raised
+                                </span>
+                            </template>
+                        </div>
                     </div>
                 </template>
             </div>
@@ -561,6 +591,36 @@ function checklistApp() {
                 console.error('Notes save failed:', e);
             }
         },
+
+	async raiseSkipRepair(item) {
+                    try {
+                        const res = await fetch(`/api/devices/${this.deviceId}/raise-skip-repair/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': this.getCSRF(),
+                            },
+                            body: JSON.stringify({
+                                response_id: item.response.id,
+                                description: item.repairText || '',
+                            }),
+                        });
+
+                        const data = await res.json();
+
+                        if (!res.ok) {
+                            throw new Error(data.error || 'Could not raise the repair');
+                        }
+
+                        item.repairToggle = false;
+                        item.repairText = '';
+
+                        await this.loadChecklist();
+                    } catch (err) {
+                        console.error('raiseSkipRepair failed:', err);
+                        alert(err.message || 'Could not raise the repair');
+                    }
+                },
 
 	async savePat() {
 	    this.patSaving = true;
