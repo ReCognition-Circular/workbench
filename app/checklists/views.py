@@ -445,6 +445,74 @@ _PASS_VALUES = {"pass", "passed", "true", "yes", "ok", "success", "successful"}
 _FAIL_VALUES = {"fail", "failed", "false", "no", "error"}
 _SKIP_VALUES = {"skipped", "skip", "n/a", "na", "not_applicable", "not applicable"}
 
+# ── Cedar Skip notes (§6.3) ─────────────────────────────────────────────
+# Advisory only. A skip is neither pass nor fail; these notes give the
+# operator a starting point. The note never decides whether the skip is a
+# defect — the operator does (§7.4).
+#
+# To extend: add a component key below. To reclassify a whole class, edit
+# _SELF_CONTAINED_CLASSES. For a component that behaves differently for one
+# class, add it to that component's "benign_for" set — no code change needed.
+
+# Classes that are self-contained: components like WiFi and touch input are
+# expected to be present. Tethered classes (desktop/server) may legitimately
+# lack them.
+_SELF_CONTAINED_CLASSES = {"LAPTOP", "TABLET", "ALL_IN_ONE"}
+
+_SKIP_NOTES = {
+    # component_key: {"benign": <note when absence is expected>,
+    #                 "suspect": <note when absence may be a fault>,
+    #                 "benign_for": <optional set of classes always benign>}
+    "wifi": {
+        "benign": "No wireless card present — expected on this device class.",
+        "suspect": "Wireless card absent or not detected — check and fit if required.",
+    },
+    "ethernet": {
+        "benign": "Ethernet is the Cedar test transport — absence is expected.",
+        "suspect": "Ethernet port absent or not detected — check and repair if required.",
+    },
+    "touchscreen": {
+        "benign": "Non-touchscreen model — expected.",
+        "suspect": "Touchscreen not detected — check and repair if required.",
+        # Many all-in-ones ship non-touch even though the class is
+        # self-contained, so touchscreen is benign for AIO regardless.
+        "benign_for": {"ALL_IN_ONE"},
+    },
+    "battery": {
+        "benign": "No battery fitted — expected on this device class.",
+        "suspect": "Battery not detected — check and fit if required.",
+    },
+    "pointer": {
+        "benign": "No integrated pointing device — expected on this device class.",
+        "suspect": "Touchpad not detected — check and repair if required.",
+    },
+    "display": {
+        "benign": "No display attached — expected on this device class.",
+        "suspect": "Display not detected — check and repair if required.",
+    },
+}
+
+_GENERIC_SKIP_NOTE = "Auto-filled from Cedar asset certificate"
+
+
+def _skip_note(component_key, device_type):
+    """Advisory note for a skipped Cedar component, keyed on (component, class).
+
+    Returns _GENERIC_SKIP_NOTE for any component or class not covered — an
+    unclassified skip is still surfaced, just without a tailored hint.
+    """
+    entry = _SKIP_NOTES.get((component_key or "").strip().lower())
+    if not entry:
+        return _GENERIC_SKIP_NOTE
+
+    cls = (device_type or "").strip().upper()
+    if cls in (entry.get("benign_for") or set()):
+        return entry["benign"]
+    if cls in _SELF_CONTAINED_CLASSES:
+        return entry["suspect"]
+    if cls in {"DESKTOP", "SERVER"}:
+        return entry["benign"]
+    return _GENERIC_SKIP_NOTE
 
 def _is_pass_value(value):
     v = str(value or "").strip().lower()
