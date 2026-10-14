@@ -470,6 +470,18 @@ def _is_skip_value(value):
     return str(value or "").strip().lower() in _SKIP_VALUES
 
 
+def _is_unrecognised_value(value):
+    """A result Cedar sent that we cannot classify.
+
+    Neither an explicit pass, an explicit fail, nor an explicit skip. Design
+    §6.2 requires this to be treated as unknown (None) — never silently a pass.
+    """
+    v = str(value or "").strip().lower()
+    return (
+        v not in _PASS_VALUES
+        and v not in _FAIL_VALUES
+        and v not in _SKIP_VALUES
+    )
 def _cedar_component_status(component):
     """Tri-state Cedar result: True = pass, False = fail, None = skipped/N-A.
 
@@ -484,6 +496,9 @@ def _cedar_component_status(component):
     if any(not _is_pass_value(v) for v in outcomes):
         return False
     if any(_is_skip_value(v) for v in outcomes):
+        return None
+    # Fail-safe (§6.2): a value we cannot classify is unknown, not a pass.
+    if any(_is_unrecognised_value(v) for v in outcomes):
         return None
     return True
 

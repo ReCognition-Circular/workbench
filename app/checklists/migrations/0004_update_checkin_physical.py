@@ -5,8 +5,12 @@ def update_checkin_physical(apps, schema_editor):
     ChecklistTemplate = apps.get_model("checklists", "ChecklistTemplate")
     ChecklistTemplateItem = apps.get_model("checklists", "ChecklistTemplateItem")
 
-    # ⚠️ Confirm this is your actual check-in template code (could be "check-in", "checkin", etc.)
-    checkin = ChecklistTemplate.objects.get(code="check-in")
+    checkin = ChecklistTemplate.objects.filter(code="check-in").first()
+    if not checkin:
+        # No template to mutate — the templates are seeded outside migrations.
+        # Matches 0005_update_refurb_spec_change, which guards the same way.
+        # Safe on applied databases: the row exists there, so this path is new.
+        return
 
     # (a) Backfill: existing Pass/Fail items that generate defects now fire on "FAIL"
     #     (covers physical items 1-6 and the 15 Cedar-track items).
