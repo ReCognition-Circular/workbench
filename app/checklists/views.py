@@ -620,12 +620,20 @@ def fill_cedar_track(device, asset_cert):
         # Tri-state: True = pass, False = fail, None = skipped / N/A.
         status = _cedar_component_status(component)
 
+        # Only a skip gets a tailored note — it is the one outcome that asks
+        # the operator a question (§6.3). Pass and fail keep the generic note.
+        note = (
+            _skip_note(key, device.device_type)
+            if status is None
+            else _GENERIC_SKIP_NOTE
+        )
+
         response, created = ChecklistItemResponse.objects.get_or_create(
             instance=instance,
             template_item=item,
             defaults={
                 "value": status,
-                "notes": "Auto-filled from Cedar asset certificate",
+                "notes": note,
             },
         )
         if not created:
@@ -635,7 +643,7 @@ def fill_cedar_track(device, asset_cert):
             #     fill_device_spec / fill_qa_items do for their auto items.
             if response.value is None:
                 response.value = status
-                response.notes = "Auto-filled from Cedar asset certificate"
+                response.notes = note
                 response.save(update_fields=["value", "notes"])
             else:
                 continue  # already filled — do not overwrite, do not re-create defect
