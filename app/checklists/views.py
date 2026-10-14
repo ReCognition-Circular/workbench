@@ -549,13 +549,14 @@ def fill_cedar_track(device, asset_cert):
         if component is None:
             continue
 
-        passed = _cedar_component_passed(component)
-        
+        # Tri-state: True = pass, False = fail, None = skipped / N/A.
+        status = _cedar_component_status(component)
+
         response, created = ChecklistItemResponse.objects.get_or_create(
             instance=instance,
             template_item=item,
             defaults={
-                "value": passed,
+                "value": status,
                 "notes": "Auto-filled from Cedar asset certificate",
             },
         )
@@ -565,13 +566,18 @@ def fill_cedar_track(device, asset_cert):
             #   - row is blank (value is None) → backfill from Cedar, same as
             #     fill_device_spec / fill_qa_items do for their auto items.
             if response.value is None:
-                response.value = passed
+                response.value = status
                 response.notes = "Auto-filled from Cedar asset certificate"
                 response.save(update_fields=["value", "notes"])
             else:
                 continue  # already filled — do not overwrite, do not re-create defect
 
-        if not _should_defect(item, passed):
+        # A skip (None) is neither pass nor fail — it raises no defect here.
+        # The operator resolves it later (§7.4). Only an explicit fail does.
+        if status is None:
+            continue
+
+        if not _should_defect(item, status):
             continue
 
         Defect.objects.get_or_create(
@@ -585,6 +591,7 @@ def fill_cedar_track(device, asset_cert):
                 "description": item.label,
             },
         )
+
 def fill_device_spec(instance):
     """Auto-fill DEVICE_SPEC items (old values) from the device's specification.
 
