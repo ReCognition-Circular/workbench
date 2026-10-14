@@ -443,6 +443,7 @@ def _create_defects_from_checkin(instance):
 
 _PASS_VALUES = {"pass", "passed", "true", "yes", "ok", "success", "successful"}
 _FAIL_VALUES = {"fail", "failed", "false", "no", "error"}
+_SKIP_VALUES = {"skipped", "skip", "n/a", "na", "not_applicable", "not applicable"}
 
 
 def _is_pass_value(value):
@@ -464,6 +465,28 @@ def _collect_results(node, out):
         for v in node:
             _collect_results(v, out)
 
+
+def _is_skip_value(value):
+    """Explicit 'the test was skipped' spellings → True. Everything else → False."""
+    return str(value or "").strip().lower() in _SKIP_VALUES
+
+
+def _cedar_component_status(component):
+    """Tri-state Cedar result: True = pass, False = fail, None = skipped/N-A.
+
+    Precedence: any explicit fail wins; otherwise any explicit skip makes the
+    whole component N/A; otherwise pass. An empty component → None (nothing
+    recorded is not a pass).
+    """
+    outcomes = []
+    _collect_results(component or {}, outcomes)
+    if not outcomes:
+        return None
+    if any(not _is_pass_value(v) for v in outcomes):
+        return False
+    if any(_is_skip_value(v) for v in outcomes):
+        return None
+    return True
 
 def _cedar_component_passed(component):
     """Any fail value (flat or nested) → False; otherwise True."""
