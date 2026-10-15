@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db import transaction
 from devices.models import Device, DeviceSpecification, Allocation, Recipient, FulfilmentRequest, WipeEvidence
 from locations.models import Location, Site
 from workflow.models import Stage
@@ -66,6 +67,15 @@ class DeviceSpecificationWriteSerializer(serializers.ModelSerializer):
     storage_size_gb = serializers.IntegerField(allow_null=True, required=False)
     memory_gb_upgraded = serializers.IntegerField(allow_null=True, required=False)
     storage_size_gb_upgraded = serializers.IntegerField(allow_null=True, required=False)
+    # The DB has unique=True on serial_number, so DRF would auto-attach a
+    # UniqueValidator that runs during is_valid() — BEFORE create() — and
+    # rejects a re-post of a serial whose spec is an unattached orphan.
+    # That defeats the self-heal path in DeviceSerializer.create(), which
+    # is where uniqueness is now enforced (reuse an unattached spec;
+    # hard-fail only when the serial is attached to another device).
+    serial_number = serializers.CharField(
+        required=False, allow_blank=True, validators=[]
+    )
 
     class Meta:
         model = DeviceSpecification
@@ -190,13 +200,44 @@ class DeviceSerializer(serializers.ModelSerializer):
                     {'donor_id': f"Donor with id '{donor_id}' not found"}
                 )
 
-        # Create specification FIRST
-        if spec_data:
-            spec = DeviceSpecification.objects.create(**spec_data)
-            validated_data['device_specification'] = spec
+        with transaction.atomic():
+            # Resolve the specification BEFORE creating the device, so that a
+            # failure on the device insert rolls the spec back with it.
+            if spec_data:
+                serial = (spec_data.get('serial_number') or '').strip()
 
-        # Create device and link to spec
-        device = super().create(validated_data)
+                if not serial:
+                    # Blank serials cannot be deduplicated (a unique column
+                    # permits only one '' and any number of NULLs). Always
+                    # create a fresh spec rather than risk reusing an
+                    # unrelated serial-less device's spec.
+                    spec = DeviceSpecification.objects.create(**spec_data)
+                else:
+                    spec, created = DeviceSpecification.objects.get_or_create(
+                        serial_number=serial,
+                        defaults=spec_data,
+                    )
+                    if not created:
+                        # Spec with this serial already exists. Reuse it ONLY
+                        # if it is not attached to another device — this
+                        # self-heals orphan specs left by earlier partial
+                        # runs. A spec already owned by a different device is
+                        # a genuine duplicate serial and must hard-fail.
+                        attached_device = getattr(spec, 'device', None)
+                        if attached_device is not None:
+                            raise serializers.ValidationError(
+                                {'device_specification_data': {
+                                    'serial_number': (
+                                        f"serial '{serial}' is already attached to "
+                                        f"device {attached_device.inventory_number}"
+                                    )
+                                }}
+                            )
+
+                validated_data['device_specification'] = spec
+
+            # Create device and link to spec (same transaction)
+            device = super().create(validated_data)
 
         return device
 
