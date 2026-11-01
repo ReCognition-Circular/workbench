@@ -12,23 +12,34 @@ from donations.models import DonationPledge
 from .pdf import generate_pdf
 from .services import generate_report
 from .models import EnvironmentalReport
+from .services import generate_report, latest_device_change
+
+def _is_current(report, kind, anchor_id):
+    """A stored report is current only if no device changed after it was generated."""
+    latest = latest_device_change(kind, anchor_id)
+    return latest is None or latest <= report.generated_at
 
 
 def _existing_order_report(fr):
-    return (
+    report = (
         EnvironmentalReport.objects.filter(fulfilment_request=fr)
         .order_by("-generated_at")
         .first()
     )
+    if report is None or not _is_current(report, "ORDER", fr.pk):
+        return None
+    return report
 
 
 def _existing_donation_report(pledge):
-    return (
+    report = (
         EnvironmentalReport.objects.filter(donation_pledge=pledge)
         .order_by("-generated_at")
         .first()
     )
-
+    if report is None or not _is_current(report, "DONATION", pledge.pk):
+        return None
+    return report
 
 def _pdf_response(report):
     if not report.pdf_file:

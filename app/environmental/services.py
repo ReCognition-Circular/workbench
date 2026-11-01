@@ -14,7 +14,23 @@ from .constants import (
 )
 from .models import EnvironmentalReport
 
+def latest_device_change(kind, anchor_id):
+    """Return the newest updated_at across the anchor's devices, or None.
 
+    Used to decide whether a stored EnvironmentalReport is still current.
+    A report generated before its anchor's newest device change is stale.
+    """
+    if kind == "ORDER":
+        device_ids = Allocation.objects.filter(
+            fulfilment_request_id=anchor_id,
+            status__in=("RESERVED", "DISPATCHED"),
+        ).values_list("device_id", flat=True)
+        devices = Device.objects.filter(pk__in=device_ids)
+    elif kind == "DONATION":
+        devices = Device.objects.filter(donation_pledge_id=anchor_id)
+    else:
+        return None
+    return devices.order_by("-updated_at").values_list("updated_at", flat=True).first()
 CATEGORY_KEYS = [key for key, *_ in IMPACT_CATEGORIES]
 
 
